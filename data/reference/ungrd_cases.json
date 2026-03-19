@@ -1,0 +1,104 @@
+{
+  "_comment": "Known corruption reference cases used to validate the Isolation Forest model before deployment. Each case defines entity/NIT filters, expected feature values, and minimum required risk_score.",
+  "cases": [
+    {
+      "id": "ungrd_carrotanques",
+      "name_es": "UNGRD — Carrotanques de agua (2020–2021)",
+      "name_en": "UNGRD — Water tanker trucks (2020–2021)",
+      "description": "Overpriced water tanker contracts awarded by UNGRD during La Guajira emergency. Characterized by high advance payments (~50%), inflated prices (1.5× entity median), single-bidder processes, and direct awards.",
+      "entity_nit": "839000737",
+      "entity_name": "UNIDAD NACIONAL PARA LA GESTION DEL RIESGO DE DESASTRES",
+      "secop_filter": {
+        "nit_entidad": "839000737",
+        "objeto_del_contrato_contains": ["CARROTANQUE", "AGUA", "TANQUE"],
+        "fecha_firma_start": "2020-01-01",
+        "fecha_firma_end": "2021-12-31"
+      },
+      "expected_features": {
+        "advance_payment_ratio": {"approx": 0.5, "tolerance": 0.15},
+        "price_ratio_vs_entity_median": {"approx": 1.5, "tolerance": 0.5},
+        "single_bidder": {"value": 1},
+        "is_direct_award": {"value": 1}
+      },
+      "minimum_risk_score": 0.15,
+      "synthetic_fallback": {
+        "use_if": "Contracts fall outside 2023–2025 training window",
+        "synthetic_row": {
+          "valor_contrato": 2500000000,
+          "valor_de_pago_adelantado": 1250000000,
+          "numero_de_ofertantes": "1",
+          "modalidad_de_contratacion": "Contratación Directa",
+          "fecha_firma": "2024-06-15",
+          "nit_entidad": "839000737",
+          "nit_proveedor": "SYNTH_UNGRD_001"
+        }
+      }
+    },
+    {
+      "id": "manizales_directos",
+      "name_es": "Municipio de Manizales — Directos pre-electorales (2021–2022)",
+      "name_en": "Manizales Municipality — Pre-electoral direct awards (2021–2022)",
+      "description": "Cluster of direct-award contracts by Manizales municipality during Ley de Garantías restriction period (Nov 2021 – Jan 2022), with repeat providers and low provider diversity.",
+      "entity_nit": "890805765",
+      "entity_name": "MUNICIPIO DE MANIZALES",
+      "secop_filter": {
+        "nit_entidad": "890805765",
+        "modalidad_de_contratacion": "Contratación Directa",
+        "fecha_firma_start": "2021-11-01",
+        "fecha_firma_end": "2022-01-31"
+      },
+      "expected_features": {
+        "ley_garantias_period": {"value": 1},
+        "provider_entity_diversity": {"approx": 2, "tolerance": 2},
+        "repeat_provider_flag": {"value": 1},
+        "is_direct_award": {"value": 1}
+      },
+      "minimum_risk_score": 0.15,
+      "synthetic_fallback": {
+        "use_if": "Contracts fall outside 2023–2025 training window",
+        "synthetic_row": {
+          "valor_contrato": 450000000,
+          "numero_de_ofertantes": "1",
+          "modalidad_de_contratacion": "Contratación Directa",
+          "fecha_firma": "2024-11-20",
+          "nit_entidad": "890805765",
+          "nit_proveedor": "SYNTH_MANIZALES_001"
+        }
+      }
+    },
+    {
+      "id": "pasaportes_colombia",
+      "name_es": "Cancillería / Migración — Pasaportes (2022–2023)",
+      "name_en": "Foreign Ministry / Migration — Passports (2022–2023)",
+      "description": "Highly concentrated passport-related contracts where a single provider captured ~90% of the total entity spend via single-bidder processes. Gini coefficient near 0.95 indicates extreme market concentration.",
+      "entity_nit_options": ["800141955", "830115297"],
+      "entity_name_options": [
+        "MINISTERIO DE RELACIONES EXTERIORES",
+        "UNIDAD ADMINISTRATIVA ESPECIAL MIGRACION COLOMBIA"
+      ],
+      "secop_filter": {
+        "nit_entidad_in": ["800141955", "830115297"],
+        "objeto_del_contrato_contains": ["PASAPORTE"],
+        "fecha_firma_start": "2022-01-01",
+        "fecha_firma_end": "2023-12-31"
+      },
+      "expected_features": {
+        "value_concentration_gini": {"approx": 0.95, "tolerance": 0.1},
+        "provider_value_share_entity": {"approx": 0.9, "tolerance": 0.15},
+        "single_bidder": {"value": 1}
+      },
+      "minimum_risk_score": 0.15,
+      "synthetic_fallback": {
+        "use_if": "Contracts fall outside 2023–2025 training window",
+        "synthetic_row": {
+          "valor_contrato": 85000000000,
+          "numero_de_ofertantes": "1",
+          "modalidad_de_contratacion": "Contratación Directa",
+          "fecha_firma": "2024-03-10",
+          "nit_entidad": "800141955",
+          "nit_proveedor": "SYNTH_PASAPORTES_001"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+# requirements.txt
+# FULL dependency list — for local development only.
+# Streamlit Community Cloud points to requirements-phase1.txt, NOT this file.
+# See README.md for deployment instructions.
+
+# ─── Core Web Framework ───────────────────────────────────────────────────────
+streamlit==1.42.0
+streamlit-folium==0.23.2
+
+# ─── Data Processing ──────────────────────────────────────────────────────────
+pandas==2.2.3
+polars==1.19.0
+pyarrow==18.1.0
+numpy==2.1.3
+
+# ─── Visualization ────────────────────────────────────────────────────────────
+plotly==5.24.1
+folium==0.19.2
+
+# ─── Machine Learning ─────────────────────────────────────────────────────────
+scikit-learn==1.6.0
+shap==0.46.0
+joblib==1.4.2
+
+# ─── Graph / Network ──────────────────────────────────────────────────────────
+networkx==3.4.2
+
+# ─── NLP — Phase 3 ────────────────────────────────────────────────────────────
+transformers==4.47.1
+sentence-transformers==3.3.1
+bertopic==0.16.4
+spacy==3.8.3
+# Spanish model: python -m spacy download es_core_news_lg
+
+# ─── Socrata SODA API Client ──────────────────────────────────────────────────
+sodapy==2.2.0
+
+# ─── Web Scraping / HTTP ──────────────────────────────────────────────────────
+requests==2.32.3
+beautifulsoup4==4.12.3
+selenium==4.27.1
+
+# ─── PDF Parsing ──────────────────────────────────────────────────────────────
+pdfplumber==0.11.4
+
+# ─── Database / Backend ───────────────────────────────────────────────────────
+supabase==2.10.0
+
+# ─── Fuzzy Matching ───────────────────────────────────────────────────────────
+python-Levenshtein==0.26.1
+
+# ─── Config / Secrets ─────────────────────────────────────────────────────────
+python-dotenv==1.0.1
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+pytest==8.3.4
+pytest-cov==6.0.0

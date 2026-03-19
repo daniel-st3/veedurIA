@@ -1,0 +1,67 @@
+# ─── Secrets — NEVER commit these ────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+secrets.toml
+.streamlit/secrets.toml
+
+# ─── Raw data — temporary downloads, not tracked ─────────────────────────────
+data/raw/
+
+# ─── Processed Parquet data — lives in Supabase Storage, never in git ────────
+data/processed/*.parquet
+data/processed/**/*.parquet
+
+# ─── ML model weights — too large for git (> 50MB) ───────────────────────────
+# Note: _metadata.json files ARE committed (see below for explicit keep)
+data/processed/models/*.joblib
+data/processed/models/*.pkl
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# ─── Virtual environments ─────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ─── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ─── IDE ──────────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# ─── MCP config (may contain local paths) ────────────────────────────────────
+.mcp.json
+
+# ─── Jupyter ──────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── KEEP these (explicit negation) ──────────────────────────────────────────
+# Model metadata JSON files ARE committed (audit trail, not weights)
+!data/processed/models/*_metadata.json
+# Reference data IS committed (static, small, needed for validation)
+!data/reference/

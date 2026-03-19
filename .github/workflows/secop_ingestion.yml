@@ -1,0 +1,72 @@
+name: SECOP Incremental Ingestion
+
+on:
+  # Every 15 minutes during Colombian hours, 7 days a week
+  # 13:00–23:00 UTC = 8:00 AM – 6:00 PM UTC-5 (Colombia time)
+  schedule:
+    - cron: "*/15 13-22 * * *"
+
+  # Manual trigger for testing or emergency backfill
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Ingestion mode (incremental or backfill)"
+        required: false
+        default: "incremental"
+        type: choice
+        options:
+          - incremental
+          - backfill
+
+env:
+  SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  ingest-secop:
+    name: Ingest SECOP II Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_CONTENTS_WRITE }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements-phase1.txt
+
+      - name: Run ingestion
+        run: |
+          python -m src.ingestion.secop_client --mode=${{ github.event.inputs.mode || 'incremental' }}
+
+      - name: Commit last_run.json update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/processed/last_run.json
+          # Only commit if there are changes
+          git diff --cached --quiet || git commit -m "chore: update last_run.json [skip ci]"
+          git push
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ingestion-artifacts-${{ github.run_id }}
+          path: |
+            data/processed/last_run.json
+            data/processed/*.parquet
+          retention-days: 7
+          if-no-files-found: ignore

@@ -1,0 +1,37 @@
+{
+  "_comment": "Key Colombian electoral dates that define anomaly analysis windows. Feature 'electoral_window' fires 1 when fecha_firma is within 90 days before any event_date. Feature 'ley_garantias_period' fires 1 for direct awards after restriction_start.",
+  "events": [
+    {
+      "id": "legislative_2026",
+      "name_es": "Elecciones legislativas 2026",
+      "name_en": "2026 Legislative elections",
+      "event_date": "2026-03-08",
+      "restriction_start": "2025-11-08",
+      "notes": "Congreso (Senado + Cámara). Ley de Garantías restricts direct public contracts from 4 months before election day."
+    },
+    {
+      "id": "presidential_1st_2026",
+      "name_es": "Elecciones presidenciales 2026 — Primera vuelta",
+      "name_en": "2026 Presidential election — First round",
+      "event_date": "2026-05-31",
+      "restriction_start": "2026-01-31",
+      "notes": "First round presidential election. Ley de Garantías restricts direct contracts from 4 months before."
+    },
+    {
+      "id": "presidential_2nd_2026",
+      "name_es": "Elecciones presidenciales 2026 — Segunda vuelta",
+      "name_en": "2026 Presidential election — Runoff",
+      "event_date": "2026-06-21",
+      "restriction_start": "2026-02-21",
+      "notes": "Runoff (if no candidate achieves >50% in first round). Restriction window overlaps with first round."
+    },
+    {
+      "id": "regional_2027",
+      "name_es": "Elecciones regionales 2027",
+      "name_en": "2027 Regional elections",
+      "event_date": "2027-10-29",
+      "restriction_start": "2027-06-29",
+      "notes": "Gobernadores, alcaldes, concejos, asambleas. Typical date is last Sunday of October."
+    }
+  ]
+}

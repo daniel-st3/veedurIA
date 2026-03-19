@@ -1,0 +1,61 @@
+name: Weekly Model Retraining
+
+on:
+  # Every Sunday at 3:00 AM UTC
+  schedule:
+    - cron: "0 3 * * 0"
+
+  # Manual trigger for ad-hoc retraining
+  workflow_dispatch:
+    inputs:
+      contamination:
+        description: "Contamination rate (default 0.05, fallback 0.03)"
+        required: false
+        default: "0.05"
+        type: string
+
+env:
+  SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  retrain-model:
+    name: Retrain Isolation Forest Model
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements-phase1.txt
+
+      - name: Train model
+        run: |
+          python -m src.models.isolation_forest --action=train --contamination=${{ github.event.inputs.contamination || '0.05' }}
+
+      - name: Validate model against reference cases
+        run: |
+          python -m src.models.model_validator
+
+      - name: Upload model metadata artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: model-metadata-${{ github.run_id }}
+          path: |
+            data/processed/models/*_metadata.json
+            data/processed/models/validation_results.json
+          retention-days: 30
+          if-no-files-found: ignore

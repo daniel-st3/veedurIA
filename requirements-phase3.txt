@@ -1,0 +1,23 @@
+# requirements-phase3.txt
+# Phase 3 — PromesóMetro heavy NLP dependencies only.
+# Install ON TOP of requirements-phase1.txt when working on Phase 3 locally:
+#   pip install -r requirements-phase1.txt -r requirements-phase3.txt
+# Do NOT point Streamlit Community Cloud at this file during Phase 1/2 —
+# build times will exceed the free tier limit.
+
+# ─── Transformers / LLM ───────────────────────────────────────────────────────
+transformers==4.47.1
+sentence-transformers==3.3.1
+
+# ─── Topic Modeling ───────────────────────────────────────────────────────────
+bertopic==0.16.4
+
+# ─── NLP / NER ────────────────────────────────────────────────────────────────
+spacy==3.8.3
+# After installing, run: python -m spacy download es_core_news_lg
+
+# ─── Scraping (Cuentas Claras) ────────────────────────────────────────────────
+selenium==4.27.1
+
+# ─── PDF Parsing ──────────────────────────────────────────────────────────────
+pdfplumber==0.11.4
