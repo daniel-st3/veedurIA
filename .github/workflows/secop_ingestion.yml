@@ -1,10 +1,10 @@
 name: SECOP Incremental Ingestion
 
 on:
-  # Every 15 minutes during Colombian hours, 7 days a week
-  # 13:00–23:00 UTC = 8:00 AM – 6:00 PM UTC-5 (Colombia time)
+  # Once per day at 03:00 UTC (10:00 PM Colombia time)
+  # Reduced from */15 to cut CI noise while stabilizing.
   schedule:
-    - cron: "*/15 13-22 * * *"
+    - cron: "0 3 * * *"
 
   # Manual trigger for testing or emergency backfill
   workflow_dispatch:
@@ -17,6 +17,11 @@ on:
         options:
           - incremental
           - backfill
+
+# Prevent overlapping runs
+concurrency:
+  group: secop-ingestion
+  cancel-in-progress: true
 
 env:
   SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
@@ -31,10 +36,24 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - name: Validate required secrets
+        run: |
+          missing=""
+          if [ -z "${{ secrets.SOCRATA_APP_TOKEN }}" ]; then missing="$missing SOCRATA_APP_TOKEN"; fi
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then missing="$missing SUPABASE_URL"; fi
+          if [ -z "${{ secrets.SUPABASE_KEY }}" ]; then missing="$missing SUPABASE_KEY"; fi
+          if [ -n "$missing" ]; then
+            echo "::error::Skipping incremental ingestion: required secret(s) not set:$missing"
+            echo "Please configure these in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "All required secrets are configured."
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_CONTENTS_WRITE }}
+          # Use PAT if available (needed for pushing commits), otherwise default token
+          token: ${{ secrets.PAT_CONTENTS_WRITE || github.token }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -58,7 +77,7 @@ jobs:
           git add data/processed/last_run.json
           # Only commit if there are changes
           git diff --cached --quiet || git commit -m "chore: update last_run.json [skip ci]"
-          git push
+          git push || echo "::warning::Could not push last_run.json (PAT_CONTENTS_WRITE may not be configured). Ingestion succeeded but state was not persisted."
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

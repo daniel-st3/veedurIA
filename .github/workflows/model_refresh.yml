@@ -14,6 +14,11 @@ on:
         default: "0.05"
         type: string
 
+# Prevent overlapping runs
+concurrency:
+  group: model-refresh
+  cancel-in-progress: true
+
 env:
   SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -27,6 +32,19 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - name: Validate required secrets
+        run: |
+          missing=""
+          if [ -z "${{ secrets.SOCRATA_APP_TOKEN }}" ]; then missing="$missing SOCRATA_APP_TOKEN"; fi
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then missing="$missing SUPABASE_URL"; fi
+          if [ -z "${{ secrets.SUPABASE_KEY }}" ]; then missing="$missing SUPABASE_KEY"; fi
+          if [ -n "$missing" ]; then
+            echo "::error::Skipping model retraining: required secret(s) not set:$missing"
+            echo "Please configure these in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "All required secrets are configured."
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
