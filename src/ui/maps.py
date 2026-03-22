@@ -261,3 +261,152 @@ def get_geojson_department_names(
         for feat in data.get("features", [])
         if "NOMBRE_DPT" in feat.get("properties", {})
     )
+
+
+# ---------------------------------------------------------------------------
+# Plotly-based maps (native Streamlit rendering, no extra dependencies)
+# ---------------------------------------------------------------------------
+
+def _load_geojson(geojson_path: Path | None = None) -> dict:
+    """Load and cache the Colombia GeoJSON data."""
+    path = Path(geojson_path) if geojson_path else DEFAULT_GEOJSON_PATH
+    if not path.exists():
+        logger.warning("GeoJSON not found at %s", path)
+        return {"type": "FeatureCollection", "features": []}
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def render_hero_colombia_map() -> None:
+    """
+    Render a stylish abstract Colombia map for the landing page hero section.
+
+    Uses Plotly Choroplethmapbox to show departments with a subtle gradient
+    palette. Lightweight: uses precomputed synthetic data, no real scoring.
+    """
+    import plotly.graph_objects as go  # noqa: PLC0415
+    import random
+
+    geojson = _load_geojson()
+    features = geojson.get("features", [])
+    if not features:
+        st.info("🗺️ Colombia map loading...")
+        return
+
+    # Generate subtle abstract values for visual effect
+    random.seed(42)  # Deterministic for consistency
+    departments = [f["properties"]["NOMBRE_DPT"] for f in features]
+    values = [random.uniform(0.15, 0.85) for _ in departments]
+
+    fig = go.Figure(go.Choroplethmapbox(
+        geojson=geojson,
+        locations=departments,
+        featureidkey="properties.NOMBRE_DPT",
+        z=values,
+        colorscale=[
+            [0.0, "rgba(0, 122, 255, 0.08)"],
+            [0.3, "rgba(0, 122, 255, 0.18)"],
+            [0.5, "rgba(88, 86, 214, 0.25)"],
+            [0.7, "rgba(88, 86, 214, 0.35)"],
+            [1.0, "rgba(175, 82, 222, 0.45)"],
+        ],
+        marker_line_width=0.5,
+        marker_line_color="rgba(255, 255, 255, 0.6)",
+        marker_opacity=0.85,
+        showscale=False,
+        hovertemplate="%{location}<extra></extra>",
+    ))
+
+    fig.update_layout(
+        mapbox=dict(
+            style="carto-positron",
+            center=dict(lat=4.5, lon=-73.5),
+            zoom=4.2,
+        ),
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=460,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=12,
+            font_family="Inter, sans-serif",
+        ),
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+
+def render_plotly_choropleth(
+    df_dept: pd.DataFrame,
+    geojson_path: str | Path | None = None,
+) -> None:
+    """
+    Render a Plotly choropleth map of average risk by department.
+
+    Replaces the Folium version for the ContratoLimpio page.
+    Renders natively in Streamlit without streamlit-folium.
+
+    Args:
+        df_dept:      DataFrame with columns: departamento, avg_risk, contract_count.
+        geojson_path: Path to Colombia departments GeoJSON file.
+    """
+    import plotly.graph_objects as go  # noqa: PLC0415
+
+    geojson = _load_geojson(geojson_path)
+
+    if df_dept.empty:
+        st.info("No department data available for the map.")
+        return
+
+    fig = go.Figure(go.Choroplethmapbox(
+        geojson=geojson,
+        locations=df_dept["departamento"],
+        featureidkey="properties.NOMBRE_DPT",
+        z=df_dept["avg_risk"],
+        colorscale=[
+            [0.0, "#43A047"],    # Green — low risk
+            [0.35, "#FDD835"],   # Yellow — medium
+            [0.65, "#FF9800"],   # Orange — elevated
+            [1.0, "#E53935"],    # Red — high risk
+        ],
+        marker_line_width=0.5,
+        marker_line_color="rgba(255, 255, 255, 0.6)",
+        marker_opacity=0.8,
+        showscale=True,
+        colorbar=dict(
+            title=dict(text="Risk", font=dict(size=12)),
+            thickness=12,
+            len=0.5,
+            x=1.02,
+            tickfont=dict(size=10),
+        ),
+        customdata=df_dept[["contract_count"]].values if "contract_count" in df_dept.columns else None,
+        hovertemplate=(
+            "<b>%{location}</b><br>"
+            "Risk: %{z:.2f}<br>"
+            "Contracts: %{customdata[0]:,}<extra></extra>"
+        ) if "contract_count" in df_dept.columns else (
+            "<b>%{location}</b><br>"
+            "Risk: %{z:.2f}<extra></extra>"
+        ),
+    ))
+
+    fig.update_layout(
+        mapbox=dict(
+            style="carto-positron",
+            center=dict(lat=4.5, lon=-73.5),
+            zoom=4.2,
+        ),
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=480,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=12,
+            font_family="Inter, sans-serif",
+        ),
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})

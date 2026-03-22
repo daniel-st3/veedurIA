@@ -3,7 +3,7 @@ Phase 1 — ContratoLimpio: ML risk semaphore on live SECOP II contracts.
 
 Full 4-section Streamlit page:
   1. KPIs (total contracts, red flags, value at risk, top entity)
-  2. Choropleth map (avg risk by department)
+  2. Choropleth map (avg risk by department — Plotly)
   3. Contracts table (sortable, filterable)
   4. Detail panel (risk card + SHAP + disclaimer)
 """
@@ -22,7 +22,7 @@ from src.ui.components import (
     render_risk_card,
 )
 from src.ui.i18n import t
-from src.ui.maps import build_department_summary, render_choropleth
+from src.ui.maps import build_department_summary, render_plotly_choropleth
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -39,6 +39,61 @@ if "lang" not in st.session_state:
     st.session_state["lang"] = "es"
 if "selected_contract" not in st.session_state:
     st.session_state["selected_contract"] = None
+
+# ---------------------------------------------------------------------------
+# Page-level CSS
+# ---------------------------------------------------------------------------
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+.stApp {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.section-header {
+    animation: fadeIn 0.5s ease-out both;
+}
+
+/* Status pill */
+.status-pill {
+    display: inline-block;
+    padding: 0.35rem 0.9rem;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+.pill-fresh {
+    background: rgba(52, 199, 89, 0.1);
+    color: #34C759;
+    border: 1px solid rgba(52, 199, 89, 0.2);
+}
+.pill-stale {
+    background: rgba(255, 149, 0, 0.1);
+    color: #FF9500;
+    border: 1px solid rgba(255, 149, 0, 0.2);
+}
+
+/* Graceful empty message */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #8E8E93;
+    font-size: 1.05rem;
+}
+.empty-state .icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.8rem;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # Data loading
@@ -64,8 +119,8 @@ def load_scored_data() -> pd.DataFrame:
     return pd.DataFrame()
 
 
-def get_staleness_info() -> tuple[str, bool]:
-    """Get last update timestamp and whether data is stale (>4h)."""
+def get_staleness_info() -> tuple[float, bool]:
+    """Get hours since last update and whether data is stale (>4h)."""
     if LAST_RUN_PATH.exists():
         with open(LAST_RUN_PATH, "r") as f:
             state = json.load(f)
@@ -75,10 +130,10 @@ def get_staleness_info() -> tuple[str, bool]:
                 last_dt = datetime.fromisoformat(last_ts)
                 now = datetime.now(timezone.utc)
                 hours_ago = (now - last_dt).total_seconds() / 3600
-                return last_ts[:19], hours_ago > 4
+                return hours_ago, hours_ago > 4
             except (ValueError, TypeError):
                 pass
-    return "N/A", True
+    return -1, True
 
 
 # ---------------------------------------------------------------------------
@@ -187,39 +242,60 @@ if not df.empty:
             df = df[df["risk_label"].isin(risk_values)]
 
 # ---------------------------------------------------------------------------
-# Page title
+# Page header with status pill
 # ---------------------------------------------------------------------------
 
 col_title, col_status = st.columns([3, 1])
 with col_title:
-    st.markdown(f"<h1 style='margin-bottom:0.2rem;'>🚦 {t('nav_contrato_limpio')}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='color: #666; font-size: 1.1rem; margin-top: 0;'>{t('phase_1_desc')}</p>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='section-header'>"
+        f"<h1 style='margin-bottom:0.2rem; font-weight: 800; letter-spacing: -0.02em;'>🚦 {t('nav_contrato_limpio')}</h1>"
+        f"<p style='color: #666; font-size: 1.05rem; margin-top: 0; line-height: 1.5;'>{t('phase_1_desc')}</p>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 with col_status:
-    last_update, is_stale = get_staleness_info()
-    if is_stale:
-        st.warning(t("sidebar_staleness_warning"))
-    else:
+    hours_ago, is_stale = get_staleness_info()
+    if hours_ago >= 0:
+        pill_class = "pill-stale" if is_stale else "pill-fresh"
+        pill_text = t("sidebar_staleness_warning") if is_stale else t("data_updated_ago", hours=hours_ago)
         st.markdown(
-            f"<div style='text-align:right; margin-top:1.5rem;'><span style='background:#f9f9f9; border: 1px solid #eee; padding:0.4rem 0.8rem; border-radius:20px; font-size:0.85rem; color:#555;'>{t('data_updated_ago', hours=0)}</span></div>", 
-            unsafe_allow_html=True
+            f"<div style='text-align:right; margin-top:1.8rem;'>"
+            f"<span class='status-pill {pill_class}'>{pill_text}</span></div>",
+            unsafe_allow_html=True,
         )
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 if df.empty:
-    st.info(t("no_contracts_found"))
+    st.markdown(
+        f"<div class='empty-state'>"
+        f"<div class='icon'>📭</div>"
+        f"<p>{t('no_contracts_found')}</p>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
     st.stop()
 
 has_scores = "risk_score" in df.columns and not df["risk_score"].isnull().all()
 
 if not has_scores:
-    st.info(f"✨ {t('ml_calculating')}")
+    st.markdown(
+        f"<div class='empty-state'>"
+        f"<div class='icon'>✨</div>"
+        f"<p>{t('ml_calculating')}</p>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 else:
     # ---------------------------------------------------------------------------
     # Section 1 — KPIs
     # ---------------------------------------------------------------------------
     
-    st.markdown(f"### {t('section_kpis')}")
+    st.markdown(
+        f"<div class='section-header'><h3 style='margin-bottom: 0.8rem;'>{t('section_kpis')}</h3></div>",
+        unsafe_allow_html=True,
+    )
 
     red_mask = df["risk_score"] >= RED_THRESHOLD
     total_contracts = len(df)
@@ -236,27 +312,48 @@ else:
     render_kpi_row(total_contracts, red_flags, value_at_risk, top_entity)
     
     # ---------------------------------------------------------------------------
-    # Section 2 — Choropleth Map
+    # Section 2 — Choropleth Map (Plotly)
     # ---------------------------------------------------------------------------
     
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(f"<h3 style='margin-bottom: 0.2rem;'>{t('section_map')}</h3>", unsafe_allow_html=True)
-    st.markdown(f"<p style='color: #777; font-size: 0.95rem; margin-bottom: 1.5rem;'>Promedio de riesgo algorítmico calculado a nivel departamental.</p>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='section-header'>"
+        f"<h3 style='margin-bottom: 0.3rem;'>{t('section_map')}</h3>"
+        f"<p style='color: #8E8E93; font-size: 0.9rem; margin-bottom: 1rem;'>"
+        f"{t('map_subtitle')}</p>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
     
     if "departamento" in df.columns:
         df_dept = build_department_summary(df)
         if not df_dept.empty:
-            render_choropleth(df_dept)
+            render_plotly_choropleth(df_dept)
         else:
-            st.info(t("map_calculating_msg"))
+            st.markdown(
+                f"<div class='empty-state'>"
+                f"<div class='icon'>🗺️</div>"
+                f"<p>{t('map_calculating_msg')}</p>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
     else:
-        st.info(t("map_calculating_msg"))
+        st.markdown(
+            f"<div class='empty-state'>"
+            f"<div class='icon'>🗺️</div>"
+            f"<p>{t('map_calculating_msg')}</p>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
 # ---------------------------------------------------------------------------
 # Section 3 — Contracts Table
 # ---------------------------------------------------------------------------
 
-st.markdown(f"### {t('section_table')}")
+st.markdown(
+    f"<div class='section-header'><h3>{t('section_table')}</h3></div>",
+    unsafe_allow_html=True,
+)
 
 display_cols = []
 col_rename = {}
@@ -313,11 +410,17 @@ if display_cols:
 # ---------------------------------------------------------------------------
 
 if has_scores:
-    st.markdown(f"### {t('section_detail')}")
+    st.markdown(
+        f"<div class='section-header'><h3>{t('section_detail')}</h3></div>",
+        unsafe_allow_html=True,
+    )
 
     selected = st.session_state.get("selected_contract")
     if selected and "risk_score" in selected and pd.notna(selected["risk_score"]):
-        st.markdown(f"#### {selected.get('nombre_entidad', 'N/A')}")
+        st.markdown(
+            f"<h4 style='margin-bottom: 0.5rem;'>{selected.get('nombre_entidad', 'N/A')}</h4>",
+            unsafe_allow_html=True,
+        )
         
         # Build SHAP explanations if available
         explanations = selected.get("shap_explanations")
@@ -328,7 +431,7 @@ if has_scores:
             lang=st.session_state.get("lang", "es"),
         )
         
-        # Methodology info in simple raw format without nested expanders
+        # Methodology info
         st.markdown(f"**{t('methodology_title')}**")
         st.caption(
             f"• {t('methodology_model')}<br>"
@@ -338,7 +441,13 @@ if has_scores:
             unsafe_allow_html=True
         )
     else:
-        st.caption("👆 Seleccione un contrato de la tabla para ver el detalle.")
+        st.markdown(
+            f"<div class='empty-state'>"
+            f"<div class='icon'>👆</div>"
+            f"<p>{t('select_contract_hint')}</p>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
 # Always show disclaimer at the bottom
 st.markdown("<br><br>", unsafe_allow_html=True)
