@@ -280,10 +280,16 @@ def _load_geojson(geojson_path: Path | None = None) -> dict:
 
 def render_hero_colombia_map() -> None:
     """
-    Render a stylish abstract Colombia map for the landing page hero section.
+    Render an animated Colombia "AI Radar" map for the landing page.
 
-    Uses Plotly Choroplethmapbox to show departments with a subtle gradient
-    palette. Lightweight: uses precomputed synthetic data, no real scoring.
+    Strategy: pure CSS animation overlay on top of a static Plotly map.
+    Streamlit blocks inline <script> tags, so Plotly frame animation
+    cannot be auto-triggered. Instead we:
+      1. Render a single vivid Plotly choropleth (dept intensity values).
+      2. Overlay a pure-CSS animated radar: spinning ring, pulsing dots,
+         scanning sweep — all driven by @keyframes, 100% reliable in browser.
+
+    GSAP-inspired easing translated to CSS cubic-bezier curves.
     """
     import plotly.graph_objects as go  # noqa: PLC0415
     import random
@@ -294,28 +300,154 @@ def render_hero_colombia_map() -> None:
         st.info("🗺️ Colombia map loading...")
         return
 
-    # Generate subtle abstract values for visual effect
-    random.seed(42)  # Deterministic for consistency
     departments = [f["properties"]["NOMBRE_DPT"] for f in features]
-    values = [random.uniform(0.15, 0.85) for _ in departments]
+
+    # Deterministic "alert level" values per department
+    rng = random.Random(42)
+    z = [rng.uniform(0.22, 0.92) for _ in departments]
+
+    # ── Radar CSS animations (injected before chart) ──────────────────────
+    # These keyframes run entirely in CSS — no JS needed, no CSP issues.
+    st.markdown("""
+<style>
+/* Radar overlay wrapper */
+.radar-map-wrapper {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0, 80, 200, 0.13), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* ── Animated CSS overlay sits ON TOP of the Plotly iframe ── */
+.radar-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 10;
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+/* Sweeping radar arm: rotates around Bogotá centroid area */
+@keyframes radarSweep {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.radar-sweep {
+    position: absolute;
+    top: 35%; left: 52%;
+    width: 300px; height: 300px;
+    margin-left: -150px; margin-top: -150px;
+    border-radius: 50%;
+    animation: radarSweep 5s linear infinite;
+    background: conic-gradient(
+        from 0deg,
+        rgba(0, 122, 255, 0.0) 0deg,
+        rgba(0, 122, 255, 0.0) 270deg,
+        rgba(0, 122, 255, 0.08) 310deg,
+        rgba(0, 200, 255, 0.22) 355deg,
+        rgba(0, 122, 255, 0.0) 360deg
+    );
+}
+
+/* Ripple rings from center */
+@keyframes radarRing {
+    0%   { transform: scale(0.2); opacity: 0.7; }
+    100% { transform: scale(1.6); opacity: 0.0; }
+}
+.radar-ring {
+    position: absolute;
+    top: 35%; left: 52%;
+    width: 140px; height: 140px;
+    margin-left: -70px; margin-top: -70px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0, 122, 255, 0.45);
+    animation: radarRing 3.2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+.radar-ring-2 { animation-delay: 1.07s; }
+.radar-ring-3 { animation-delay: 2.14s; }
+
+/* Hot-spot dot: blinks over Bogotá */
+@keyframes hotDot {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.7); transform: scale(1); }
+    50%       { box-shadow: 0 0 0 10px rgba(229, 57, 53, 0); transform: scale(1.3); }
+}
+.radar-hotspot {
+    position: absolute;
+    top: 34%; left: 53%;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: #E53935;
+    animation: hotDot 2s ease-in-out infinite;
+}
+
+/* Secondary dot: Medellín */
+.radar-hotspot-2 {
+    top: 27%; left: 46%;
+    animation-delay: 0.8s;
+    background: #FF9500;
+    width: 7px; height: 7px;
+}
+/* Cali */
+.radar-hotspot-3 {
+    top: 41%; left: 44%;
+    animation-delay: 1.4s;
+    background: #FF9500;
+    width: 6px; height: 6px;
+}
+
+/* Gradient vignette for cinematic feel */
+.radar-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 45%,
+        rgba(250, 250, 252, 0.18) 100%
+    );
+    border-radius: 18px;
+}
+
+/* Thin top status bar */
+.radar-scanline {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(0, 200, 255, 0.0) 20%,
+        rgba(0, 200, 255, 0.7) 50%,
+        rgba(0, 200, 255, 0.0) 80%,
+        transparent 100%
+    );
+    animation: scanlineMoveX 4s ease-in-out infinite;
+}
+@keyframes scanlineMoveX {
+    0%, 100% { transform: translateX(-100%); opacity: 0; }
+    10%       { opacity: 1; }
+    90%       { opacity: 1; }
+    50%       { transform: translateX(100%); }
+}
+</style>
+""", unsafe_allow_html=True)
 
     fig = go.Figure(go.Choroplethmapbox(
         geojson=geojson,
         locations=departments,
         featureidkey="properties.NOMBRE_DPT",
-        z=values,
+        z=z,
         colorscale=[
-            [0.0, "rgba(0, 122, 255, 0.08)"],
-            [0.3, "rgba(0, 122, 255, 0.18)"],
-            [0.5, "rgba(88, 86, 214, 0.25)"],
-            [0.7, "rgba(88, 86, 214, 0.35)"],
-            [1.0, "rgba(175, 82, 222, 0.45)"],
+            [0.00, "rgba(10, 40, 120, 0.06)"],
+            [0.30, "rgba(0, 90, 210, 0.20)"],
+            [0.55, "rgba(55, 65, 210, 0.34)"],
+            [0.78, "rgba(100, 55, 205, 0.46)"],
+            [1.00, "rgba(168, 50, 220, 0.62)"],
         ],
-        marker_line_width=0.5,
+        marker_line_width=0.8,
         marker_line_color="rgba(255, 255, 255, 0.6)",
-        marker_opacity=0.85,
+        marker_opacity=0.92,
         showscale=False,
-        hovertemplate="%{location}<extra></extra>",
+        hovertemplate="<b>%{location}</b><extra></extra>",
     ))
 
     fig.update_layout(
@@ -329,85 +461,185 @@ def render_hero_colombia_map() -> None:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         hoverlabel=dict(
-            bgcolor="white",
-            font_size=12,
+            bgcolor="rgba(255,255,255,0.96)",
+            font_size=13,
             font_family="Inter, sans-serif",
+            bordercolor="rgba(0,0,0,0.06)",
         ),
     )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    # Wrap in radar overlay container
+    st.markdown('<div class="radar-map-wrapper">', unsafe_allow_html=True)
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={"displayModeBar": False, "scrollZoom": False},
+    )
+    # CSS-animated radar overlay (sits visually on top via absolute positioning)
+    # Note: Streamlit renders these in document flow, not truly absolute over
+    # the chart iframe. We use a negative-margin trick + z-index.
+    st.markdown("""
+<div class="radar-overlay" style="margin-top:-460px; height:460px;">
+    <div class="radar-scanline"></div>
+    <div class="radar-sweep"></div>
+    <div class="radar-ring"></div>
+    <div class="radar-ring radar-ring-2"></div>
+    <div class="radar-ring radar-ring-3"></div>
+    <div class="radar-hotspot"></div>
+    <div class="radar-hotspot radar-hotspot-2"></div>
+    <div class="radar-hotspot radar-hotspot-3"></div>
+    <div class="radar-vignette"></div>
+</div>
+""", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_plotly_choropleth(
     df_dept: pd.DataFrame,
     geojson_path: str | Path | None = None,
-) -> None:
+    active_dept_filter: list[str] | None = None,
+) -> str | None:
     """
     Render a Plotly choropleth map of average risk by department.
 
     Replaces the Folium version for the ContratoLimpio page.
     Renders natively in Streamlit without streamlit-folium.
 
+    Uses st.plotly_chart with on_select='rerun' so that clicking a
+    department stores the selection in session state. Returns the
+    clicked department name (NOMBRE_DPT string) or None.
+
     Args:
-        df_dept:      DataFrame with columns: departamento, avg_risk, contract_count.
-        geojson_path: Path to Colombia departments GeoJSON file.
+        df_dept:             DataFrame with columns: departamento, avg_risk, contract_count.
+                             Should always be the NATIONAL summary (not pre-filtered),
+                             so all departments are visible and clickable.
+        geojson_path:        Path to Colombia departments GeoJSON file.
+        active_dept_filter:  List of department names currently active in the sidebar
+                             filter (used only to show a warning message).
+
+    Returns:
+        The clicked department name string, or None if no selection.
     """
     import plotly.graph_objects as go  # noqa: PLC0415
+    from src.ui.i18n import t  # noqa: PLC0415
 
     geojson = _load_geojson(geojson_path)
 
     if df_dept.empty:
         st.info("No department data available for the map.")
-        return
+        return None
+
+    # Show a helpful message when sidebar dept filter limits the map view
+    if active_dept_filter and len(active_dept_filter) > 0:
+        n_depts = len(active_dept_filter)
+        st.markdown(
+            f"<div style='background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.18);"
+            f"border-radius:10px;padding:0.6rem 1rem;font-size:0.85rem;color:#444;margin-bottom:0.8rem;'>"
+            f"ℹ️ {t('map_filtered_warning', n=n_depts)} "
+            f"<span style='color:#8E8E93;'>({', '.join(active_dept_filter[:3])}{'…' if n_depts>3 else ''})</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    # ── Premium civic-data palette ────────────────────────────────────────
+    # Semi-transparent colors so dark map tiles show through
+    COLORSCALE = [
+        [0.00, "rgba(74, 222, 128, 0.70)"],   # green   low risk
+        [0.30, "rgba(251, 191,  36, 0.80)"],   # yellow  medium
+        [0.60, "rgba(249, 115,  22, 0.85)"],   # orange  elevated
+        [1.00, "rgba(239,  68,  68, 0.92)"],   # red     high risk
+    ]
 
     fig = go.Figure(go.Choroplethmapbox(
         geojson=geojson,
         locations=df_dept["departamento"],
         featureidkey="properties.NOMBRE_DPT",
         z=df_dept["avg_risk"],
-        colorscale=[
-            [0.0, "#43A047"],    # Green — low risk
-            [0.35, "#FDD835"],   # Yellow — medium
-            [0.65, "#FF9800"],   # Orange — elevated
-            [1.0, "#E53935"],    # Red — high risk
-        ],
-        marker_line_width=0.5,
-        marker_line_color="rgba(255, 255, 255, 0.6)",
-        marker_opacity=0.8,
+        colorscale=COLORSCALE,
+        zmin=0.0,
+        zmax=max(df_dept["avg_risk"].max(), 0.5),
+        marker_line_width=0.8,
+        marker_line_color="rgba(255, 255, 255, 0.18)",
+        marker_opacity=1.0,
         showscale=True,
         colorbar=dict(
-            title=dict(text="Risk", font=dict(size=12)),
-            thickness=12,
-            len=0.5,
-            x=1.02,
-            tickfont=dict(size=10),
+            title=dict(
+                text="Riesgo",
+                font=dict(size=11, family="Inter, sans-serif", color="rgba(200,215,240,0.75)"),
+                side="right",
+            ),
+            thickness=8,
+            len=0.50,
+            x=1.01,
+            bgcolor="rgba(6,8,16,0.85)",
+            bordercolor="rgba(255,255,255,0.08)",
+            borderwidth=1,
+            tickfont=dict(size=10, family="JetBrains Mono, monospace", color="rgba(200,215,240,0.55)"),
+            tickformat=".2f",
+            outlinecolor="rgba(0,0,0,0)",
+            tickvals=[0.0, 0.2, 0.4, 0.6, 0.8],
+            ticktext=["0.0", "0.2", "0.4", "0.6", "0.8"],
         ),
         customdata=df_dept[["contract_count"]].values if "contract_count" in df_dept.columns else None,
         hovertemplate=(
             "<b>%{location}</b><br>"
-            "Risk: %{z:.2f}<br>"
-            "Contracts: %{customdata[0]:,}<extra></extra>"
+            "Riesgo promedio: <b>%{z:.2f}</b><br>"
+            "Contratos: %{customdata[0]:,}<extra></extra>"
         ) if "contract_count" in df_dept.columns else (
             "<b>%{location}</b><br>"
-            "Risk: %{z:.2f}<extra></extra>"
+            "Riesgo promedio: <b>%{z:.2f}</b><extra></extra>"
         ),
     ))
 
     fig.update_layout(
         mapbox=dict(
-            style="carto-positron",
+            style="carto-darkmatter",   # dark tiles — matches the page background
             center=dict(lat=4.5, lon=-73.5),
-            zoom=4.2,
+            zoom=4.25,
         ),
         margin=dict(l=0, r=0, t=0, b=0),
         height=480,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         hoverlabel=dict(
-            bgcolor="white",
-            font_size=12,
+            bgcolor="rgba(10,14,28,0.96)",
+            font_size=13,
             font_family="Inter, sans-serif",
+            font_color="rgba(220,230,250,0.9)",
+            bordercolor="rgba(255,255,255,0.1)",
         ),
+        clickmode="event+select",
     )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    # Dark wrapper — transparent so page bg shows through
+    st.markdown("""
+<style>
+.choropleth-wrapper {
+    border-radius: 16px;
+    overflow: hidden;
+    background: transparent;
+}
+</style>
+<div class="choropleth-wrapper">""", unsafe_allow_html=True)
+
+    chart_event = st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={"displayModeBar": False, "scrollZoom": False},
+        on_select="rerun",
+        key="choropleth_main",
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Extract clicked department from Plotly selection event
+    selected_dept: str | None = None
+    if chart_event and hasattr(chart_event, "selection"):
+        sel = chart_event.selection
+        if sel and hasattr(sel, "points") and sel.points:
+            pt = sel.points[0]
+            # Plotly choroplethmapbox stores the location in pt.location
+            loc = getattr(pt, "location", None)
+            if loc:
+                selected_dept = str(loc)
+
+    return selected_dept

@@ -65,3 +65,4 @@ logs/
 !data/processed/models/*_metadata.json
 # Reference data IS committed (static, small, needed for validation)
 !data/reference/
+gsap-skills-main*/

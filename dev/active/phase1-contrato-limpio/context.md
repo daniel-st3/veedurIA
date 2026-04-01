@@ -2,6 +2,47 @@
 
 ---
 
+## Data-Loading Strategy (updated 2026-03-23)
+
+`src/ui/data_loaders.py` is the single source of truth for all Parquet reads on
+the ContratoLimpio page. Key design decisions:
+
+### Column pruning
+The real file has 114 columns / ~1.15 GB. We load only **14 UI columns**
+(`UI_COLUMNS` list). This cuts memory by ~85 % and I/O by ~70 %.
+
+### Preview mode (default on first load)
+| Parameter | Value |
+|---|---|
+| `PREVIEW_SIZE` | 50 000 rows |
+| Selection | Last N rows by row-group position (most recent data) |
+| Cold-cache time | < 2 s on an M-series Mac |
+| Warm-cache time | < 50 ms (Streamlit `st.cache_data`, TTL 10 min) |
+
+**How it works (2026-03-23 fix):** Previously `_safe_read(nrows=50_000)` read all
+2.8 M rows then called `.tail()` — no I/O benefit. The new implementation walks
+pyarrow row-groups from the *end* of the file, collecting batches until 50 k rows
+are accumulated, then stops. Only those trailing row-groups are read from disk.
+
+### "Load full dataset" button
+- Visible only when `is_preview=True` and `total_in_file > len(df_all)`.
+- Sets `st.session_state["full_dataset"] = True` and calls `st.rerun()`.
+- Next page run calls `load_full()` (all 2.8 M rows × 14 cols, `@st.cache_data`).
+- Subsequent reruns (filter changes, pagination) hit the warm cache — instant.
+
+### Table pagination
+Rows rendered at once are capped at `TABLE_PAGE_SIZE = 2 000`. A numeric
+page-selector widget appears when the filtered set exceeds this limit.
+
+### Cached functions
+| Function | Decorator | Rows |
+|---|---|---|
+| `load_preview()` | `@st.cache_data(max_entries=2, ttl=600)` | 50 000 |
+| `load_full()` | `@st.cache_data(max_entries=2, ttl=600)` | all |
+| `load_scored_data()` | `@st.cache_data(show_spinner=True, max_entries=2)` | alias → `load_preview()` |
+
+---
+
 ## Key Files Touched in Phase 1
 
 ```
