@@ -29,6 +29,10 @@ dist/
 build/
 *.egg-info/
 .eggs/
+.next/
+node_modules/
+web/.next/
+web/node_modules/
 
 # ─── Virtual environments ─────────────────────────────────────────────────────
 .venv/

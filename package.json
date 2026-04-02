@@ -1,0 +1,10 @@
+{
+  "name": "veeduria",
+  "private": true,
+  "scripts": {
+    "dev:web": "cd web && npm run dev",
+    "build:web": "cd web && npm run build",
+    "start:web": "cd web && npm run start",
+    "dev:api": "uvicorn backend.main:app --reload --port 8000"
+  }
+}

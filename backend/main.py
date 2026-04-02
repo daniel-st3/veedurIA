@@ -1,0 +1,85 @@
+"""
+FastAPI entrypoint for the VeedurIA web frontend.
+"""
+
+from __future__ import annotations
+
+import os
+from typing import Literal
+
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+
+from src.api.contracts_service import (
+    get_overview_payload,
+    get_table_payload,
+    load_geojson,
+)
+
+app = FastAPI(title="VeedurIA API", version="0.1.0")
+
+cors_origins = os.getenv(
+    "VEEDURIA_CORS_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin.strip() for origin in cors_origins.split(",") if origin.strip()],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/contracts/geojson")
+def contracts_geojson() -> dict:
+    return load_geojson()
+
+
+@app.get("/contracts/overview")
+def contracts_overview(
+    lang: Literal["es", "en"] = "es",
+    full: bool = False,
+    department: str | None = None,
+    risk: Literal["all", "high", "medium", "low"] = "all",
+    modality: str | None = None,
+    query: str | None = None,
+    limit: int = Query(6, ge=1, le=12),
+) -> dict:
+    return get_overview_payload(
+        lang=lang,
+        full=full,
+        department=department,
+        risk=risk,
+        modality=modality,
+        query=query,
+        limit=limit,
+    )
+
+
+@app.get("/contracts/table")
+def contracts_table(
+    lang: Literal["es", "en"] = "es",
+    full: bool = False,
+    department: str | None = None,
+    risk: Literal["all", "high", "medium", "low"] = "all",
+    modality: str | None = None,
+    query: str | None = None,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(30, ge=1, le=100),
+) -> dict:
+    return get_table_payload(
+        lang=lang,
+        full=full,
+        department=department,
+        risk=risk,
+        modality=modality,
+        query=query,
+        offset=offset,
+        limit=limit,
+    )

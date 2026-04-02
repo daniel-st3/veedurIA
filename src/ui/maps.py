@@ -297,7 +297,7 @@ def render_hero_colombia_map() -> None:
     geojson = _load_geojson()
     features = geojson.get("features", [])
     if not features:
-        st.info("🗺️ Colombia map loading...")
+        st.info("Colombia map loading...")
         return
 
     departments = [f["properties"]["NOMBRE_DPT"] for f in features]
@@ -431,7 +431,7 @@ def render_hero_colombia_map() -> None:
 </style>
 """, unsafe_allow_html=True)
 
-    fig = go.Figure(go.Choroplethmapbox(
+    fig = go.Figure(go.Choroplethmap(
         geojson=geojson,
         locations=departments,
         featureidkey="properties.NOMBRE_DPT",
@@ -451,7 +451,7 @@ def render_hero_colombia_map() -> None:
     ))
 
     fig.update_layout(
-        mapbox=dict(
+        map=dict(
             style="carto-positron",
             center=dict(lat=4.5, lon=-73.5),
             zoom=4.2,
@@ -533,10 +533,13 @@ def render_plotly_choropleth(
     if active_dept_filter and len(active_dept_filter) > 0:
         n_depts = len(active_dept_filter)
         st.markdown(
-            f"<div style='background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.18);"
-            f"border-radius:10px;padding:0.6rem 1rem;font-size:0.85rem;color:#444;margin-bottom:0.8rem;'>"
-            f"ℹ️ {t('map_filtered_warning', n=n_depts)} "
-            f"<span style='color:#8E8E93;'>({', '.join(active_dept_filter[:3])}{'…' if n_depts>3 else ''})</span>"
+            f"<div style='background:rgba(13,91,215,0.05);border:1px solid rgba(13,91,215,0.12);"
+            f"border-radius:10px;padding:0.55rem 1rem;font-size:0.78rem;"
+            f"color:rgba(23,32,51,0.66);margin-bottom:0.6rem;"
+            f"font-family:\"JetBrains Mono\",monospace;letter-spacing:0.03em;'>"
+            f"{t('map_filtered_warning', n=n_depts)} "
+            f"<span style='color:rgba(13,91,215,0.70);'>"
+            f"({', '.join(active_dept_filter[:3])}{'…' if n_depts>3 else ''})</span>"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -544,13 +547,13 @@ def render_plotly_choropleth(
     # ── Premium civic-data palette ────────────────────────────────────────
     # Semi-transparent colors so dark map tiles show through
     COLORSCALE = [
-        [0.00, "rgba(74, 222, 128, 0.70)"],   # green   low risk
-        [0.30, "rgba(251, 191,  36, 0.80)"],   # yellow  medium
-        [0.60, "rgba(249, 115,  22, 0.85)"],   # orange  elevated
-        [1.00, "rgba(239,  68,  68, 0.92)"],   # red     high risk
+        [0.00, "rgba(25, 135, 84, 0.70)"],
+        [0.28, "rgba(211, 162, 26, 0.78)"],
+        [0.56, "rgba(237, 115, 21, 0.84)"],
+        [1.00, "rgba(198, 40, 57, 0.92)"],
     ]
 
-    fig = go.Figure(go.Choroplethmapbox(
+    fig = go.Figure(go.Choroplethmap(
         geojson=geojson,
         locations=df_dept["departamento"],
         featureidkey="properties.NOMBRE_DPT",
@@ -565,16 +568,16 @@ def render_plotly_choropleth(
         colorbar=dict(
             title=dict(
                 text="Riesgo",
-                font=dict(size=11, family="Inter, sans-serif", color="rgba(200,215,240,0.75)"),
+                font=dict(size=11, family="Inter, sans-serif", color="rgba(23,32,51,0.72)"),
                 side="right",
             ),
             thickness=8,
             len=0.50,
             x=1.01,
-            bgcolor="rgba(6,8,16,0.85)",
-            bordercolor="rgba(255,255,255,0.08)",
+            bgcolor="rgba(255,253,248,0.95)",
+            bordercolor="rgba(23,32,51,0.08)",
             borderwidth=1,
-            tickfont=dict(size=10, family="JetBrains Mono, monospace", color="rgba(200,215,240,0.55)"),
+            tickfont=dict(size=10, family="JetBrains Mono, monospace", color="rgba(23,32,51,0.52)"),
             tickformat=".2f",
             outlinecolor="rgba(0,0,0,0)",
             tickvals=[0.0, 0.2, 0.4, 0.6, 0.8],
@@ -592,8 +595,8 @@ def render_plotly_choropleth(
     ))
 
     fig.update_layout(
-        mapbox=dict(
-            style="carto-darkmatter",   # dark tiles — matches the page background
+        map=dict(
+            style="carto-positron",
             center=dict(lat=4.5, lon=-73.5),
             zoom=4.25,
         ),
@@ -602,11 +605,11 @@ def render_plotly_choropleth(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         hoverlabel=dict(
-            bgcolor="rgba(10,14,28,0.96)",
+            bgcolor="rgba(255,253,248,0.98)",
             font_size=13,
             font_family="Inter, sans-serif",
-            font_color="rgba(220,230,250,0.9)",
-            bordercolor="rgba(255,255,255,0.1)",
+            font_color="rgba(23,32,51,0.94)",
+            bordercolor="rgba(23,32,51,0.08)",
         ),
         clickmode="event+select",
     )
@@ -615,9 +618,10 @@ def render_plotly_choropleth(
     st.markdown("""
 <style>
 .choropleth-wrapper {
-    border-radius: 16px;
+    border-radius: 22px;
     overflow: hidden;
     background: transparent;
+    border: none;
 }
 </style>
 <div class="choropleth-wrapper">""", unsafe_allow_html=True)

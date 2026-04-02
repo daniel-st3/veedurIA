@@ -32,44 +32,55 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      # ── Soft-skip when secrets are missing ───────────────────────────────
+      # Emits a warning and sets skip=true so subsequent steps are skipped
+      # gracefully. Run shows as ✅ (skipped steps) rather than ❌ (failure).
       - name: Validate required secrets
+        id: check_secrets
         run: |
           missing=""
           if [ -z "${{ secrets.SOCRATA_APP_TOKEN }}" ]; then missing="$missing SOCRATA_APP_TOKEN"; fi
           if [ -z "${{ secrets.SUPABASE_URL }}" ]; then missing="$missing SUPABASE_URL"; fi
           if [ -z "${{ secrets.SUPABASE_KEY }}" ]; then missing="$missing SUPABASE_KEY"; fi
           if [ -n "$missing" ]; then
-            echo "::error::Skipping model retraining: required secret(s) not set:$missing"
-            echo "Please configure these in Settings > Secrets and variables > Actions."
-            exit 1
+            echo "::warning::Secrets not configured ($missing) — skipping model retraining."
+            echo "Add them at: Settings > Secrets and variables > Actions"
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
           fi
           echo "All required secrets are configured."
+          echo "skip=false" >> $GITHUB_OUTPUT
 
       - name: Checkout repository
+        if: steps.check_secrets.outputs.skip != 'true'
         uses: actions/checkout@v4
 
       - name: Set up Python
+        if: steps.check_secrets.outputs.skip != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
 
       - name: Install dependencies
+        if: steps.check_secrets.outputs.skip != 'true'
         run: |
           pip install --upgrade pip
           pip install -r requirements-phase1.txt
 
       - name: Train model
+        if: steps.check_secrets.outputs.skip != 'true'
         run: |
           python -m src.models.isolation_forest --action=train --contamination=${{ github.event.inputs.contamination || '0.05' }}
 
       - name: Validate model against reference cases
+        if: steps.check_secrets.outputs.skip != 'true'
         run: |
           python -m src.models.model_validator
 
       - name: Upload model metadata artifact
         uses: actions/upload-artifact@v4
-        if: always()
+        if: steps.check_secrets.outputs.skip != 'true' && always()
         with:
           name: model-metadata-${{ github.run_id }}
           path: |

@@ -1,0 +1,595 @@
+"""
+Contracts API service for the Next.js VeedurIA frontend.
+
+This module exposes a pure-Python read layer over the scored SECOP parquet so
+the product shell can move out of Streamlit while the ML/data pipeline remains
+in Python.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import unicodedata
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+from src.models.isolation_forest import RED_THRESHOLD, YELLOW_THRESHOLD
+from src.models.shap_explainer import FEATURE_LABELS
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DATA_PROCESSED = PROJECT_ROOT / "data" / "processed"
+DATA_REFERENCE = PROJECT_ROOT / "data" / "reference"
+DEFAULT_GEOJSON_PATH = DATA_REFERENCE / "colombia_departments.geojson"
+LAST_RUN_PATH = DATA_PROCESSED / "last_run.json"
+MODEL_META_DIR = DATA_PROCESSED / "models"
+
+PREVIEW_SIZE = 50_000
+
+SECOP_TO_GEOJSON: dict[str, str] = {
+    "BOGOTA": "SANTAFE DE BOGOTA D.C",
+    "BOGOTA D.C.": "SANTAFE DE BOGOTA D.C",
+    "BOGOTA, D.C.": "SANTAFE DE BOGOTA D.C",
+    "BOGOTA D.C": "SANTAFE DE BOGOTA D.C",
+    "SANTAFE DE BOGOTA": "SANTAFE DE BOGOTA D.C",
+    "DISTRITO CAPITAL": "SANTAFE DE BOGOTA D.C",
+    "SAN ANDRES": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+    "SAN ANDRES Y PROVIDENCIA": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+    "SAN ANDRES, PROVIDENCIA Y SANTA CATALINA": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+    "NARINO": "NARIÑO",
+    "GUAJIRA": "LA GUAJIRA",
+    "NORTE SANTANDER": "NORTE DE SANTANDER",
+}
+
+RISK_LABELS = {
+    "es": {
+        "high": "Alto",
+        "medium": "Medio",
+        "low": "Bajo",
+        "pick_start": "Empieza aquí",
+        "pick_value": "Riesgo alto + monto relevante",
+        "pick_recent": "Caso reciente",
+        "pick_signal": "Señal fuerte del modelo",
+        "signal_fallback": "Se sale del patrón histórico",
+        "unavailable": "No disponible",
+    },
+    "en": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low",
+        "pick_start": "Start here",
+        "pick_value": "High risk + relevant value",
+        "pick_recent": "Recent case",
+        "pick_signal": "Strong model signal",
+        "signal_fallback": "Breaks the historical pattern",
+        "unavailable": "Not available",
+    },
+}
+
+FEATURE_RULES: list[dict[str, Any]] = [
+    {"col": "single_bidder", "mode": "bool", "feature": "single_bidder"},
+    {"col": "is_direct_award", "mode": "bool", "feature": "is_direct_award"},
+    {"col": "advance_payment_ratio", "mode": "high", "feature": "advance_payment_ratio"},
+    {"col": "price_ratio_vs_entity_median", "mode": "high", "feature": "price_ratio_vs_entity_median"},
+    {"col": "price_ratio_vs_unspsc_median", "mode": "high", "feature": "price_ratio_vs_unspsc_median"},
+    {"col": "provider_value_share_entity", "mode": "high", "feature": "provider_value_share_entity"},
+    {"col": "provider_contract_count_entity", "mode": "high", "feature": "provider_contract_count_entity"},
+    {"col": "provider_age_months", "mode": "low", "feature": "provider_age_months"},
+    {"col": "normalized_ofertantes", "mode": "low", "feature": "normalized_ofertantes"},
+    {"col": "repeat_provider_flag", "mode": "bool", "feature": "repeat_provider_flag"},
+    {"col": "electoral_window", "mode": "bool", "feature": "electoral_window"},
+    {"col": "ley_garantias_period", "mode": "bool", "feature": "ley_garantias_period"},
+    {"col": "fiscal_year_end_rush", "mode": "bool", "feature": "fiscal_year_end_rush"},
+    {"col": "value_vs_additions_ratio", "mode": "high", "feature": "value_vs_additions_ratio"},
+]
+
+
+def _strip_accents(value: str) -> str:
+    out: list[str] = []
+    for char in unicodedata.normalize("NFD", value):
+        if unicodedata.category(char) == "Mn":
+            if char == "\u0303":
+                out.append(char)
+        else:
+            out.append(char)
+    return unicodedata.normalize("NFC", "".join(out))
+
+
+def normalize_department_name(name: str) -> str:
+    if not isinstance(name, str) or not name.strip():
+        return ""
+    normalized = _strip_accents(name.strip().upper())
+    return SECOP_TO_GEOJSON.get(normalized, normalized)
+
+
+def _resolve_parquet_path() -> Path:
+    scored = DATA_PROCESSED / "scored_contracts.parquet"
+    if scored.exists():
+        return scored
+    files = sorted(DATA_PROCESSED.glob("secop_contratos_*.parquet"))
+    if files:
+        return files[-1]
+    raise FileNotFoundError("No scored contracts parquet found")
+
+
+def _schema_names(path: Path) -> set[str]:
+    return {field.name for field in pq.read_schema(str(path))}
+
+
+def _read_tail(path: Path, columns: list[str], nrows: int) -> pd.DataFrame:
+    parquet = pq.ParquetFile(str(path))
+    total = parquet.metadata.num_rows
+    if total <= nrows:
+        return parquet.read(columns=columns).to_pandas()
+    batches: list[pa.Table] = []
+    collected = 0
+    for idx in range(parquet.metadata.num_row_groups - 1, -1, -1):
+        row_count = parquet.metadata.row_group(idx).num_rows
+        batches.append(parquet.read_row_group(idx, columns=columns))
+        collected += row_count
+        if collected >= nrows:
+            break
+    batches.reverse()
+    df = pa.concat_tables(batches).to_pandas()
+    if len(df) > nrows:
+        df = df.iloc[-nrows:].reset_index(drop=True)
+    return df
+
+
+def _parse_cop(raw: Any) -> float:
+    if raw is None:
+        return 0.0
+    if isinstance(raw, (int, float)):
+        return float(raw) if pd.notna(raw) else 0.0
+    value = str(raw).strip()
+    if not value or value.lower() in {"nan", "none", "null"}:
+        return 0.0
+    cleaned = (
+        value.replace("$", "")
+        .replace("COP", "")
+        .replace(" ", "")
+        .replace(",", "")
+    )
+    try:
+        return float(cleaned)
+    except ValueError:
+        return 0.0
+
+
+def _format_cop(value: float, lang: str) -> str:
+    if value <= 0:
+        return RISK_LABELS[lang]["unavailable"]
+    if value >= 1e12:
+        return f"${value / 1e12:,.2f}B COP"
+    if value >= 1e9:
+        return f"${value / 1e9:,.2f}MM COP"
+    if value >= 1e6:
+        return f"${value / 1e6:,.1f}M COP"
+    return f"${value:,.0f} COP"
+
+
+def _risk_bucket(score: float) -> str:
+    if score >= RED_THRESHOLD:
+        return "high"
+    if score >= YELLOW_THRESHOLD:
+        return "medium"
+    return "low"
+
+
+def _extract_url(raw: Any) -> str:
+    if isinstance(raw, dict):
+        return str(raw.get("url") or "")
+    if hasattr(raw, "get"):
+        return str(raw.get("url") or "")
+    if isinstance(raw, str):
+        return raw
+    return ""
+
+
+def _iso_date(raw: Any) -> str:
+    dt = pd.to_datetime(raw, errors="coerce", utc=True)
+    if pd.isna(dt):
+        return ""
+    return dt.strftime("%Y-%m-%d")
+
+
+def _safe_ts(raw: Any) -> pd.Timestamp:
+    dt = pd.to_datetime(raw, errors="coerce", utc=True)
+    if pd.isna(dt):
+        return pd.Timestamp("1970-01-01", tz="UTC")
+    return dt
+
+
+def _resolve_columns(schema: set[str]) -> list[str]:
+    preferred = [
+        "id_contrato",
+        "referencia_del_contrato",
+        "nombre_entidad",
+        "proveedor_adjudicado",
+        "departamento",
+        "modalidad_de_contratacion",
+        "fecha_firma",
+        "valor_contrato",
+        "valor_del_contrato",
+        "risk_score",
+        "risk_label",
+        "secop_url",
+        "urlproceso",
+        "single_bidder",
+        "is_direct_award",
+        "advance_payment_ratio",
+        "price_ratio_vs_entity_median",
+        "price_ratio_vs_unspsc_median",
+        "provider_value_share_entity",
+        "provider_contract_count_entity",
+        "provider_age_months",
+        "normalized_ofertantes",
+        "repeat_provider_flag",
+        "electoral_window",
+        "ley_garantias_period",
+        "fiscal_year_end_rush",
+        "value_vs_additions_ratio",
+    ]
+    return [column for column in preferred if column in schema]
+
+
+def _normalize_frame(df: pd.DataFrame) -> pd.DataFrame:
+    frame = df.copy()
+    if "valor_contrato" not in frame.columns and "valor_del_contrato" in frame.columns:
+        frame["valor_contrato"] = frame["valor_del_contrato"]
+    if "secop_url" not in frame.columns and "urlproceso" in frame.columns:
+        frame["secop_url"] = frame["urlproceso"].apply(_extract_url)
+    frame["contract_id"] = frame.get("id_contrato", frame.get("referencia_del_contrato", pd.Series(range(len(frame)))))
+    frame["valor_num"] = frame.get("valor_contrato", 0).apply(_parse_cop)
+    frame["fecha_ts"] = frame.get("fecha_firma", "").apply(_safe_ts)
+    frame["fecha_label"] = frame.get("fecha_firma", "").apply(_iso_date)
+    frame["departamento"] = frame.get("departamento", "").fillna("").astype(str)
+    frame["departamento_geo"] = frame["departamento"].apply(normalize_department_name)
+    frame["risk_score"] = pd.to_numeric(frame.get("risk_score", 0), errors="coerce").fillna(0.0)
+    frame["risk_bucket"] = frame["risk_score"].apply(_risk_bucket)
+    frame["secop_url"] = frame.get("secop_url", "").fillna("").astype(str)
+    frame["nombre_entidad"] = frame.get("nombre_entidad", "").fillna("").astype(str)
+    frame["proveedor_adjudicado"] = frame.get("proveedor_adjudicado", "").fillna("").astype(str)
+    frame["modalidad_de_contratacion"] = frame.get("modalidad_de_contratacion", "").fillna("").astype(str)
+    return frame
+
+
+@lru_cache(maxsize=4)
+def load_contracts(full: bool) -> pd.DataFrame:
+    path = _resolve_parquet_path()
+    schema = _schema_names(path)
+    columns = _resolve_columns(schema)
+    if full:
+        df = pd.read_parquet(path, columns=columns)
+    else:
+        df = _read_tail(path, columns, PREVIEW_SIZE)
+    return _normalize_frame(df)
+
+
+@lru_cache(maxsize=1)
+def get_total_row_count() -> int:
+    path = _resolve_parquet_path()
+    return pq.ParquetFile(str(path)).metadata.num_rows
+
+
+@lru_cache(maxsize=1)
+def load_geojson() -> dict[str, Any]:
+    with open(DEFAULT_GEOJSON_PATH, "r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+@lru_cache(maxsize=1)
+def load_model_metadata() -> dict[str, Any]:
+    files = sorted(MODEL_META_DIR.glob("*_metadata.json"))
+    if not files:
+        return {}
+    with open(files[-1], "r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+@lru_cache(maxsize=1)
+def load_last_run() -> dict[str, Any]:
+    if not LAST_RUN_PATH.exists():
+        return {}
+    with open(LAST_RUN_PATH, "r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _filter_frame(
+    df: pd.DataFrame,
+    *,
+    department: str | None = None,
+    risk: str | None = None,
+    modality: str | None = None,
+    query: str | None = None,
+) -> pd.DataFrame:
+    frame = df.copy()
+    if department:
+        frame = frame[frame["departamento_geo"] == department]
+    if risk and risk != "all":
+        frame = frame[frame["risk_bucket"] == risk]
+    if modality:
+        frame = frame[frame["modalidad_de_contratacion"] == modality]
+    if query:
+        mask = frame["nombre_entidad"].str.contains(query, case=False, na=False)
+        mask |= frame["proveedor_adjudicado"].str.contains(query, case=False, na=False)
+        frame = frame[mask]
+    return frame
+
+
+def _build_department_summary(df: pd.DataFrame) -> list[dict[str, Any]]:
+    if df.empty:
+        return []
+    grouped = (
+        df[df["departamento_geo"] != ""]
+        .groupby(["departamento_geo", "departamento"])
+        .agg(avg_risk=("risk_score", "mean"), contract_count=("risk_score", "size"))
+        .reset_index()
+        .sort_values(["avg_risk", "contract_count"], ascending=[False, False])
+    )
+    best_labels = (
+        grouped.groupby("departamento_geo")["departamento"]
+        .agg(lambda values: values.mode().iloc[0] if not values.mode().empty else values.iloc[0])
+        .to_dict()
+    )
+    collapsed = (
+        grouped.groupby("departamento_geo")
+        .agg(avg_risk=("avg_risk", "max"), contract_count=("contract_count", "sum"))
+        .reset_index()
+    )
+    return [
+        {
+            "key": row["departamento_geo"],
+            "label": best_labels.get(row["departamento_geo"], row["departamento_geo"]).title(),
+            "geoName": row["departamento_geo"],
+            "avgRisk": round(float(row["avg_risk"]), 4),
+            "contractCount": int(row["contract_count"]),
+        }
+        for _, row in collapsed.iterrows()
+    ]
+
+
+def _slice_stats(df: pd.DataFrame, lang: str) -> dict[str, Any]:
+    red = df[df["risk_score"] >= RED_THRESHOLD]
+    dominant = (
+        df["departamento"].mode().iloc[0]
+        if "departamento" in df.columns and not df["departamento"].mode().empty
+        else "Colombia"
+    )
+    return {
+        "totalContracts": int(len(df)),
+        "redAlerts": int(len(red)),
+        "prioritizedValue": float(red["valor_num"].sum()) if not red.empty else 0.0,
+        "prioritizedValueLabel": _format_cop(float(red["valor_num"].sum()) if not red.empty else 0.0, lang),
+        "dominantDepartment": dominant,
+    }
+
+
+def _quantiles(df: pd.DataFrame) -> dict[str, tuple[float, float]]:
+    stats: dict[str, tuple[float, float]] = {}
+    for rule in FEATURE_RULES:
+        column = rule["col"]
+        if column not in df.columns:
+            continue
+        series = pd.to_numeric(df[column], errors="coerce").dropna()
+        if series.empty:
+            continue
+        stats[column] = (float(series.quantile(0.10)), float(series.quantile(0.90)))
+    return stats
+
+
+def _build_factors(row: pd.Series, stats: dict[str, tuple[float, float]], lang: str) -> list[dict[str, Any]]:
+    factors: list[dict[str, Any]] = []
+    label_key = f"label_{lang}"
+    for rule in FEATURE_RULES:
+        column = rule["col"]
+        if column not in row or pd.isna(row[column]):
+            continue
+        value = float(row[column])
+        q10, q90 = stats.get(column, (math.nan, math.nan))
+        severity = 0.0
+        if rule["mode"] == "bool":
+            severity = 0.92 if value >= 1 else 0.0
+        elif rule["mode"] == "high" and not math.isnan(q90) and q90 > 0 and value >= q90:
+            severity = min(1.0, 0.55 + ((value - q90) / max(abs(q90), 1e-6)) * 0.35)
+        elif rule["mode"] == "low" and not math.isnan(q10) and value <= q10:
+            baseline = max(abs(q10), 0.01)
+            severity = min(1.0, 0.55 + ((q10 - value) / baseline) * 0.35)
+        if severity <= 0:
+            continue
+        labels = FEATURE_LABELS.get(rule["feature"], {})
+        factors.append(
+            {
+                "key": rule["feature"],
+                "label": labels.get(label_key, labels.get("label_es", rule["feature"])),
+                "severity": round(float(severity), 3),
+            }
+        )
+    factors.sort(key=lambda item: item["severity"], reverse=True)
+    return factors[:4]
+
+
+def _lead_cases(df: pd.DataFrame, lang: str, limit: int) -> list[dict[str, Any]]:
+    if df.empty:
+        return []
+    frame = df.copy()
+    frame["_value_rank"] = frame["valor_num"].rank(pct=True, method="max") if frame["valor_num"].max() > 0 else 0.0
+    frame["_recent_rank"] = frame["fecha_ts"].rank(pct=True, method="max")
+    frame["_priority"] = frame["risk_score"] * 0.72 + frame["_value_rank"] * 0.18 + frame["_recent_rank"] * 0.10
+    top = frame.sort_values(["_priority", "risk_score", "valor_num"], ascending=[False, False, False]).head(limit)
+    stats = _quantiles(frame)
+    copy = RISK_LABELS[lang]
+    value_median = float(top["valor_num"].median()) if not top.empty else 0.0
+    recent_cut = top["fecha_ts"].quantile(0.7) if not top.empty else pd.Timestamp("1970-01-01", tz="UTC")
+    cases: list[dict[str, Any]] = []
+    for index, (_, row) in enumerate(top.iterrows()):
+        factors = _build_factors(row, stats, lang)
+        signal = factors[0]["label"] if factors else copy["signal_fallback"]
+        if index == 0:
+            pick_reason = copy["pick_start"]
+        elif row["risk_score"] >= RED_THRESHOLD and row["valor_num"] >= value_median and value_median > 0:
+            pick_reason = copy["pick_value"]
+        elif row["fecha_ts"] >= recent_cut:
+            pick_reason = copy["pick_recent"]
+        else:
+            pick_reason = copy["pick_signal"]
+        cases.append(
+            {
+                "id": str(row["contract_id"]),
+                "score": int(round(float(row["risk_score"]) * 100)),
+                "riskBand": row["risk_bucket"],
+                "entity": row["nombre_entidad"],
+                "provider": row["proveedor_adjudicado"] or copy["unavailable"],
+                "department": row["departamento"],
+                "modality": row["modalidad_de_contratacion"] or copy["unavailable"],
+                "date": row["fecha_label"],
+                "value": float(row["valor_num"]),
+                "valueLabel": _format_cop(float(row["valor_num"]), lang),
+                "secopUrl": row["secop_url"],
+                "pickReason": pick_reason,
+                "signal": signal,
+                "factors": factors,
+            }
+        )
+    return cases
+
+
+def _entity_summary(df: pd.DataFrame) -> list[dict[str, Any]]:
+    if df.empty:
+        return []
+    grouped = (
+        df.groupby("nombre_entidad")
+        .agg(contracts=("risk_score", "size"), meanRisk=("risk_score", "mean"), maxRisk=("risk_score", "max"))
+        .sort_values(["maxRisk", "contracts"], ascending=[False, False])
+        .head(8)
+        .reset_index()
+    )
+    return grouped.to_dict(orient="records")
+
+
+def _modality_summary(df: pd.DataFrame) -> list[dict[str, Any]]:
+    if df.empty:
+        return []
+    grouped = (
+        df.groupby("modalidad_de_contratacion")
+        .agg(contracts=("risk_score", "size"), meanRisk=("risk_score", "mean"))
+        .sort_values(["meanRisk", "contracts"], ascending=[False, False])
+        .head(8)
+        .reset_index()
+    )
+    return grouped.to_dict(orient="records")
+
+
+def _options(df: pd.DataFrame) -> dict[str, list[dict[str, str]]]:
+    departments = (
+        df[df["departamento_geo"] != ""]
+        .groupby(["departamento_geo", "departamento"])
+        .size()
+        .reset_index(name="count")
+        .sort_values(["count", "departamento"], ascending=[False, True])
+    )
+    dept_seen: set[str] = set()
+    dept_options: list[dict[str, str]] = []
+    for _, row in departments.iterrows():
+        if row["departamento_geo"] in dept_seen:
+            continue
+        dept_seen.add(row["departamento_geo"])
+        dept_options.append({"value": row["departamento_geo"], "label": row["departamento"]})
+    modality_options = sorted(
+        {
+            value
+            for value in df["modalidad_de_contratacion"].dropna().astype(str).tolist()
+            if value.strip()
+        }
+    )
+    return {
+        "departments": dept_options,
+        "modalities": [{"value": item, "label": item} for item in modality_options],
+    }
+
+
+def _freshness() -> dict[str, Any]:
+    data = load_last_run()
+    last_run_ts = data.get("last_run_ts")
+    return {"lastRunTs": last_run_ts}
+
+
+def get_overview_payload(
+    *,
+    lang: str = "es",
+    full: bool = False,
+    department: str | None = None,
+    risk: str | None = None,
+    modality: str | None = None,
+    query: str | None = None,
+    limit: int = 6,
+) -> dict[str, Any]:
+    df_all = load_contracts(full)
+    df_slice = _filter_frame(df_all, department=department, risk=risk, modality=modality, query=query)
+    meta = load_model_metadata()
+    return {
+        "meta": {
+            "lang": lang,
+            "fullDataset": full,
+            "totalRows": get_total_row_count(),
+            "shownRows": int(len(df_all)),
+            **_freshness(),
+        },
+        "options": _options(df_all),
+        "map": {
+            "departments": _build_department_summary(df_all),
+        },
+        "slice": _slice_stats(df_slice, lang),
+        "leadCases": _lead_cases(df_slice, lang, limit),
+        "summaries": {
+            "entities": _entity_summary(df_slice),
+            "modalities": _modality_summary(df_slice),
+        },
+        "methodology": {
+            "modelType": meta.get("model_type", "IsolationForest"),
+            "nEstimators": meta.get("n_estimators", 200),
+            "contamination": meta.get("contamination", meta.get("contamination_param", 0.05)),
+            "nFeatures": meta.get("n_features", 25),
+            "trainedAt": meta.get("trained_at"),
+            "redThreshold": meta.get("red_threshold", RED_THRESHOLD),
+            "yellowThreshold": meta.get("yellow_threshold", YELLOW_THRESHOLD),
+        },
+    }
+
+
+def get_table_payload(
+    *,
+    lang: str = "es",
+    full: bool = False,
+    department: str | None = None,
+    risk: str | None = None,
+    modality: str | None = None,
+    query: str | None = None,
+    offset: int = 0,
+    limit: int = 50,
+) -> dict[str, Any]:
+    df_all = load_contracts(full)
+    df_slice = _filter_frame(df_all, department=department, risk=risk, modality=modality, query=query)
+    ordered = df_slice.sort_values("risk_score", ascending=False).iloc[offset:offset + limit]
+    rows = [
+        {
+            "id": str(row["contract_id"]),
+            "score": int(round(float(row["risk_score"]) * 100)),
+            "riskBand": row["risk_bucket"],
+            "entity": row["nombre_entidad"],
+            "provider": row["proveedor_adjudicado"] or RISK_LABELS[lang]["unavailable"],
+            "department": row["departamento"],
+            "modality": row["modalidad_de_contratacion"] or RISK_LABELS[lang]["unavailable"],
+            "date": row["fecha_label"],
+            "value": float(row["valor_num"]),
+            "valueLabel": _format_cop(float(row["valor_num"]), lang),
+            "secopUrl": row["secop_url"],
+        }
+        for _, row in ordered.iterrows()
+    ]
+    return {"total": int(len(df_slice)), "rows": rows}
