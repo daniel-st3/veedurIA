@@ -73,6 +73,11 @@ jobs:
         run: |
           python -m src.models.isolation_forest --action=train --contamination=${{ github.event.inputs.contamination || '0.05' }}
 
+      - name: Score contracts with refreshed model
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python -m src.models.isolation_forest --action=score
+
       - name: Validate model against reference cases
         if: steps.check_secrets.outputs.skip != 'true'
         run: |
@@ -86,5 +91,6 @@ jobs:
           path: |
             data/processed/models/*_metadata.json
             data/processed/models/validation_results.json
+            data/processed/scored_contracts.parquet
           retention-days: 30
           if-no-files-found: ignore

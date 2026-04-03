@@ -370,6 +370,18 @@ def _slice_stats(df: pd.DataFrame, lang: str) -> dict[str, Any]:
     }
 
 
+def _decorate_priority(df: pd.DataFrame) -> pd.DataFrame:
+    frame = df.copy()
+    frame["_value_rank"] = frame["valor_num"].rank(pct=True, method="max") if frame["valor_num"].max() > 0 else 0.0
+    frame["_recent_rank"] = frame["fecha_ts"].rank(pct=True, method="max")
+    frame["_priority"] = (
+        frame["risk_score"] * 0.56
+        + frame["_recent_rank"] * 0.27
+        + frame["_value_rank"] * 0.17
+    )
+    return frame
+
+
 def _quantiles(df: pd.DataFrame) -> dict[str, tuple[float, float]]:
     stats: dict[str, tuple[float, float]] = {}
     for rule in FEATURE_RULES:
@@ -417,11 +429,11 @@ def _build_factors(row: pd.Series, stats: dict[str, tuple[float, float]], lang: 
 def _lead_cases(df: pd.DataFrame, lang: str, limit: int) -> list[dict[str, Any]]:
     if df.empty:
         return []
-    frame = df.copy()
-    frame["_value_rank"] = frame["valor_num"].rank(pct=True, method="max") if frame["valor_num"].max() > 0 else 0.0
-    frame["_recent_rank"] = frame["fecha_ts"].rank(pct=True, method="max")
-    frame["_priority"] = frame["risk_score"] * 0.72 + frame["_value_rank"] * 0.18 + frame["_recent_rank"] * 0.10
-    top = frame.sort_values(["_priority", "risk_score", "valor_num"], ascending=[False, False, False]).head(limit)
+    frame = _decorate_priority(df)
+    top = frame.sort_values(
+        ["_priority", "fecha_ts", "risk_score", "valor_num"],
+        ascending=[False, False, False, False],
+    ).head(limit)
     stats = _quantiles(frame)
     copy = RISK_LABELS[lang]
     value_median = float(top["valor_num"].median()) if not top.empty else 0.0
@@ -538,6 +550,7 @@ def get_overview_payload(
             "fullDataset": full,
             "totalRows": get_total_row_count(),
             "shownRows": int(len(df_all)),
+            "latestContractDate": df_all["fecha_label"].max() if not df_all.empty else None,
             **_freshness(),
         },
         "options": _options(df_all),
@@ -575,7 +588,11 @@ def get_table_payload(
 ) -> dict[str, Any]:
     df_all = load_contracts(full)
     df_slice = _filter_frame(df_all, department=department, risk=risk, modality=modality, query=query)
-    ordered = df_slice.sort_values("risk_score", ascending=False).iloc[offset:offset + limit]
+    ordered = (
+        _decorate_priority(df_slice)
+        .sort_values(["_priority", "fecha_ts", "risk_score", "valor_num"], ascending=[False, False, False, False])
+        .iloc[offset:offset + limit]
+    )
     rows = [
         {
             "id": str(row["contract_id"]),

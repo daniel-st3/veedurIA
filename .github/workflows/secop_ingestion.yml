@@ -79,6 +79,11 @@ jobs:
         run: |
           python -m src.ingestion.secop_client --mode=${{ github.event.inputs.mode || 'incremental' }}
 
+      - name: Re-score contracts with latest trained model
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python -m src.models.isolation_forest --action=score
+
       # ── Fix C: continue-on-error for the commit step ──────────────────
       # PAT_CONTENTS_WRITE may not be configured — don't fail the run
       # just because we couldn't persist last_run.json.
@@ -89,9 +94,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/processed/last_run.json
+          git add data/processed/scored_contracts.parquet
           # Only commit if there are changes
-          git diff --cached --quiet || git commit -m "chore: update last_run.json [skip ci]"
-          git push || echo "::warning::Could not push last_run.json (PAT_CONTENTS_WRITE may not be configured). Ingestion succeeded but state was not persisted."
+          git diff --cached --quiet || git commit -m "chore: refresh SECOP scored data [skip ci]"
+          git push || echo "::warning::Could not push refreshed state (PAT_CONTENTS_WRITE may not be configured). Ingestion succeeded but the refreshed files were not persisted."
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -100,6 +106,7 @@ jobs:
           name: ingestion-artifacts-${{ github.run_id }}
           path: |
             data/processed/last_run.json
+            data/processed/scored_contracts.parquet
             data/processed/*.parquet
           retention-days: 7
           if-no-files-found: ignore

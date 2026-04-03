@@ -13,11 +13,14 @@ type Props = {
 export function SiteNav({ lang, links, ctaHref, ctaLabel }: Props) {
   return (
     <nav className="site-nav">
-      <Link href={`/?lang=${lang}`} className="brand">
-        Veedur<span className="y">I</span>
-        <span className="b">A</span>
-        <span className="r">.</span>
-      </Link>
+      <div className="site-nav__brand">
+        <Link href={`/?lang=${lang}`} className="brand">
+          Veedur<span className="y">I</span>
+          <span className="b">A</span>
+          <span className="r">.</span>
+        </Link>
+        <span className="site-nav__meta">Plataforma cívica de lectura pública</span>
+      </div>
       <div className="nav-links">
         {links.map((link) => (
           <Link key={link.href} href={link.href}>

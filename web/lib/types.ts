@@ -37,6 +37,7 @@ export type OverviewPayload = {
     fullDataset: boolean;
     totalRows: number;
     shownRows: number;
+    latestContractDate?: string | null;
     lastRunTs?: string | null;
   };
   options: {

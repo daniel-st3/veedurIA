@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -9,14 +9,99 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import { HeroField } from "@/components/hero-field";
 import { SiteNav } from "@/components/site-nav";
+import { fetchOverview } from "@/lib/api";
 import { landingCopy } from "@/lib/copy";
-import type { Lang } from "@/lib/types";
+import type { Lang, OverviewPayload } from "@/lib/types";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
-export function LandingPage({ lang }: { lang: Lang }) {
+function renderStatVisual(index: number, copy: (typeof landingCopy)[Lang]) {
+  if (index === 0) {
+    return (
+      <div className="metric-visual">
+        <div className="label metric-visual__title">{copy.statVisualCoverage}</div>
+        <div className="metric-rail">
+          <span className="metric-rail__track" />
+          <span className="metric-rail__fill metric-rail__fill--blue" data-meter style={{ width: "88%" }} />
+        </div>
+        <div className="metric-points">
+          <span>2023</span>
+          <span>2024</span>
+          <span>2025</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (index === 1) {
+    return (
+      <div className="metric-visual">
+        <div className="label metric-visual__title">{copy.statVisualSignals}</div>
+        <div className="metric-tags">
+          {["Monto", "Plazo", "Proveedor", "Oferentes", "Tiempo"].map((item, tagIndex) => (
+            <span key={item} className={`metric-tag metric-tag--${tagIndex % 2 === 0 ? "yellow" : "blue"}`}>
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (index === 2) {
+    return (
+      <div className="metric-visual">
+        <div className="label metric-visual__title">{copy.statVisualThreshold}</div>
+        <div className="threshold-scale">
+          <span className="threshold-scale__band threshold-scale__band--low">0–39</span>
+          <span className="threshold-scale__band threshold-scale__band--mid">40–69</span>
+          <span className="threshold-scale__band threshold-scale__band--high">70–100</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="metric-visual">
+      <div className="label metric-visual__title">{copy.statVisualRoadmap}</div>
+      <div className="road-steps">
+        <span className="road-steps__dot road-steps__dot--active" />
+        <span className="road-steps__line" />
+        <span className="road-steps__dot road-steps__dot--mid" />
+        <span className="road-steps__line" />
+        <span className="road-steps__dot road-steps__dot--end" />
+      </div>
+    </div>
+  );
+}
+
+export function LandingPage({
+  lang,
+  initialMeta,
+  initialGeojson,
+}: {
+  lang: Lang;
+  initialMeta?: OverviewPayload["meta"] | null;
+  initialGeojson?: any | null;
+}) {
   const copy = landingCopy[lang];
   const scope = useRef<HTMLDivElement | null>(null);
+  const [freshness, setFreshness] = useState<OverviewPayload["meta"] | null>(initialMeta ?? null);
+  const freshnessLabel = lang === "es" ? "Último corte visible" : "Latest visible contract";
+  const pipelineLabel = lang === "es" ? "Pipeline" : "Pipeline";
+  const loadingLabel = lang === "es" ? "cargando" : "loading";
+
+  useEffect(() => {
+    let alive = true;
+    fetchOverview({ lang, full: false })
+      .then((data) => {
+        if (alive) setFreshness(data.meta);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [lang]);
 
   useGSAP(
     () => {
@@ -84,11 +169,15 @@ export function LandingPage({ lang }: { lang: Lang }) {
           },
         });
 
-        ScrollTrigger.batch(".stat-graph__bar", {
+        ScrollTrigger.batch("[data-meter]", {
           start: "top 90%",
           once: true,
           onEnter: (batch) => {
-            gsap.fromTo(batch, { scaleY: 0.18 }, { scaleY: 1, duration: 0.72, stagger: 0.04, ease: "power3.out", transformOrigin: "center bottom" });
+            gsap.fromTo(
+              batch,
+              { scaleX: 0.24, autoAlpha: 0.45 },
+              { scaleX: 1, autoAlpha: 1, duration: 0.72, stagger: 0.06, ease: "power3.out", transformOrigin: "left center" },
+            );
           },
         });
 
@@ -141,8 +230,8 @@ export function LandingPage({ lang }: { lang: Lang }) {
       />
 
       <main className="page">
-        <section className="hero-grid hero-stage" style={{ padding: "2.4rem 0 1.8rem", alignItems: "center" }}>
-          <div>
+        <section className="hero-grid hero-grid--landing hero-stage" style={{ padding: "1.2rem 0 1rem", alignItems: "center" }}>
+          <div className="hero-copy">
             <div className="hero-pill eyebrow-pill">
               {copy.heroEyebrow}
             </div>
@@ -160,7 +249,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
             <div className="hero-body">
               <p>{copy.heroBody}</p>
             </div>
-            <div className="hero-meta" style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", margin: "1.15rem 0 0.95rem" }}>
+            <div className="hero-meta" style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", margin: "1rem 0 0.85rem" }}>
               <span className="chip hero-chip hero-chip--blue" style={{ padding: "0.65rem 0.9rem" }}>
                 <strong>IF</strong>&nbsp;{copy.heroPointA}
               </span>
@@ -169,6 +258,9 @@ export function LandingPage({ lang }: { lang: Lang }) {
               </span>
               <span className="chip hero-chip hero-chip--red" style={{ padding: "0.65rem 0.9rem" }}>
                 <strong>SECOP</strong>&nbsp;{copy.heroPointC}
+              </span>
+              <span className="chip hero-chip" style={{ padding: "0.65rem 0.9rem", color: "var(--text-2)" }}>
+                <strong>DATA</strong>&nbsp;{freshness?.latestContractDate ?? loadingLabel}
               </span>
             </div>
             <div className="hero-track">
@@ -184,7 +276,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
                 {copy.heroSecondary}
               </a>
             </div>
-            <div className="scroll-cue" style={{ marginTop: "1rem" }}>
+            <div className="scroll-cue" style={{ marginTop: "0.8rem" }}>
               {copy.heroPlay}
             </div>
           </div>
@@ -194,6 +286,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
             body={copy.heroPlayBody}
             legend={[copy.heroLegendFocus, copy.heroLegendModel, copy.heroLegendAlert]}
             graphLabel={copy.heroGraphLabel}
+            geojson={initialGeojson ?? null}
             notes={[
               {
                 label: copy.heroCardSourceLabel,
@@ -214,7 +307,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
           />
         </section>
 
-        <section className="stat-grid" style={{ marginBottom: "1.4rem" }}>
+        <section className="stat-grid" style={{ marginBottom: "1rem" }}>
           {copy.stats.map(([value, label, body], index) => (
             <article
               key={label}
@@ -229,15 +322,7 @@ export function LandingPage({ lang }: { lang: Lang }) {
               <div className="body-copy" style={{ fontSize: "0.84rem" }}>
                 {body}
               </div>
-              <div className="stat-graph">
-                {Array.from({ length: 5 }).map((_, barIndex) => (
-                  <span
-                    key={`${label}-${barIndex}`}
-                    className={`stat-graph__bar stat-graph__bar--${index === 0 ? "blue" : index === 1 ? "yellow" : index === 2 ? "red" : "green"}`}
-                    style={{ height: `${28 + ((barIndex + 1) * (index + 2) * 5) % 56}px` }}
-                  />
-                ))}
-              </div>
+              {renderStatVisual(index, copy)}
             </article>
           ))}
         </section>
@@ -335,9 +420,31 @@ export function LandingPage({ lang }: { lang: Lang }) {
             </Link>
           </div>
         </section>
+
+        <section className="landing-foot">
+          <div className="landing-foot__card surface-soft">
+            <div>
+              <div className="label" style={{ marginBottom: "0.45rem" }}>Autor</div>
+              <strong>Daniel Steven Rodríguez Sandoval</strong>
+            </div>
+            <div>
+              <div className="label" style={{ marginBottom: "0.45rem" }}>Repositorio</div>
+              <a href="https://github.com/daniel-st3/veedurIA" target="_blank" rel="noreferrer" className="landing-foot__link">
+                github.com/daniel-st3/veedurIA
+              </a>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <footer className="footer">{copy.footer}</footer>
+      <footer className="footer">
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+          <span>{copy.footer}</span>
+          <span>
+            {freshnessLabel}: {freshness?.latestContractDate ?? loadingLabel} · {pipelineLabel}: {freshness?.lastRunTs?.slice(0, 10) ?? loadingLabel}
+          </span>
+        </div>
+      </footer>
     </div>
   );
 }
