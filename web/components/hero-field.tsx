@@ -133,6 +133,7 @@ export function HeroField({ status, title, body, legend, graphLabel, notes, geoj
             <div>
               <div className="label" style={{ marginBottom: "0.35rem" }}>{notes[0].label}</div>
               <h3>{currentDepartment.label}</h3>
+              <p className="body-copy hero-field__canvas-subline">{notes[0].body}</p>
             </div>
             <div className="hero-field__canvas-pills">
               <span className="tiny-pill">{`${Math.round(currentDepartment.avgRisk * 100)} ${legend[2]}`}</span>
@@ -186,14 +187,14 @@ export function HeroField({ status, title, body, legend, graphLabel, notes, geoj
         </div>
 
         <div className="hero-field__dock" data-chip>
-          {notes.map((note, index) => (
+          {notes.slice(1).map((note, index) => (
             <article
               key={note.title}
               className={`hero-field__dock-card surface-soft stripe-${index === 0 ? "blue" : index === 1 ? "yellow" : "red"}`}
             >
               <div className="label" style={{ marginBottom: "0.4rem" }}>{note.label}</div>
               <h3>{note.title}</h3>
-              <p className="body-copy">{index === 2 ? (note.body) : note.body}</p>
+              <p className="body-copy">{note.body}</p>
             </article>
           ))}
           <div className="hero-field__legend-shell">

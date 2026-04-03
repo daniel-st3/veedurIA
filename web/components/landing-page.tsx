@@ -299,8 +299,8 @@ export function LandingPage({
       />
 
       <main className="page">
-        <section className="landing-hero hero-stage" style={{ padding: "1rem 0 1.1rem" }}>
-          <div className="hero-copy hero-copy--landing">
+        <section className="landing-hero landing-hero--editorial hero-stage" style={{ padding: "1rem 0 1.1rem" }}>
+          <div className="hero-copy hero-copy--landing hero-copy--centered">
             <div className="hero-pill eyebrow-pill">
               {copy.heroEyebrow}
             </div>
@@ -318,6 +318,18 @@ export function LandingPage({
             <div className="hero-body">
               <p>{copy.heroBody}</p>
             </div>
+            <div className="hero-data-pill hero-data-pill--centered">
+              <span className="label">{copy.heroDataLabel}</span>
+              <strong>{freshness?.latestContractDate ?? loadingLabel}</strong>
+            </div>
+            <div className="hero-cta hero-cta--centered" style={{ display: "flex", gap: "0.8rem", flexWrap: "wrap" }}>
+              <Link href={`/contrato-limpio?lang=${lang}`} className="btn-primary btn-primary--hero">
+                {copy.heroPrimary}
+              </Link>
+              <a href="#modelo" className="btn-secondary btn-secondary--hero">
+                {copy.heroSecondary}
+              </a>
+            </div>
             <div className="hero-protocol">
               <div className="hero-protocol__item">
                 <span className="hero-protocol__index">01</span>
@@ -332,22 +344,10 @@ export function LandingPage({
                 <span>{copy.heroProtocolC}</span>
               </div>
             </div>
-            <div className="hero-data-pill">
-              <span className="label">{copy.heroDataLabel}</span>
-              <strong>{freshness?.latestContractDate ?? loadingLabel}</strong>
-            </div>
             <div className="hero-track">
               <div className="hero-track__line hero-track__line--yellow" />
               <div className="hero-track__line hero-track__line--blue" />
               <div className="hero-track__line hero-track__line--red" />
-            </div>
-            <div className="hero-cta" style={{ display: "flex", gap: "0.8rem", flexWrap: "wrap" }}>
-              <Link href={`/contrato-limpio?lang=${lang}`} className="btn-primary btn-primary--hero">
-                {copy.heroPrimary}
-              </Link>
-              <a href="#modelo" className="btn-secondary btn-secondary--hero">
-                {copy.heroSecondary}
-              </a>
             </div>
             <div className="scroll-cue" style={{ marginTop: "0.8rem" }}>
               {copy.heroMapCaption}

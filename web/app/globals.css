@@ -284,6 +284,10 @@ select:focus {
   gap: 1rem;
 }
 
+.landing-hero--editorial {
+  gap: 1.3rem;
+}
+
 .hero-copy {
   min-width: 0;
   max-width: 520px;
@@ -295,13 +299,34 @@ select:focus {
   max-width: 760px;
 }
 
+.hero-copy--centered {
+  max-width: 940px;
+  margin: 0 auto;
+  justify-items: center;
+  text-align: center;
+}
+
 .hero-copy--landing .hero-title {
-  max-width: 11ch;
+  max-width: 12ch;
   margin-bottom: 0.2rem;
 }
 
 .hero-copy--landing .hero-body {
   max-width: 720px;
+}
+
+.hero-copy--centered .hero-body,
+.hero-copy--centered .hero-track {
+  width: min(100%, 720px);
+}
+
+.hero-copy--centered .hero-protocol {
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.hero-copy--centered .hero-protocol__item {
+  text-align: left;
 }
 
 .eyebrow {
@@ -634,6 +659,12 @@ select:focus {
   letter-spacing: -0.06em;
 }
 
+.hero-field__canvas-subline {
+  margin: 0.45rem 0 0;
+  max-width: 28rem;
+  font-size: 0.84rem;
+}
+
 .hero-field__canvas-pills {
   display: flex;
   flex-wrap: wrap;
@@ -730,6 +761,14 @@ select:focus {
   font-family: "Sora", sans-serif;
   font-size: 0.92rem;
   letter-spacing: -0.03em;
+}
+
+.hero-data-pill--centered {
+  margin-bottom: 0;
+}
+
+.hero-cta--centered {
+  justify-content: center;
 }
 
 .btn-primary--hero,
@@ -832,7 +871,7 @@ select:focus {
 
 .hero-field__dock {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.8rem;
 }
 
@@ -2033,6 +2072,10 @@ select:focus {
     grid-template-columns: 1fr;
   }
 
+  .hero-copy--centered .hero-protocol {
+    grid-template-columns: 1fr;
+  }
+
   .hero-field {
     min-height: 0;
   }
@@ -2065,6 +2108,20 @@ select:focus {
 
   .hero-grid--landing {
     grid-template-columns: 1fr;
+  }
+
+  .hero-copy--centered {
+    justify-items: stretch;
+    text-align: left;
+  }
+
+  .hero-copy--centered .hero-body,
+  .hero-copy--centered .hero-track {
+    width: 100%;
+  }
+
+  .hero-cta--centered {
+    justify-content: flex-start;
   }
 
   .landing-hero {
