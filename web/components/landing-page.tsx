@@ -193,6 +193,75 @@ export function LandingPage({
           },
         });
 
+        ScrollTrigger.batch(".protocol-strip__item", {
+          start: "top 90%",
+          once: true,
+          onEnter: (batch) => {
+            gsap.fromTo(
+              batch,
+              { autoAlpha: 0, x: -28 },
+              { autoAlpha: 1, x: 0, duration: 0.68, stagger: 0.08, ease: "power3.out" },
+            );
+          },
+        });
+
+        ScrollTrigger.batch(".metric-tag, .threshold-scale__band", {
+          start: "top 92%",
+          once: true,
+          onEnter: (batch) => {
+            gsap.fromTo(
+              batch,
+              { autoAlpha: 0, y: 18, scale: 0.94 },
+              { autoAlpha: 1, y: 0, scale: 1, duration: 0.56, stagger: 0.05, ease: "power2.out" },
+            );
+          },
+        });
+
+        ScrollTrigger.batch(".road-steps__dot, .road-steps__line", {
+          start: "top 92%",
+          once: true,
+          onEnter: (batch) => {
+            gsap.fromTo(
+              batch,
+              { autoAlpha: 0, scaleX: 0.2, scaleY: 0.8 },
+              { autoAlpha: 1, scaleX: 1, scaleY: 1, duration: 0.66, stagger: 0.06, ease: "power3.out", transformOrigin: "left center" },
+            );
+          },
+        });
+
+        gsap.utils.toArray<HTMLElement>(".phase-grid").forEach((grid) => {
+          gsap.fromTo(
+            grid,
+            { y: 0 },
+            {
+              y: -14,
+              ease: "none",
+              scrollTrigger: {
+                trigger: grid,
+                start: "top bottom",
+                end: "bottom top",
+                scrub: 1.1,
+              },
+            },
+          );
+        });
+
+        gsap.fromTo(
+          ".landing-foot__card, .footer > div",
+          { autoAlpha: 0, y: 28 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.72,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: ".landing-foot",
+              start: "top 90%",
+              once: true,
+            },
+          },
+        );
+
         gsap.fromTo(
           ".cta-surface",
           { autoAlpha: 0, y: 40, scale: 0.97 },

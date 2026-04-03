@@ -191,6 +191,12 @@ export function ContractsView({
         );
 
         gsap.fromTo(
+          ".protocol-strip__item, .reading-deck__fact, .metric-shell",
+          { autoAlpha: 0, y: 24 },
+          { autoAlpha: 1, y: 0, duration: 0.62, stagger: 0.06, ease: "power3.out", delay: 0.12 },
+        );
+
+        gsap.fromTo(
           ".signal-bar",
           { scaleY: 0.15 },
           {
@@ -207,6 +213,12 @@ export function ContractsView({
           ".factor-fill",
           { scaleX: 0.15, autoAlpha: 0.45 },
           { scaleX: 1, autoAlpha: 1, duration: 0.68, stagger: 0.06, ease: "power3.out", transformOrigin: "left center" },
+        );
+
+        gsap.fromTo(
+          ".focus-card__headline, .focus-card__factor-lead",
+          { autoAlpha: 0, y: 18 },
+          { autoAlpha: 1, y: 0, duration: 0.55, stagger: 0.08, ease: "power3.out", delay: 0.18 },
         );
 
         gsap.to(".map-glow", {
@@ -228,6 +240,71 @@ export function ContractsView({
               { autoAlpha: 1, y: 0, scale: 1, duration: 0.72, stagger: 0.08, ease: "power3.out" },
             );
           },
+        });
+
+        ScrollTrigger.batch(".territory-chip", {
+          start: "top 92%",
+          once: true,
+          onEnter: (batch) => {
+            gsap.fromTo(
+              batch,
+              { autoAlpha: 0, x: -22 },
+              { autoAlpha: 1, x: 0, duration: 0.58, stagger: 0.05, ease: "power3.out" },
+            );
+          },
+        });
+
+        ScrollTrigger.batch(".analysis-tab", {
+          start: "top 90%",
+          once: true,
+          onEnter: (batch) => {
+            gsap.fromTo(
+              batch,
+              { autoAlpha: 0, y: 16 },
+              { autoAlpha: 1, y: 0, duration: 0.48, stagger: 0.05, ease: "power2.out" },
+            );
+          },
+        });
+
+        ScrollTrigger.batch(".analysis-panel, .explorer-card, .explorer-raw", {
+          start: "top 90%",
+          once: true,
+          onEnter: (batch) => {
+            gsap.fromTo(
+              batch,
+              { autoAlpha: 0, y: 34, scale: 0.985 },
+              { autoAlpha: 1, y: 0, scale: 1, duration: 0.68, stagger: 0.06, ease: "power3.out" },
+            );
+          },
+        });
+
+        ScrollTrigger.batch(".meter-row__fill, .table-value__fill, .territory-chip__meter", {
+          start: "top 92%",
+          once: true,
+          onEnter: (batch) => {
+            gsap.fromTo(
+              batch,
+              { scaleX: 0.08, autoAlpha: 0.5 },
+              { scaleX: 1, autoAlpha: 1, duration: 0.72, stagger: 0.04, ease: "power3.out", transformOrigin: "left center" },
+            );
+          },
+        });
+
+        gsap.utils.toArray<HTMLElement>(".map-panel, .analysis-suite").forEach((section) => {
+          gsap.fromTo(
+            section,
+            { y: 0 },
+            {
+              y: -10,
+              ease: "none",
+              scrollTrigger: {
+                trigger: section,
+                start: "top bottom",
+                end: "bottom top",
+                scrub: 1,
+              },
+            },
+          );
         });
       });
 
