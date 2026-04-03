@@ -1511,6 +1511,40 @@ select:focus {
   background: rgba(255, 255, 255, 0.72);
 }
 
+.focus-card__masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.focus-card__masthead-actions {
+  display: grid;
+  gap: 0.65rem;
+  justify-items: end;
+}
+
+.focus-card__signal-pill {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 180px;
+  padding: 0.8rem 0.9rem;
+  border-radius: 16px;
+  border: 1px solid rgba(23, 32, 51, 0.06);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.focus-card__signal-pill strong {
+  font-family: "Sora", sans-serif;
+  font-size: 0.98rem;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+
+.focus-card__intro {
+  margin: -0.1rem 0 0.1rem;
+}
+
 .focus-card__headline {
   display: flex;
   gap: 0.45rem;
@@ -1537,12 +1571,80 @@ select:focus {
   font-size: 0.92rem;
 }
 
+.focus-card__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.focus-card__summary-card {
+  align-content: start;
+}
+
+.focus-card__analysis {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(220px, 0.88fr);
+  gap: 0.75rem;
+}
+
 .case-list-head {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
   align-items: flex-end;
   margin-bottom: 0.75rem;
+}
+
+.case-card__topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.case-card__title {
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  line-height: 1.14;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+  margin-bottom: 0.22rem;
+}
+
+.case-card__meta {
+  font-size: 0.8rem;
+  margin-bottom: 0.38rem;
+}
+
+.case-card__reason {
+  font-size: 0.78rem;
+}
+
+.case-card__meter {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(23, 32, 51, 0.08);
+  overflow: hidden;
+  margin-top: 0.75rem;
+}
+
+.case-card__meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.case-card__meter-fill--high {
+  background: linear-gradient(90deg, var(--red), rgba(198, 40, 57, 0.16));
+}
+
+.case-card__meter-fill--medium {
+  background: linear-gradient(90deg, var(--yellow), rgba(211, 162, 26, 0.16));
+}
+
+.case-card__meter-fill--low {
+  background: linear-gradient(90deg, var(--green), rgba(25, 135, 84, 0.16));
 }
 
 .meter-row {
@@ -1801,6 +1903,11 @@ select:focus {
     grid-template-columns: 1fr;
   }
 
+  .focus-card__summary-grid,
+  .focus-card__analysis {
+    grid-template-columns: 1fr;
+  }
+
   .hero-copy,
   .hero-title {
     max-width: none;
@@ -1844,6 +1951,14 @@ select:focus {
   .case-list-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .focus-card__masthead {
+    flex-direction: column;
+  }
+
+  .focus-card__masthead-actions {
+    justify-items: stretch;
   }
 
   .contracts-loader__hero,

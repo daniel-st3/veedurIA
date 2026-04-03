@@ -681,43 +681,44 @@ export function ContractsView({
             </div>
             {selectedCase ? (
               <div className="details focus-card stripe-red">
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.8rem", alignItems: "start" }}>
+                <div className="focus-card__masthead">
                   <div>
                     <div className="label" style={{ marginBottom: "0.35rem" }}>{copy.focusTitle}</div>
                     <div className={`score risk-${selectedCase.riskBand}`} style={{ fontSize: "2.5rem" }}>
                       {selectedCase.score}
                     </div>
-                    <div className="body-copy" style={{ fontSize: "0.84rem" }}>
-                      {copy.focusBody}
-                    </div>
                   </div>
-                  <Link href={selectedCase.secopUrl || "#"} target="_blank" className="btn-secondary">
-                    {copy.verify} <ArrowUpRight size={16} />
-                  </Link>
+                  <div className="focus-card__masthead-actions">
+                    <div className="focus-card__signal-pill">
+                      <span className="label">{copy.kpiSelectedSignal}</span>
+                      <strong>{selectedCase.signal}</strong>
+                    </div>
+                    <Link href={selectedCase.secopUrl || "#"} target="_blank" className="btn-secondary">
+                      {copy.verify} <ArrowUpRight size={16} />
+                    </Link>
+                  </div>
+                </div>
+                <div className="body-copy focus-card__intro">
+                  {copy.focusBody}
                 </div>
                 <div className="focus-card__headline">
                   <strong>{selectedCase.entity}</strong>
                   <span className="tiny-pill">{selectedCase.department}</span>
                   <span className="tiny-pill">{selectedCase.date}</span>
                 </div>
-                <div className="signal-rail surface-soft">
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center" }}>
-                    <div className="label">{copy.kpiSelectedSignal}</div>
-                    <div className="body-copy" style={{ fontSize: "0.78rem" }}>
-                      {selectedCase.signal}
+                <div className="focus-card__summary-grid">
+                  <div className="summary-card focus-card__summary-card">
+                    <div className="label">{copy.caseSynopsis}</div>
+                    <div className="body-copy" style={{ marginTop: "0.35rem", fontSize: "0.82rem" }}>
+                      {selectedCase.pickReason} · {selectedCase.signal}
                     </div>
                   </div>
-                  <div className="signal-rail__bars">
-                    {leadCases.map((item) => (
-                      <span
-                        key={item.id}
-                        className={`signal-bar signal-bar--${item.riskBand} ${selectedCase?.id === item.id ? "signal-bar--active" : ""}`}
-                        style={{ height: `${Math.max(26, (item.score / leadCaseMax) * 100)}%` }}
-                      />
-                    ))}
+                  <div className="summary-card focus-card__summary-card">
+                    <div className="label">{copy.caseContext}</div>
+                    <div className="body-copy" style={{ marginTop: "0.35rem", fontSize: "0.82rem" }}>
+                      {selectedCase.provider}
+                    </div>
                   </div>
-                </div>
-                <div className="summary-grid" style={{ marginBottom: "1rem" }}>
                   <div className="summary-card">
                     <div className="label">{copy.detailEntity}</div>
                     <div>{selectedCase.entity}</div>
@@ -735,39 +736,61 @@ export function ContractsView({
                     <div>{selectedCase.valueLabel}</div>
                   </div>
                 </div>
-                <div className="summary-card stripe-yellow" style={{ padding: "1rem" }}>
-                  <div className="label" style={{ marginBottom: "0.5rem" }}>
-                    {copy.factorsTitle}
-                  </div>
-                  <div className="body-copy" style={{ fontSize: "0.78rem", marginBottom: "0.7rem" }}>
-                    {copy.factorsHint}
-                  </div>
-                  {topFactor ? (
-                    <div className="focus-card__factor-lead">
-                      <span className="label">{copy.kpiSelectedSignal}</span>
-                      <strong>{topFactor.label}</strong>
+                <div className="focus-card__analysis">
+                  <div className="summary-card stripe-yellow" style={{ padding: "1rem" }}>
+                    <div className="label" style={{ marginBottom: "0.5rem" }}>
+                      {copy.caseFactorsPanel}
                     </div>
-                  ) : null}
-                  <div style={{ display: "grid", gap: "0.65rem" }}>
-                    {selectedCase.factors.map((factor) => (
-                      <div key={factor.key}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: 6 }}>
-                          <span style={{ fontSize: "0.82rem" }}>{factor.label}</span>
-                          <span className="label">{Math.round(factor.severity * 100)}</span>
-                        </div>
-                        <div style={{ height: 6, borderRadius: 999, background: "rgba(23,32,51,0.08)", overflow: "hidden" }}>
-                          <div
-                            className="factor-fill"
-                            style={{
-                              width: `${Math.max(12, factor.severity * 100)}%`,
-                              height: "100%",
-                              borderRadius: 999,
-                              background: "linear-gradient(90deg, var(--red), var(--yellow))",
-                            }}
-                          />
-                        </div>
+                    <div className="body-copy" style={{ fontSize: "0.78rem", marginBottom: "0.7rem" }}>
+                      {copy.factorsHint}
+                    </div>
+                    {topFactor ? (
+                      <div className="focus-card__factor-lead">
+                        <span className="label">{copy.kpiSelectedSignal}</span>
+                        <strong>{topFactor.label}</strong>
                       </div>
-                    ))}
+                    ) : null}
+                    <div style={{ display: "grid", gap: "0.65rem" }}>
+                      {selectedCase.factors.map((factor) => (
+                        <div key={factor.key}>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: 6 }}>
+                            <span style={{ fontSize: "0.82rem" }}>{factor.label}</span>
+                            <span className="label">{Math.round(factor.severity * 100)}</span>
+                          </div>
+                          <div style={{ height: 6, borderRadius: 999, background: "rgba(23,32,51,0.08)", overflow: "hidden" }}>
+                            <div
+                              className="factor-fill"
+                              style={{
+                                width: `${Math.max(12, factor.severity * 100)}%`,
+                                height: "100%",
+                                borderRadius: 999,
+                                background: "linear-gradient(90deg, var(--red), var(--yellow))",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="signal-rail surface-soft">
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center" }}>
+                      <div className="label">{copy.caseQueueTitle}</div>
+                      <div className="body-copy" style={{ fontSize: "0.78rem" }}>
+                        {caseCountLabel}
+                      </div>
+                    </div>
+                    <div className="signal-rail__bars">
+                      {leadCases.map((item) => (
+                        <span
+                          key={item.id}
+                          className={`signal-bar signal-bar--${item.riskBand} ${selectedCase?.id === item.id ? "signal-bar--active" : ""}`}
+                          style={{ height: `${Math.max(26, (item.score / leadCaseMax) * 100)}%` }}
+                        />
+                      ))}
+                    </div>
+                    <div className="body-copy" style={{ fontSize: "0.78rem", marginTop: "0.8rem" }}>
+                      {copy.otherCasesBody}
+                    </div>
                   </div>
                 </div>
                 <p className="body-copy" style={{ fontSize: "0.8rem", marginTop: "0.9rem" }}>
@@ -804,18 +827,24 @@ export function ContractsView({
                       padding: "0.95rem",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.35rem" }}>
+                    <div className="case-card__topline">
                       <div className="label">{item.pickReason}</div>
                       <div className={`score risk-${item.riskBand}`} style={{ fontSize: "1.35rem" }}>
                         {item.score}
                       </div>
                     </div>
-                    <div style={{ fontWeight: 700, marginBottom: "0.2rem" }}>{item.entity}</div>
-                    <div className="body-copy" style={{ fontSize: "0.8rem", marginBottom: "0.35rem" }}>
+                    <div className="case-card__title">{item.entity}</div>
+                    <div className="body-copy case-card__meta">
                       {item.department} · {item.date} · {item.valueLabel}
                     </div>
-                    <div className="body-copy" style={{ fontSize: "0.78rem" }}>
+                    <div className="body-copy case-card__reason">
                       {copy.whyHere}: {item.signal}
+                    </div>
+                    <div className="case-card__meter">
+                      <span
+                        className={`case-card__meter-fill case-card__meter-fill--${item.riskBand}`}
+                        style={{ width: `${Math.max(16, (item.score / leadCaseMax) * 100)}%` }}
+                      />
                     </div>
                   </button>
                 ))}
