@@ -326,9 +326,9 @@ export function LandingPage({
               <Link href={`/contrato-limpio?lang=${lang}`} className="btn-primary btn-primary--hero">
                 {copy.heroPrimary}
               </Link>
-              <a href="#modelo" className="btn-secondary btn-secondary--hero">
+              <Link href={`/promesmetro?lang=${lang}`} className="btn-secondary btn-secondary--hero">
                 {copy.heroSecondary}
-              </a>
+              </Link>
             </div>
             <div className="hero-protocol">
               <div className="hero-protocol__item">
@@ -462,9 +462,10 @@ export function LandingPage({
           </div>
           <div className="phase-grid">
             {copy.phases.map(([state, name, body], index) => (
-              <article
+              <Link
                 key={name}
-                className={`phase-card reveal stripe-${index === 0 ? "blue" : index === 1 ? "yellow" : "red"}`}
+                href={index === 0 ? `/contrato-limpio?lang=${lang}` : index === 1 ? `/promesmetro?lang=${lang}` : `/sigue-el-dinero?lang=${lang}`}
+                className={`phase-card reveal stripe-${index === 0 ? "blue" : index === 1 ? "yellow" : "red"} ${index < 2 ? "phase-card--link" : ""}`}
               >
                 <div className="label" style={{ marginBottom: "0.55rem" }}>
                   {state}
@@ -473,7 +474,7 @@ export function LandingPage({
                 <p className="body-copy" style={{ margin: 0, fontSize: "0.86rem" }}>
                   {body}
                 </p>
-              </article>
+              </Link>
             ))}
           </div>
         </section>
@@ -490,6 +491,9 @@ export function LandingPage({
             </div>
             <Link href={`/contrato-limpio?lang=${lang}`} className="btn-primary">
               {copy.ctaButton}
+            </Link>
+            <Link href={`/promesmetro?lang=${lang}`} className="btn-secondary">
+              {copy.heroSecondary}
             </Link>
           </div>
         </section>

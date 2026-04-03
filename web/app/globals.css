@@ -2017,6 +2017,310 @@ select:focus {
   gap: 0.9rem;
 }
 
+.phase-card--link {
+  display: block;
+}
+
+.promise-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.promise-stage__title {
+  font-size: clamp(2.3rem, 5vw, 4.6rem);
+  margin: 0 0 0.75rem;
+}
+
+.promise-stage__body {
+  max-width: 760px;
+  margin-bottom: 1rem;
+}
+
+.promise-stage__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.promise-stage__visual {
+  position: relative;
+  display: grid;
+  gap: 0.8rem;
+  overflow: hidden;
+  min-height: 100%;
+}
+
+.promise-stage__orb {
+  position: absolute;
+  right: -12%;
+  top: -14%;
+  width: 240px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(13, 91, 215, 0.16), rgba(13, 91, 215, 0));
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.promise-stage__stat {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(23, 32, 51, 0.06);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.promise-stage__stat strong,
+.promise-profile strong,
+.promise-card h3 {
+  font-family: "Syne", sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.promise-stage__meta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: rgba(13, 91, 215, 0.06);
+  color: var(--text-2);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.promise-grid {
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+.promise-scorecard {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+  padding: 1rem;
+}
+
+.promise-scorecard__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.promise-scorecard__title {
+  margin: 0 0 0.45rem;
+}
+
+.promise-scorecard__body {
+  margin: 0;
+}
+
+.promise-scorecard__ring {
+  display: grid;
+  place-items: center;
+  min-width: 108px;
+  width: 108px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(255,255,255,0.92) 0 46%, transparent 47% 100%),
+    conic-gradient(var(--blue) 0 62%, rgba(13,91,215,0.18) 62% 100%);
+  box-shadow: inset 0 0 0 1px rgba(13,91,215,0.08);
+}
+
+.promise-scorecard__ring span {
+  font-family: "Syne", sans-serif;
+  font-size: 1.85rem;
+  letter-spacing: -0.05em;
+  color: var(--blue);
+}
+
+.promise-profile {
+  display: grid;
+  gap: 0.24rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(23,32,51,0.06);
+  color: var(--text-2);
+}
+
+.promise-scorecard__counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.promise-scorecard__counts > div {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.68);
+  border: 1px solid rgba(23,32,51,0.06);
+}
+
+.promise-scorecard__counts span {
+  font-size: 0.78rem;
+  color: var(--text-m);
+}
+
+.promise-scorecard__counts strong {
+  font-family: "Syne", sans-serif;
+  font-size: 1.2rem;
+}
+
+.promise-domain-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.promise-scorebar {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.promise-scorebar__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.86rem;
+}
+
+.promise-scorebar__track,
+.promise-card__meter-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(23,32,51,0.08);
+  overflow: hidden;
+}
+
+.promise-scorebar__fill,
+.promise-card__meter {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), var(--red));
+}
+
+.promise-cards-shell {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.promise-cards-head {
+  margin-bottom: 0.2rem;
+}
+
+.promise-cards {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.promise-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.promise-card--good {
+  border-color: rgba(25, 135, 84, 0.18);
+}
+
+.promise-card--watch {
+  border-color: rgba(211, 162, 26, 0.22);
+}
+
+.promise-card--low {
+  border-color: rgba(198, 40, 57, 0.16);
+}
+
+.promise-card--empty {
+  min-height: 180px;
+  place-items: center;
+}
+
+.promise-card__header {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.promise-card__eyebrow,
+.promise-card__metrics,
+.promise-card__sources,
+.promise-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.85rem;
+}
+
+.promise-card__metrics,
+.promise-card__foot {
+  font-size: 0.82rem;
+  color: var(--text-2);
+}
+
+.promise-card__body {
+  display: grid;
+  gap: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(23,32,51,0.08);
+}
+
+.promise-card__block {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.promise-method {
+  display: grid;
+  gap: 1rem;
+  padding: 1.35rem;
+  margin-bottom: 2rem;
+}
+
+.promise-method__rules {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.promise-method__rule {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.68);
+  border: 1px solid rgba(23,32,51,0.06);
+  font-size: 0.84rem;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.promise-method__note {
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: rgba(211, 162, 26, 0.09);
+  border: 1px solid rgba(211, 162, 26, 0.16);
+  color: var(--text-2);
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
 .risk-high {
   color: var(--red);
 }
@@ -2049,6 +2353,10 @@ select:focus {
   .stat-grid,
   .summary-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .promise-stage {
+    grid-template-columns: 1fr;
   }
 
   .filter-grid {
@@ -2103,6 +2411,10 @@ select:focus {
   .dashboard-context,
   .filter-grid,
   .explorer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .promise-scorecard__counts {
     grid-template-columns: 1fr;
   }
 

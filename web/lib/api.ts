@@ -1,4 +1,4 @@
-import type { Lang, OverviewPayload, TablePayload } from "@/lib/types";
+import type { Lang, OverviewPayload, PromisesPayload, TablePayload } from "@/lib/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
@@ -70,6 +70,35 @@ export async function fetchGeoJson(): Promise<GeoJSON.GeoJSON> {
   const response = await fetch(`${API_BASE}/contracts/geojson`, { cache: "force-cache" });
   if (!response.ok) {
     throw new Error("Failed to fetch geojson");
+  }
+  return response.json();
+}
+
+export type PromiseFilters = {
+  lang: Lang;
+  politicianId?: string;
+  domain?: string;
+  status?: string;
+  electionYear?: number;
+  query?: string;
+  limit?: number;
+};
+
+export async function fetchPromisesOverview(filters: PromiseFilters): Promise<PromisesPayload> {
+  const query = buildQuery({
+    lang: filters.lang,
+    politician_id: filters.politicianId,
+    domain: filters.domain ?? "all",
+    status: filters.status ?? "all",
+    election_year: filters.electionYear ?? 2026,
+    query: filters.query,
+    limit: filters.limit ?? 18,
+  });
+  const response = await fetch(`${API_BASE}/promises/overview?${query}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch promises overview");
   }
   return response.json();
 }

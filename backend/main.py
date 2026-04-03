@@ -15,6 +15,7 @@ from src.api.contracts_service import (
     get_table_payload,
     load_geojson,
 )
+from src.api.promises_service import get_promises_payload
 
 app = FastAPI(title="VeedurIA API", version="0.1.0")
 
@@ -89,5 +90,26 @@ def contracts_table(
         date_from=date_from,
         date_to=date_to,
         offset=offset,
+        limit=limit,
+    )
+
+
+@app.get("/promises/overview")
+def promises_overview(
+    lang: Literal["es", "en"] = "es",
+    politician_id: str | None = None,
+    domain: str = "all",
+    status: str = "all",
+    election_year: int = Query(2026, ge=2024, le=2030),
+    query: str | None = None,
+    limit: int = Query(18, ge=1, le=40),
+) -> dict:
+    return get_promises_payload(
+        lang=lang,
+        politician_id=politician_id,
+        domain=domain,
+        status=status,
+        election_year=election_year,
+        query=query,
         limit=limit,
     )

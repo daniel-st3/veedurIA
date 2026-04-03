@@ -93,3 +93,75 @@ export type TablePayload = {
   total: number;
   rows: TableRow[];
 };
+
+export type PromiseScoreDomain = {
+  key: string;
+  label: string;
+  score: number;
+  promises: number;
+};
+
+export type PromiseCard = {
+  id: string;
+  promiseId: string;
+  politicianId: string;
+  politicianName: string;
+  domain: string;
+  domainLabel: string;
+  status: "con_accion_registrada" | "en_seguimiento" | "sin_accion_registrada";
+  statusLabel: string;
+  similarityScore: number;
+  statusConfidence: number;
+  extractionConfidence: number;
+  promiseText: string;
+  promiseSourceUrl: string;
+  promiseSourceLabel: string;
+  actionTitle: string;
+  actionSummary: string;
+  actionDate: string;
+  actionSourceUrl: string;
+  actionSourceSystem: string;
+};
+
+export type PromisesPayload = {
+  meta: {
+    lang: Lang;
+    coverageMode: "live" | "pilot";
+    electionYear: number;
+    totalRows: number;
+    shownRows: number;
+    lastScoredAt?: string | null;
+    pilotNote: string;
+  };
+  options: {
+    politicians: { value: string; label: string }[];
+    domains: { value: string; label: string }[];
+    statuses: { value: string; label: string }[];
+    years: number[];
+  };
+  kpis: {
+    politiciansTracked: number;
+    promisesTracked: number;
+    coherenceRate: number;
+    activeDomains: number;
+  };
+  scorecard: {
+    politicianId: string;
+    politicianName: string;
+    chamber: string;
+    party: string;
+    overallScore: number;
+    statusCounts: {
+      fulfilled: number;
+      monitoring: number;
+      noAction: number;
+    };
+    domains: PromiseScoreDomain[];
+  };
+  cards: PromiseCard[];
+  highlights: {
+    focusPolitician: string;
+    focusDomain: string;
+    focusStatus: string;
+  };
+};

@@ -1,4 +1,5 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
+import { PromisesView } from "@/components/promises-view";
+import { fetchPromisesOverview } from "@/lib/api";
 import { resolveLang } from "@/lib/copy";
 
 export default async function PromesMetroPage({
@@ -8,12 +9,10 @@ export default async function PromesMetroPage({
 }) {
   const params = await searchParams;
   const lang = resolveLang(params.lang);
-  return (
-    <ModulePlaceholder
-      lang={lang}
-      phase="Phase 2"
-      title="PromesMetro"
-      body="Comparará promesas públicas, discursos y programas con acción legislativa real. La fase queda lista dentro de la nueva arquitectura web, sin depender de una multipágina de Streamlit."
-    />
-  );
+  const initialPayload = await fetchPromisesOverview({
+    lang,
+    electionYear: 2026,
+    limit: 18,
+  }).catch(() => null);
+  return <PromisesView lang={lang} initialPayload={initialPayload} />;
 }
