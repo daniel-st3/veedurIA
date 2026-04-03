@@ -1200,6 +1200,7 @@ select:focus {
 .reading-deck__intro {
   display: grid;
   gap: 0.95rem;
+  max-width: 760px;
 }
 
 .reading-deck__aside {
@@ -1207,6 +1208,8 @@ select:focus {
   gap: 0.9rem;
   padding: 1rem 1.05rem;
   align-content: flex-start;
+  background: rgba(255, 255, 255, 0.58);
+  border-color: rgba(13, 91, 215, 0.08);
 }
 
 .reading-deck__aside-copy {
@@ -1290,7 +1293,7 @@ select:focus {
 }
 
 .dashboard-strip__grid .metric-shell {
-  background: transparent;
+  background: linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0));
   border-radius: 0;
   border: 0;
   border-top: 1px solid rgba(23, 32, 51, 0.08);
@@ -1338,6 +1341,11 @@ select:focus {
   background:
     radial-gradient(circle at 12% 12%, rgba(198,40,57,0.08), transparent 24%),
     linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.62));
+}
+
+.map-panel,
+.side-panel {
+  border-radius: calc(var(--radius-lg) + 2px);
 }
 
 .map-glow {
@@ -1462,6 +1470,7 @@ select:focus {
   padding: 0.9rem 1rem;
   margin-bottom: 0.95rem;
   background: rgba(255,255,255,0.44);
+  border: 1px solid rgba(23, 32, 51, 0.05);
 }
 
 .signal-rail__bars {
@@ -1499,6 +1508,16 @@ select:focus {
 
 .case-card--active {
   box-shadow: 0 18px 36px rgba(20, 30, 50, 0.1);
+}
+
+.case-card {
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
+}
+
+.case-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(13, 91, 215, 0.14) !important;
+  box-shadow: 0 14px 30px rgba(20, 30, 50, 0.08);
 }
 
 .focus-card {
@@ -1777,6 +1796,7 @@ select:focus {
 .analysis-suite {
   display: grid;
   gap: 1rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.76), rgba(255,255,255,0.58));
 }
 
 .analysis-suite__head {
