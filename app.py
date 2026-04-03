@@ -68,18 +68,18 @@ landing_copy = {
         "nav_flow": "Como funciona",
         "nav_roadmap": "Roadmap",
         "nav_cta": "Abrir ContratoLimpio",
-        "eyebrow": "SECOP II · IA para escrutinio ciudadano",
-        "hero_1": "Detecta lo",
-        "hero_2a": "inusual",
-        "hero_2b": "en contratos",
-        "hero_3a": "publicos",
-        "hero_3b": "de",
+        "eyebrow": "SECOP II · Cuentas Claras · Registraduria · IA civica",
+        "hero_1": "Contratos, promesas",
+        "hero_2a": "dinero",
+        "hero_2b": "y redes: todo",
+        "hero_3a": "legible",
+        "hero_3b": "para",
         "hero_3c": "Colombia",
-        "hero_sub": "VeedurIA lee millones de contratos de SECOP II, encuentra patrones que se salen de lo normal y te muestra por que merecen una segunda mirada. El modelo prioriza. La verificacion sigue siendo ciudadana.",
+        "hero_sub": "VeedurIA conecta tres frentes de escrutinio ciudadano: detecta contratos atipicos en SECOP II, mapea redes de financiacion entre donantes y contratistas, y compara promesas electorales con acciones reales. El modelo prioriza. La verificacion sigue siendo tuya.",
         "chip_1": "25 variables por contrato",
         "chip_2": "factores claros, no caja negra",
         "chip_3": "fuente oficial enlazada",
-        "cta_primary": "Explorar ContratoLimpio",
+        "cta_primary": "Explorar la plataforma",
         "cta_secondary": "Ver como funciona",
         "scroll": "Baja para ver el sistema",
         "status": "Mueve el cursor o toca la pantalla",
@@ -130,7 +130,7 @@ landing_copy = {
         "sec_platform_copy": "ContratoLimpio ya esta activo. Las siguientes fases conectan dinero, redes y cumplimiento para que la plataforma se lea como un sistema continuo, no como una pagina aislada.",
         "ph1_state": "fase 1 activa", "ph1_name": "ContratoLimpio", "ph1_body": "Deteccion de contratos atipicos en SECOP II. Mapa, lista priorizada, explicacion SHAP y enlace directo a la fuente oficial.",
         "ph2_state": "fase 2 en camino", "ph2_name": "SigueElDinero", "ph2_body": "Relaciones entre contratistas, entidades, flujos economicos y nodos politicos para seguir redes y concentraciones.",
-        "ph3_state": "fase 3 en camino", "ph3_name": "PromesometroNLP", "ph3_body": "Comparacion entre promesas publicas y ejecucion real con apoyo de NLP y datos abiertos de contratacion.",
+        "ph3_state": "fase 3 activa", "ph3_name": "PromesometroNLP", "ph3_body": "Comparacion entre promesas publicas y ejecucion real con apoyo de NLP y datos abiertos de contratacion.",
         "cta_title": "Empieza por lo que ya esta vivo",
         "cta_copy": "Abre ContratoLimpio, filtra por territorio o nivel de riesgo y revisa una alerta con contexto suficiente para decidir si vale la pena seguir tirando del hilo.",
         "cta_button": "Entrar a ContratoLimpio",
@@ -143,18 +143,18 @@ landing_copy = {
         "nav_flow": "How it works",
         "nav_roadmap": "Roadmap",
         "nav_cta": "Open ContratoLimpio",
-        "eyebrow": "SECOP II · AI for civic scrutiny",
-        "hero_1": "Detect what",
-        "hero_2a": "stands out",
-        "hero_2b": "in public contracts",
-        "hero_3a": "across",
-        "hero_3b": "",
+        "eyebrow": "SECOP II · Cuentas Claras · Registraduria · Civic AI",
+        "hero_1": "Contracts, promises,",
+        "hero_2a": "money",
+        "hero_2b": "and networks: all",
+        "hero_3a": "readable",
+        "hero_3b": "for",
         "hero_3c": "Colombia",
-        "hero_sub": "VeedurIA reads millions of SECOP II contracts, finds patterns that break from the norm, and shows why they deserve a second look. The model prioritizes. Verification remains human.",
+        "hero_sub": "VeedurIA connects three lines of civic scrutiny: it detects atypical contracts in SECOP II, maps financial networks between donors and contractors, and compares electoral promises against real actions. The model prioritizes. Verification is yours.",
         "chip_1": "25 variables per contract",
         "chip_2": "clear factors, not a black box",
         "chip_3": "official source linked",
-        "cta_primary": "Explore ContratoLimpio",
+        "cta_primary": "Explore the platform",
         "cta_secondary": "See how it works",
         "scroll": "Scroll to see the system",
         "status": "Move the cursor or touch the screen",
@@ -205,7 +205,7 @@ landing_copy = {
         "sec_platform_copy": "ContratoLimpio is already active. The next phases connect money, networks, and delivery so the platform reads as one continuous system rather than an isolated page.",
         "ph1_state": "phase 1 active", "ph1_name": "ContratoLimpio", "ph1_body": "Detection of atypical SECOP II contracts. Map, ranked list, SHAP explanation, and direct link to the official source.",
         "ph2_state": "phase 2 ahead", "ph2_name": "SigueElDinero", "ph2_body": "Relationships among contractors, entities, financial flows, and political nodes to follow networks and concentration.",
-        "ph3_state": "phase 3 ahead", "ph3_name": "PromesometroNLP", "ph3_body": "Comparison between public promises and actual execution with support from NLP and open contracting data.",
+        "ph3_state": "phase 3 active", "ph3_name": "PromesometroNLP", "ph3_body": "Comparison between public promises and actual execution with support from NLP and open contracting data.",
         "cta_title": "Start with what is already live",
         "cta_copy": "Open ContratoLimpio, filter by territory or risk level, and review an alert with enough context to decide whether it is worth pulling the thread further.",
         "cta_button": "Enter ContratoLimpio",
@@ -1275,46 +1275,35 @@ a { color: inherit; }
       </div>
 
       <div class="hero-visual-wrap" id="hero-visual-wrap">
-        <div class="hero-visual" id="hero-visual">
+        <div class="hero-visual" style="min-height:470px;padding:1.6rem 1.4rem;display:flex;flex-direction:column;gap:1rem;justify-content:center;" id="hero-visual">
           <div class="visual-topbar"></div>
-          <div class="visual-status">
-            <span class="status-yellow"></span>
-            <span class="status-blue"></span>
-            <span class="status-red"></span>
-            __STATUS__
+          <div style="font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(23,32,51,.38);margin-bottom:.2rem;">Plataforma · 3 fases</div>
+
+          <a href="/ContratoLimpio" style="text-decoration:none;display:block;padding:1.1rem 1.2rem;border-radius:20px;background:rgba(255,255,255,.88);border:1px solid rgba(13,91,215,.14);box-shadow:0 6px 24px rgba(20,30,50,.07);transition:transform .2s,box-shadow .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 32px rgba(20,30,50,.12)'" onmouseout="this.style.transform='';this.style.boxShadow='0 6px 24px rgba(20,30,50,.07)'">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem;">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;background:rgba(13,91,215,.08);color:#0d5bd7;padding:3px 8px;border-radius:6px;">● Fase 1 · Activa</span>
+              <span style="font-size:.8rem;color:rgba(23,32,51,.35);">→</span>
+            </div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;color:#172033;margin-bottom:.3rem;letter-spacing:-.03em;">ContratoLimpio</div>
+            <div style="font-size:.8rem;color:rgba(23,32,51,.6);line-height:1.5;">Semaforo de riesgo sobre contratos de SECOP II en tiempo real. Isolation Forest + SHAP.</div>
+          </a>
+
+          <div style="display:block;padding:1.1rem 1.2rem;border-radius:20px;background:rgba(255,255,255,.55);border:1px solid rgba(22,28,45,.07);opacity:.72;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem;">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;background:rgba(211,162,26,.08);color:#b8860b;padding:3px 8px;border-radius:6px;">◌ Fase 2 · En camino</span>
+            </div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;color:#172033;margin-bottom:.3rem;letter-spacing:-.03em;">SigueElDinero</div>
+            <div style="font-size:.8rem;color:rgba(23,32,51,.5);line-height:1.5;">Red de donantes y contratistas. Grafos interactivos con datos de Cuentas Claras.</div>
           </div>
-          <div class="playfield" id="playfield">
-            <div class="play-grid"></div>
-            <div class="mesh-layer" id="mesh-layer"></div>
-            <div class="play-pointer" id="play-pointer"></div>
 
-            <div class="signal-card yellow card-a">
-              <small>__SIGNAL_SOURCE__</small>
-              <strong>__SIGNAL_SOURCE_TITLE__</strong>
-              <p>__SIGNAL_SOURCE_BODY__</p>
+          <a href="/PromesometroNLP" style="text-decoration:none;display:block;padding:1.1rem 1.2rem;border-radius:20px;background:rgba(255,255,255,.88);border:1px solid rgba(198,40,57,.12);box-shadow:0 6px 24px rgba(20,30,50,.07);transition:transform .2s,box-shadow .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 32px rgba(20,30,50,.12)'" onmouseout="this.style.transform='';this.style.boxShadow='0 6px 24px rgba(20,30,50,.07)'">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem;">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;background:rgba(198,40,57,.07);color:#c62839;padding:3px 8px;border-radius:6px;">● Fase 3 · Activa</span>
+              <span style="font-size:.8rem;color:rgba(23,32,51,.35);">→</span>
             </div>
-
-            <div class="signal-card blue card-b">
-              <small>__SIGNAL_MODEL__</small>
-              <strong>__SIGNAL_MODEL_TITLE__</strong>
-              <p>__SIGNAL_MODEL_BODY__</p>
-            </div>
-
-            <div class="signal-card red card-c">
-              <small>__SIGNAL_EXPLAIN__</small>
-              <strong>__SIGNAL_EXPLAIN_TITLE__</strong>
-              <p>__SIGNAL_EXPLAIN_BODY__</p>
-            </div>
-
-            <div class="play-caption">
-              <p>__PLAY_CAPTION__</p>
-              <div class="play-legend">
-                <span class="legend-dot legend-yellow">__LEGEND_Y__</span>
-                <span class="legend-dot legend-blue">__LEGEND_B__</span>
-                <span class="legend-dot legend-red">__LEGEND_R__</span>
-              </div>
-            </div>
-          </div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;color:#172033;margin-bottom:.3rem;letter-spacing:-.03em;">PromesóMetroNLP</div>
+            <div style="font-size:.8rem;color:rgba(23,32,51,.6);line-height:1.5;">Verificacion de promesas electorales con NLP. Coherencia entre programas y acciones reales.</div>
+          </a>
         </div>
       </div>
     </div>
@@ -1324,22 +1313,22 @@ a { color: inherit; }
     <div class="stats-grid">
       <article class="stat-card yellow">
         <div class="stat-label">__STAT_1_LABEL__</div>
-        <div class="stat-value"><span class="accent-yellow" data-count="2.8">0</span>M</div>
+        <div class="stat-value"><span class="accent-yellow" data-count="2.8">2.8</span>M</div>
         <p class="stat-copy">__STAT_1_COPY__</p>
       </article>
       <article class="stat-card blue">
         <div class="stat-label">__STAT_2_LABEL__</div>
-        <div class="stat-value"><span class="accent-blue" data-count="25">0</span></div>
+        <div class="stat-value"><span class="accent-blue" data-count="25">25</span></div>
         <p class="stat-copy">__STAT_2_COPY__</p>
       </article>
       <article class="stat-card red">
         <div class="stat-label">__STAT_3_LABEL__</div>
-        <div class="stat-value"><span class="accent-red" data-count="5">0</span>%</div>
+        <div class="stat-value"><span class="accent-red" data-count="5">5</span>%</div>
         <p class="stat-copy">__STAT_3_COPY__</p>
       </article>
       <article class="stat-card green">
         <div class="stat-label">__STAT_4_LABEL__</div>
-        <div class="stat-value"><span class="accent-green" data-count="3">0</span>s</div>
+        <div class="stat-value"><span class="accent-green" data-count="3">3</span>s</div>
         <p class="stat-copy">__STAT_4_COPY__</p>
       </article>
     </div>
@@ -1485,10 +1474,11 @@ a { color: inherit; }
         <h3 class="phase-name">__PH2_NAME__</h3>
         <p class="phase-body">__PH2_BODY__</p>
       </article>
-      <article class="phase-card stripe-red reveal-phase">
-        <div class="phase-state upcoming">__PH3_STATE__</div>
+      <article class="phase-card active stripe-red reveal-phase" style="border-color:rgba(198,40,57,.16);">
+        <div class="phase-state active" style="background:rgba(198,40,57,.07);color:#c62839;">__PH3_STATE__</div>
         <h3 class="phase-name">__PH3_NAME__</h3>
         <p class="phase-body">__PH3_BODY__</p>
+        <a href="/PromesometroNLP" style="display:inline-flex;align-items:center;gap:.4rem;margin-top:.9rem;font-size:.8rem;font-weight:700;color:#c62839;text-decoration:none;">Abrir PromesóMetro →</a>
       </article>
     </div>
   </section>
@@ -1499,7 +1489,10 @@ a { color: inherit; }
         <h2 class="cta-title">__CTA_TITLE__</h2>
         <p class="cta-copy">__CTA_COPY__</p>
       </div>
-      <a href="__PHASE_URL__" class="btn-primary">__CTA_BUTTON__</a>
+      <div style="display:flex;flex-direction:column;gap:.7rem;">
+        <a href="__PHASE_URL__" class="btn-primary">__CTA_BUTTON__</a>
+        <a href="/PromesometroNLP" style="display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 1.2rem;border-radius:999px;border:1px solid rgba(198,40,57,.18);background:rgba(198,40,57,.06);color:#c62839;font-weight:700;font-size:.88rem;text-decoration:none;transition:transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">Abrir PromesóMetro →</a>
+      </div>
     </div>
   </div>
 
@@ -1513,59 +1506,7 @@ a { color: inherit; }
 <script>
 (function() {
   var hasMotion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var meshLayer = document.getElementById("mesh-layer");
-  var playfield = document.getElementById("playfield");
-  var pointer = document.getElementById("play-pointer");
-  var dots = [];
-  var cards = Array.from(document.querySelectorAll(".signal-card"));
-
-  function buildMesh() {
-    if (!meshLayer) return;
-    var cols = 7;
-    var rows = 6;
-    var nodes = [];
-    for (var r = 0; r < rows; r++) {
-      for (var c = 0; c < cols; c++) {
-        var dot = document.createElement("div");
-        var cls = "mesh-dot";
-        if (r === 0 && c === 1) cls += " hot-yellow";
-        if (r === 2 && c === 4) cls += " hot-blue";
-        if (r === 4 && c === 5) cls += " hot-red";
-        dot.className = cls;
-        var x = 10 + c * 13.5;
-        var y = 12 + r * 16;
-        dot.style.left = x + "%";
-        dot.style.top = y + "%";
-        meshLayer.appendChild(dot);
-        nodes.push({ el: dot, x: x, y: y });
-      }
-    }
-
-    nodes.forEach(function(node, index) {
-      var right = nodes[index + 1];
-      var down = nodes[index + cols];
-      if (right && Math.abs(right.y - node.y) < 0.1) {
-        var line = document.createElement("div");
-        line.className = "mesh-line";
-        line.style.left = node.x + "%";
-        line.style.top = node.y + "%";
-        line.style.width = (right.x - node.x) + "%";
-        meshLayer.appendChild(line);
-      }
-      if (down) {
-        var diag = document.createElement("div");
-        diag.className = "mesh-line";
-        diag.style.left = node.x + "%";
-        diag.style.top = node.y + "%";
-        diag.style.width = "17%";
-        diag.style.transform = "rotate(57deg)";
-        meshLayer.appendChild(diag);
-      }
-    });
-    dots = nodes;
-  }
-
-  buildMesh();
+  var cards = [];
 
   if (window.gsap) {
     gsap.registerPlugin(ScrollTrigger);
@@ -1583,17 +1524,6 @@ a { color: inherit; }
       .fromTo("#scroll-cue", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.46 }, "-=0.10");
 
     gsap.fromTo("#hero-visual-wrap", { autoAlpha: 0, y: 36, scale: 0.97 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.9, ease: "power3.out", delay: 0.26 });
-
-    if (hasMotion) {
-      gsap.to(cards, {
-        y: function(i) { return i % 2 === 0 ? -8 : 10; },
-        duration: 2.8,
-        repeat: -1,
-        yoyo: true,
-        stagger: 0.16,
-        ease: "sine.inOut"
-      });
-    }
 
     ScrollTrigger.batch(".stat-card", {
       start: "top 92%",
@@ -1660,83 +1590,6 @@ a { color: inherit; }
       }
     });
   }
-
-  function setIdleState() {
-    if (!window.gsap || !hasMotion) return;
-    gsap.to(pointer, { autoAlpha: 0, duration: 0.25, overwrite: true });
-    dots.forEach(function(dot, index) {
-      gsap.to(dot.el, {
-        x: 0,
-        y: 0,
-        scale: index % 5 === 0 ? 1.18 : 1,
-        backgroundColor: index % 11 === 0 ? "rgba(211, 162, 26, 0.26)" : (index % 7 === 0 ? "rgba(198, 40, 57, 0.22)" : "rgba(13, 91, 215, 0.18)"),
-        opacity: 0.9,
-        duration: 0.55,
-        overwrite: true
-      });
-    });
-    cards.forEach(function(card, idx) {
-      gsap.to(card, { x: 0, y: idx % 2 === 0 ? -4 : 6, rotate: 0, duration: 0.55, overwrite: true });
-    });
-  }
-
-  function handlePointer(clientX, clientY) {
-    if (!window.gsap || !playfield || !hasMotion) return;
-    var rect = playfield.getBoundingClientRect();
-    var x = clientX - rect.left;
-    var y = clientY - rect.top;
-    var nx = x / rect.width;
-    var ny = y / rect.height;
-
-    gsap.to(pointer, {
-      autoAlpha: 1,
-      x: x,
-      y: y,
-      duration: 0.22,
-      overwrite: true
-    });
-
-    dots.forEach(function(dot, index) {
-      var dx = x - rect.width * (dot.x / 100);
-      var dy = y - rect.height * (dot.y / 100);
-      var dist = Math.sqrt(dx * dx + dy * dy);
-      var force = gsap.utils.clamp(0, 1, 1 - dist / 180);
-      var tx = (dx / 18) * force;
-      var ty = (dy / 18) * force;
-      var scale = 1 + force * 1.8;
-      var color = "rgba(13, 91, 215, " + (0.18 + force * 0.48) + ")";
-      if (force > 0.7 && nx < 0.35) color = "rgba(211, 162, 26, " + (0.28 + force * 0.52) + ")";
-      if (force > 0.72 && nx > 0.62) color = "rgba(198, 40, 57, " + (0.24 + force * 0.52) + ")";
-      gsap.to(dot.el, {
-        x: tx,
-        y: ty,
-        scale: scale,
-        backgroundColor: color,
-        opacity: 0.85 + force * 0.15,
-        duration: 0.32,
-        overwrite: true
-      });
-    });
-
-    cards.forEach(function(card, idx) {
-      var tx = (nx - 0.5) * (idx === 0 ? 22 : idx === 1 ? -26 : 18);
-      var ty = (ny - 0.5) * (idx === 2 ? -18 : 14);
-      var rot = (nx - 0.5) * (idx === 1 ? -5 : 5);
-      gsap.to(card, { x: tx, y: ty, rotate: rot, duration: 0.42, overwrite: true, ease: "power3.out" });
-    });
-  }
-
-  if (playfield) {
-    playfield.addEventListener("pointermove", function(ev) { handlePointer(ev.clientX, ev.clientY); });
-    playfield.addEventListener("pointerleave", setIdleState);
-    playfield.addEventListener("touchmove", function(ev) {
-      var touch = ev.touches && ev.touches[0];
-      if (touch) handlePointer(touch.clientX, touch.clientY);
-    }, { passive: true });
-    playfield.addEventListener("touchend", setIdleState, { passive: true });
-  }
-
-  setIdleState();
 
   if (!window.gsap) {
     document.querySelectorAll(".title-line > span, #hero-pill, #hero-sub, #hero-metrics, #hero-cta, #scroll-cue, #hero-visual-wrap, .stat-card, .reveal-head, .reveal-card, .reveal-phase, .reveal-cta").forEach(function(el) {
