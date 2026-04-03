@@ -49,6 +49,8 @@ def contracts_overview(
     risk: Literal["all", "high", "medium", "low"] = "all",
     modality: str | None = None,
     query: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     limit: int = Query(6, ge=1, le=12),
 ) -> dict:
     return get_overview_payload(
@@ -58,6 +60,8 @@ def contracts_overview(
         risk=risk,
         modality=modality,
         query=query,
+        date_from=date_from,
+        date_to=date_to,
         limit=limit,
     )
 
@@ -70,6 +74,8 @@ def contracts_table(
     risk: Literal["all", "high", "medium", "low"] = "all",
     modality: str | None = None,
     query: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     offset: int = Query(0, ge=0),
     limit: int = Query(30, ge=1, le=100),
 ) -> dict:
@@ -80,6 +86,8 @@ def contracts_table(
         risk=risk,
         modality=modality,
         query=query,
+        date_from=date_from,
+        date_to=date_to,
         offset=offset,
         limit=limit,
     )

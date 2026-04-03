@@ -30,6 +30,8 @@ type FilterState = {
   risk: "all" | "high" | "medium" | "low";
   modality?: string;
   query?: string;
+  dateFrom?: string;
+  dateTo?: string;
   full: boolean;
 };
 
@@ -40,6 +42,8 @@ const INITIAL_FILTERS: FilterState = {
   risk: "all",
   modality: undefined,
   query: "",
+  dateFrom: "",
+  dateTo: "",
   full: false,
 };
 
@@ -310,7 +314,21 @@ export function ContractsView({
 
       return () => mm.revert();
     },
-    { scope, dependencies: [overview?.leadCases.length ?? 0, selectedCase?.id], revertOnUpdate: true },
+    {
+      scope,
+      dependencies: [
+        overview?.meta.shownRows ?? 0,
+        selectedCase?.id,
+        filters.department,
+        filters.risk,
+        filters.modality,
+        filters.query,
+        filters.dateFrom,
+        filters.dateTo,
+        filters.full,
+      ],
+      revertOnUpdate: true,
+    },
   );
 
   const totalPages = table ? Math.max(1, Math.ceil(table.total / 24)) : 1;
@@ -334,6 +352,8 @@ export function ContractsView({
   const latestDataPoint = overview?.meta.latestContractDate ?? overview?.meta.lastRunTs?.slice(0, 10) ?? "—";
   const topFactor = selectedCase?.factors?.[0];
   const caseCountLabel = lang === "es" ? `${leadCases.length} casos guía` : `${leadCases.length} guide cases`;
+  const previewState = overview?.meta.fullDataset ? copy.previewFull : copy.previewNote;
+  const riskReference = selectedCase?.score ?? Math.round((overview?.methodology.redThreshold ?? 0.7) * 100);
 
   if (isBooting) {
     return (
@@ -501,6 +521,22 @@ export function ContractsView({
                   ))}
                 </select>
               </label>
+              <label className="filter-field">
+                <span className="label">{copy.filterDateFrom}</span>
+                <input
+                  type="date"
+                  value={draft.dateFrom ?? ""}
+                  onChange={(event) => setDraft((prev) => ({ ...prev, dateFrom: event.target.value }))}
+                />
+              </label>
+              <label className="filter-field">
+                <span className="label">{copy.filterDateTo}</span>
+                <input
+                  type="date"
+                  value={draft.dateTo ?? ""}
+                  onChange={(event) => setDraft((prev) => ({ ...prev, dateTo: event.target.value }))}
+                />
+              </label>
               <button
                 type="button"
                 className="btn-primary filter-apply"
@@ -562,6 +598,30 @@ export function ContractsView({
               </div>
               <div className="body-copy" style={{ fontSize: "0.82rem" }}>
                 {selectedCase ? `${selectedCase.score} · ${selectedCase.department}` : copy.currentSliceDefault}
+              </div>
+            </article>
+          </div>
+          <div className="dashboard-context">
+            <article className="surface-soft dashboard-context__note stripe-blue">
+              <div className="label" style={{ marginBottom: "0.35rem" }}>{filters.full ? copy.toggleFull : copy.togglePreview}</div>
+              <p className="body-copy" style={{ margin: 0, fontSize: "0.83rem" }}>
+                {previewState}
+              </p>
+              <div className="dashboard-context__meta">
+                <span className="tiny-pill">{`${overview?.meta.shownRows?.toLocaleString() ?? "—"} / ${overview?.meta.totalRows?.toLocaleString() ?? "—"}`}</span>
+                {overview?.meta.dateRange?.from || overview?.meta.dateRange?.to ? (
+                  <span className="tiny-pill">{`${overview?.meta.dateRange?.from ?? "…"} → ${overview?.meta.dateRange?.to ?? "…"}`}</span>
+                ) : null}
+              </div>
+            </article>
+            <article className="surface-soft dashboard-context__meter stripe-red">
+              <div className="label" style={{ marginBottom: "0.35rem" }}>{copy.riskMeterTitle}</div>
+              <p className="body-copy" style={{ margin: 0, fontSize: "0.83rem" }}>{copy.riskMeterBody}</p>
+              <div className="risk-meter">
+                <span className="risk-meter__band risk-meter__band--low">{copy.riskMeterLow}</span>
+                <span className="risk-meter__band risk-meter__band--medium">{copy.riskMeterMedium}</span>
+                <span className="risk-meter__band risk-meter__band--high">{copy.riskMeterHigh}</span>
+                <span className="risk-meter__needle" style={{ left: `${Math.max(4, Math.min(96, riskReference))}%` }} />
               </div>
             </article>
           </div>
@@ -931,6 +991,7 @@ export function ContractsView({
             <article className="summary-card stripe-green analysis-panel">
               <div className="body-copy">
                 <p style={{ marginTop: 0 }}>{copy.methodologyBody}</p>
+                <p>{copy.methodologyWhyModel}</p>
                 <p>
                   <strong>{overview?.methodology.modelType ?? "IsolationForest"}</strong> ·{" "}
                   {overview?.methodology.nFeatures ?? 25} vars · contamination{" "}

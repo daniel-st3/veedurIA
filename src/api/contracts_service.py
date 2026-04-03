@@ -307,6 +307,8 @@ def _filter_frame(
     risk: str | None = None,
     modality: str | None = None,
     query: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> pd.DataFrame:
     frame = df.copy()
     if department:
@@ -319,6 +321,14 @@ def _filter_frame(
         mask = frame["nombre_entidad"].str.contains(query, case=False, na=False)
         mask |= frame["proveedor_adjudicado"].str.contains(query, case=False, na=False)
         frame = frame[mask]
+    if date_from:
+        start = pd.to_datetime(date_from, errors="coerce", utc=True)
+        if not pd.isna(start):
+            frame = frame[frame["fecha_ts"] >= start]
+    if date_to:
+        end = pd.to_datetime(date_to, errors="coerce", utc=True)
+        if not pd.isna(end):
+            frame = frame[frame["fecha_ts"] <= end + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)]
     return frame
 
 
@@ -539,23 +549,39 @@ def get_overview_payload(
     risk: str | None = None,
     modality: str | None = None,
     query: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     limit: int = 6,
 ) -> dict[str, Any]:
-    df_all = load_contracts(full)
-    df_slice = _filter_frame(df_all, department=department, risk=risk, modality=modality, query=query)
+    effective_full = full or bool(date_from or date_to)
+    df_all = load_contracts(effective_full)
+    df_context = _filter_frame(
+        df_all,
+        risk=risk,
+        modality=modality,
+        query=query,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    df_slice = _filter_frame(df_context, department=department)
     meta = load_model_metadata()
     return {
         "meta": {
             "lang": lang,
-            "fullDataset": full,
+            "fullDataset": effective_full,
             "totalRows": get_total_row_count(),
             "shownRows": int(len(df_all)),
-            "latestContractDate": df_all["fecha_label"].max() if not df_all.empty else None,
+            "previewRows": PREVIEW_SIZE,
+            "latestContractDate": df_context["fecha_label"].max() if not df_context.empty else None,
+            "dateRange": {
+                "from": date_from,
+                "to": date_to,
+            },
             **_freshness(),
         },
-        "options": _options(df_all),
+        "options": _options(df_context if not df_context.empty else df_all),
         "map": {
-            "departments": _build_department_summary(df_all),
+            "departments": _build_department_summary(df_context),
         },
         "slice": _slice_stats(df_slice, lang),
         "leadCases": _lead_cases(df_slice, lang, limit),
@@ -583,11 +609,22 @@ def get_table_payload(
     risk: str | None = None,
     modality: str | None = None,
     query: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     offset: int = 0,
     limit: int = 50,
 ) -> dict[str, Any]:
-    df_all = load_contracts(full)
-    df_slice = _filter_frame(df_all, department=department, risk=risk, modality=modality, query=query)
+    effective_full = full or bool(date_from or date_to)
+    df_all = load_contracts(effective_full)
+    df_slice = _filter_frame(
+        df_all,
+        department=department,
+        risk=risk,
+        modality=modality,
+        query=query,
+        date_from=date_from,
+        date_to=date_to,
+    )
     ordered = (
         _decorate_priority(df_slice)
         .sort_values(["_priority", "fecha_ts", "risk_score", "valor_num"], ascending=[False, False, False, False])

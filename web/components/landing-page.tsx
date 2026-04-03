@@ -299,8 +299,8 @@ export function LandingPage({
       />
 
       <main className="page">
-        <section className="hero-grid hero-grid--landing hero-stage" style={{ padding: "1.2rem 0 1rem", alignItems: "center" }}>
-          <div className="hero-copy">
+        <section className="landing-hero hero-stage" style={{ padding: "1rem 0 1.1rem" }}>
+          <div className="hero-copy hero-copy--landing">
             <div className="hero-pill eyebrow-pill">
               {copy.heroEyebrow}
             </div>
@@ -350,7 +350,7 @@ export function LandingPage({
               </a>
             </div>
             <div className="scroll-cue" style={{ marginTop: "0.8rem" }}>
-              {copy.heroPlay}
+              {copy.heroMapCaption}
             </div>
           </div>
           <HeroField

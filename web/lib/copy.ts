@@ -25,6 +25,7 @@ export const landingCopy = {
     heroPlay: "Campo interactivo",
     heroPlayBody:
       "Mueve el cursor o el dedo para alterar la red de señales. La interfaz responde como una superficie viva, no como un dashboard muerto.",
+    heroMapCaption: "Pulsa un territorio y la lectura cambia completa.",
     heroLegendFocus: "foco",
     heroLegendModel: "modelo",
     heroLegendAlert: "alerta",
@@ -103,6 +104,7 @@ export const landingCopy = {
     heroPlay: "Interactive field",
     heroPlayBody:
       "Move the cursor or your finger to disturb the signal mesh. The interface reacts like a living surface instead of a dead dashboard.",
+    heroMapCaption: "Tap a territory and the whole reading shifts.",
     heroLegendFocus: "focus",
     heroLegendModel: "model",
     heroLegendAlert: "alert",
@@ -181,6 +183,8 @@ export const contractsCopy = {
     filterDepartment: "Departamento",
     filterRisk: "Riesgo",
     filterModality: "Modalidad",
+    filterDateFrom: "Desde",
+    filterDateTo: "Hasta",
     filterAll: "Todo",
     riskAll: "Todo",
     riskHigh: "Alto",
@@ -194,6 +198,15 @@ export const contractsCopy = {
     metricModel: "Dato más reciente",
     dashboardTitle: "Qué cambia en este corte",
     dashboardBody: "Cada cifra responde al territorio, la búsqueda y el nivel de riesgo que tengas activos.",
+    previewNote:
+      "La vista rápida carga primero 50 mil contratos para mantener la interacción fluida. Si activas fechas o historial completo, el tablero usa todo el universo puntuado disponible.",
+    previewFull: "Historial completo activo",
+    riskMeterTitle: "Cómo leer el medidor de riesgo",
+    riskMeterBody:
+      "El score ordena qué tan inusual luce un contrato frente al patrón histórico observado. Sirve para priorizar revisión, no para afirmar irregularidad.",
+    riskMeterLow: "0–39 · comportamiento cercano al patrón esperado",
+    riskMeterMedium: "40–69 · ruptura parcial del patrón, conviene revisar contexto",
+    riskMeterHigh: "70–100 · señal fuerte de anomalía, revisar primero",
     guideTitle: "Cómo leer este corte",
     guideBody: "Territorio, señal, explicación y fuente oficial, en ese orden.",
     guideStepTerritory: "Define territorio, riesgo o búsqueda.",
@@ -237,6 +250,8 @@ export const contractsCopy = {
     methodology: "Metodología",
     methodologyBody:
       "Isolation Forest prioriza contratos estadísticamente inusuales. SHAP traduce esa anomalía en factores legibles. El resultado sirve para orientar revisión, no para concluir ilegalidad.",
+    methodologyWhyModel:
+      "Usamos Isolation Forest porque no existe una etiqueta confiable y masiva de corrupción para entrenar un clasificador supervisado. Para auditoría preventiva con datos abiertos, es un punto de partida razonable y explicable.",
     summaryEntities: "Entidades que conviene revisar primero",
     summaryModalities: "Modalidades con riesgo medio más alto",
     summaryContracts: "contratos",
@@ -282,6 +297,8 @@ export const contractsCopy = {
     filterDepartment: "Department",
     filterRisk: "Risk",
     filterModality: "Modality",
+    filterDateFrom: "From",
+    filterDateTo: "To",
     filterAll: "All",
     riskAll: "All",
     riskHigh: "High",
@@ -295,6 +312,15 @@ export const contractsCopy = {
     metricModel: "Latest data point",
     dashboardTitle: "What changes in this slice",
     dashboardBody: "Each number responds to the territory, search, and risk level currently active.",
+    previewNote:
+      "Quick view loads the latest 50k contracts first to keep the experience fast. If you activate dates or full history, the dashboard switches to the full scored universe available.",
+    previewFull: "Full history active",
+    riskMeterTitle: "How to read the risk meter",
+    riskMeterBody:
+      "The score orders how unusual a contract looks against the observed historical pattern. It is built for review priority, not for declaring wrongdoing.",
+    riskMeterLow: "0–39 · still close to the expected pattern",
+    riskMeterMedium: "40–69 · partial break from the pattern, review context",
+    riskMeterHigh: "70–100 · strong anomaly signal, review first",
     guideTitle: "How to read this slice",
     guideBody: "Territory, signal, explanation, and official source, in that order.",
     guideStepTerritory: "Define territory, risk, or search.",
@@ -338,6 +364,8 @@ export const contractsCopy = {
     methodology: "Methodology",
     methodologyBody:
       "Isolation Forest prioritizes statistically unusual contracts. SHAP turns that anomaly into readable factors. The result guides review; it does not establish wrongdoing.",
+    methodologyWhyModel:
+      "We use Isolation Forest because there is no trustworthy large-scale corruption label to train a supervised classifier. For preventive auditing with open data, it is a reasonable and explainable starting point.",
     summaryEntities: "Entities worth checking first",
     summaryModalities: "Modalities with the highest mean risk",
     summaryContracts: "contracts",

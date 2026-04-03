@@ -9,6 +9,8 @@ export type ContractsFilters = {
   risk?: "all" | "high" | "medium" | "low";
   modality?: string;
   query?: string;
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 function buildQuery(params: Record<string, string | number | boolean | undefined>) {
@@ -28,6 +30,8 @@ export async function fetchOverview(filters: ContractsFilters): Promise<Overview
     risk: filters.risk ?? "all",
     modality: filters.modality,
     query: filters.query,
+    date_from: filters.dateFrom,
+    date_to: filters.dateTo,
   });
   const response = await fetch(`${API_BASE}/contracts/overview?${query}`, {
     cache: "no-store",
@@ -48,6 +52,8 @@ export async function fetchContractsTable(
     risk: filters.risk ?? "all",
     modality: filters.modality,
     query: filters.query,
+    date_from: filters.dateFrom,
+    date_to: filters.dateTo,
     offset: filters.offset ?? 0,
     limit: filters.limit ?? 24,
   });

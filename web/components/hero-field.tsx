@@ -127,95 +127,90 @@ export function HeroField({ status, title, body, legend, graphLabel, notes, geoj
       <div className="hero-field__ambient" data-glow />
       <div className="hero-field__pointer" data-pointer />
 
-      <div className="hero-field__layout">
-        <div className="hero-field__map-stage" data-stage>
-          {geojson ? (
-            <ColombiaMap
-              geojson={geojson}
-              departments={[...HERO_DEPARTMENTS]}
-              activeDepartment={activeDepartment}
-              onSelect={setActiveDepartment}
-              mode="hero"
-              showCaption={false}
-            />
-          ) : (
-            <div className="hero-map-skeleton">
-              <div className="hero-map-skeleton__blob" />
-              <div className="hero-map-skeleton__outline" />
+      <div className="hero-field__stack">
+        <div className="hero-field__canvas" data-stage>
+          <div className="hero-field__canvas-head" data-chip>
+            <div>
+              <div className="label" style={{ marginBottom: "0.35rem" }}>{notes[0].label}</div>
+              <h3>{currentDepartment.label}</h3>
             </div>
-          )}
-        </div>
-
-        <div className="hero-field__sidebar">
-          <div className="hero-field__territory surface-soft" data-chip>
-            <div className="label" style={{ marginBottom: "0.45rem" }}>
-              {notes[0].label}
-            </div>
-            <strong>{currentDepartment.label}</strong>
-            <span className="hero-field__territory-meta">{`${currentDepartment.contractCount.toLocaleString()} ${graphLabel}`}</span>
-          </div>
-
-          <div className="hero-field__panel surface-soft" data-chip>
-            <div className="label" style={{ marginBottom: "0.45rem" }}>
-              {notes[1].label}
-            </div>
-            <h3>{notes[1].title}</h3>
-            <p className="body-copy">{notes[1].body}</p>
-          </div>
-
-          <div className="hero-field__story surface" data-chip>
-            <div className="label" style={{ marginBottom: "0.45rem" }}>
-              {notes[2].label}
-            </div>
-            <h3>{currentDepartment.label}</h3>
-            <p className="body-copy" style={{ marginBottom: "0.8rem" }}>
-              {body}
-            </p>
-            <div className="hero-field__story-meta">
+            <div className="hero-field__canvas-pills">
               <span className="tiny-pill">{`${Math.round(currentDepartment.avgRisk * 100)} ${legend[2]}`}</span>
-              <span className="tiny-pill">{`${currentDepartment.contractCount.toLocaleString()} ${graphLabel}`}</span>
+              <span className="tiny-pill">{currentDepartment.contractCount.toLocaleString()}</span>
             </div>
           </div>
 
-          <div className="hero-field__signal surface-soft" data-chip>
-            <div className="label" style={{ marginBottom: "0.55rem" }}>
-              {title}
+          <div className="hero-field__map-stage">
+            {geojson ? (
+              <ColombiaMap
+                geojson={geojson}
+                departments={[...HERO_DEPARTMENTS]}
+                activeDepartment={activeDepartment}
+                onSelect={setActiveDepartment}
+                mode="hero"
+                showCaption={false}
+              />
+            ) : (
+              <div className="hero-map-skeleton">
+                <div className="hero-map-skeleton__blob" />
+                <div className="hero-map-skeleton__outline" />
+              </div>
+            )}
+          </div>
+
+          <div className="hero-field__canvas-foot" data-chip>
+            <div className="hero-field__canvas-copy">
+              <div className="label" style={{ marginBottom: "0.35rem" }}>{title}</div>
+              <p className="body-copy">{body}</p>
             </div>
-            <div className="hero-field__bars">
-              {METER_VALUES.map((value, index) => (
-                <span key={`${value}-${index}`} className="hero-field__bar-wrap">
-                  <span
-                    data-meter
-                    className={`hero-field__bar hero-field__bar--${index % 3 === 0 ? "yellow" : index % 3 === 1 ? "blue" : "red"}`}
-                    style={{ height: `${Math.round(value * 100)}%` }}
-                  />
-                </span>
-              ))}
-            </div>
-            <div className="hero-field__signal-meta">
-              <span className="tiny-pill">{legend[0]}</span>
-              <span className="tiny-pill">{legend[1]}</span>
-              <span className="tiny-pill">{legend[2]}</span>
+            <div className="hero-field__signal surface-soft">
+              <div className="label" style={{ marginBottom: "0.55rem" }}>{graphLabel}</div>
+              <div className="hero-field__bars">
+                {METER_VALUES.map((value, index) => (
+                  <span key={`${value}-${index}`} className="hero-field__bar-wrap">
+                    <span
+                      data-meter
+                      className={`hero-field__bar hero-field__bar--${index % 3 === 0 ? "yellow" : index % 3 === 1 ? "blue" : "red"}`}
+                      style={{ height: `${Math.round(value * 100)}%` }}
+                    />
+                  </span>
+                ))}
+              </div>
+              <div className="hero-field__signal-meta">
+                <span className="tiny-pill">{legend[0]}</span>
+                <span className="tiny-pill">{legend[1]}</span>
+                <span className="tiny-pill">{legend[2]}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="hero-field__legend-shell" data-chip>
-        <div className="hero-field__legend-head">
-          <div className="label">{status}</div>
-          <div className="body-copy" style={{ fontSize: "0.8rem" }}>{body}</div>
-        </div>
-        <div className="hero-field__legend">
-          <span className="label hero-field__legend-item">
-            <span className="status-dot" style={{ background: "var(--yellow)" }} /> {legend[0]}
-          </span>
-          <span className="label hero-field__legend-item">
-            <span className="status-dot" style={{ background: "var(--blue)" }} /> {legend[1]}
-          </span>
-          <span className="label hero-field__legend-item">
-            <span className="status-dot" style={{ background: "var(--red)" }} /> {legend[2]}
-          </span>
+        <div className="hero-field__dock" data-chip>
+          {notes.map((note, index) => (
+            <article
+              key={note.title}
+              className={`hero-field__dock-card surface-soft stripe-${index === 0 ? "blue" : index === 1 ? "yellow" : "red"}`}
+            >
+              <div className="label" style={{ marginBottom: "0.4rem" }}>{note.label}</div>
+              <h3>{note.title}</h3>
+              <p className="body-copy">{index === 2 ? (note.body) : note.body}</p>
+            </article>
+          ))}
+          <div className="hero-field__legend-shell">
+            <div className="label" style={{ marginBottom: "0.35rem" }}>{status}</div>
+            <div className="body-copy" style={{ fontSize: "0.82rem", marginBottom: "0.55rem" }}>{body}</div>
+            <div className="hero-field__legend">
+              <span className="label hero-field__legend-item">
+                <span className="status-dot" style={{ background: "var(--yellow)" }} /> {legend[0]}
+              </span>
+              <span className="label hero-field__legend-item">
+                <span className="status-dot" style={{ background: "var(--blue)" }} /> {legend[1]}
+              </span>
+              <span className="label hero-field__legend-item">
+                <span className="status-dot" style={{ background: "var(--red)" }} /> {legend[2]}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
