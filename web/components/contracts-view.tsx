@@ -581,22 +581,13 @@ export function ContractsView({
               </div>
               <Landmark size={22} color="var(--blue)" />
             </div>
-            <div className="map-stage">
-              <div className="map-legend">
-                <span className="label">{copy.mapLegendLow}</span>
-                <span className="map-legend__bar" />
-                <span className="label">{copy.mapLegendHigh}</span>
-              </div>
-            </div>
             <div className="map-shell">
               {geojson && overview ? (
                 <ColombiaMap
                   geojson={geojson}
                   departments={overview.map.departments}
                   activeDepartment={filters.department}
-                  captionTitle={copy.currentSlice}
-                  captionBody={copy.mapBody}
-                  emptyCaptionBody={copy.mapBody}
+                  showCaption={false}
                   onSelect={(department) => {
                     const next = { ...filters, department };
                     setDraft(next);
@@ -610,29 +601,70 @@ export function ContractsView({
                 </div>
               )}
             </div>
-            {topDepartments.length ? (
-              <div className="territory-rail">
-                {topDepartments.map((item) => (
+            <div className="map-brief surface-soft">
+              <div className="map-brief__summary">
+                <div className="map-legend">
+                  <span className="label">{copy.mapLegendLow}</span>
+                  <span className="map-legend__bar" />
+                  <span className="label">{copy.mapLegendHigh}</span>
+                </div>
+                <div>
+                  <div className="label" style={{ marginBottom: "0.35rem" }}>{copy.mapFocusTitle}</div>
+                  <p className="body-copy" style={{ margin: 0, fontSize: "0.82rem" }}>{copy.mapFocusBody}</p>
+                </div>
+                <div className="map-brief__stats">
+                  <article className="map-brief__stat">
+                    <span className="label">{copy.metricTerritory}</span>
+                    <strong>{overview?.slice.dominantDepartment ?? copy.currentSliceDefault}</strong>
+                  </article>
+                  <article className="map-brief__stat">
+                    <span className="label">{copy.metricAlerts}</span>
+                    <strong>{overview?.slice.redAlerts?.toLocaleString() ?? "0"}</strong>
+                  </article>
+                  <article className="map-brief__stat">
+                    <span className="label">{copy.mapFreshness}</span>
+                    <strong>{latestDataPoint}</strong>
+                  </article>
+                </div>
+              </div>
+              <div className="map-brief__rail">
+                <div className="label" style={{ marginBottom: "0.45rem" }}>{copy.mapQuickCuts}</div>
+                <div className="territory-rail territory-rail--compact">
                   <button
-                    key={item.key}
                     type="button"
-                    className={`territory-chip ${filters.department === item.geoName ? "territory-chip--active" : ""}`}
+                    className={`territory-chip ${!filters.department ? "territory-chip--active" : ""}`}
                     onClick={() => {
-                      const next = { ...filters, department: item.geoName };
+                      const next = { ...filters, department: undefined };
                       setDraft(next);
                       setFilters(next);
                       setPage(0);
                     }}
                   >
-                    <span>{item.label}</span>
-                    <span
-                      className="territory-chip__meter"
-                      style={{ width: `${Math.max(18, (item.avgRisk / topDepartmentMax) * 100)}%` }}
-                    />
+                    <span>{copy.currentSliceDefault}</span>
+                    <span className="territory-chip__meter" style={{ width: "100%" }} />
                   </button>
-                ))}
+                  {topDepartments.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={`territory-chip ${filters.department === item.geoName ? "territory-chip--active" : ""}`}
+                      onClick={() => {
+                        const next = { ...filters, department: item.geoName };
+                        setDraft(next);
+                        setFilters(next);
+                        setPage(0);
+                      }}
+                    >
+                      <span>{item.label}</span>
+                      <span
+                        className="territory-chip__meter"
+                        style={{ width: `${Math.max(18, (item.avgRisk / topDepartmentMax) * 100)}%` }}
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
-            ) : null}
+            </div>
           </div>
 
           <aside className="side-panel stripe-red" style={{ padding: "1rem" }}>

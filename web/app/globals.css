@@ -1352,12 +1352,6 @@ select:focus {
   pointer-events: none;
 }
 
-.map-stage {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 0.55rem;
-}
-
 .map-shell {
   position: relative;
   min-height: 420px;
@@ -1365,6 +1359,47 @@ select:focus {
   background: linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0.38));
   border: 1px solid rgba(23,32,51,0.05);
   overflow: hidden;
+}
+
+.map-brief {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(280px, 1.08fr);
+  gap: 0.9rem;
+  margin-top: 0.8rem;
+  padding: 0.9rem 1rem;
+  border-radius: calc(var(--radius-lg) - 6px);
+}
+
+.map-brief__summary {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.map-brief__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.map-brief__stat {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.8rem 0.85rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(23, 32, 51, 0.06);
+}
+
+.map-brief__stat strong {
+  font-family: "Sora", sans-serif;
+  font-size: 0.96rem;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.map-brief__rail {
+  display: grid;
+  align-content: start;
 }
 
 .map-legend {
@@ -1389,6 +1424,10 @@ select:focus {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.55rem;
   margin-top: 0.8rem;
+}
+
+.territory-rail--compact {
+  margin-top: 0;
 }
 
 .territory-chip {
@@ -1754,6 +1793,11 @@ select:focus {
   }
 
   .hero-grid--landing {
+    grid-template-columns: 1fr;
+  }
+
+  .map-brief,
+  .map-brief__stats {
     grid-template-columns: 1fr;
   }
 
