@@ -1,0 +1,137 @@
+name: Weekly Promise Refresh
+
+on:
+  # Every Sunday at 4:00 AM UTC (mirrors model_refresh.yml pattern)
+  schedule:
+    - cron: "0 4 * * 0"
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      election_year:
+        description: "Election year to process"
+        required: false
+        default: "2026"
+        type: string
+      force_reextract:
+        description: "Force re-extraction even if promises already exist"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+# Prevent overlapping runs
+concurrency:
+  group: promise-refresh
+  cancel-in-progress: true
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  refresh-promises:
+    name: Refresh PromesóMetro NLP Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # ── Soft-skip when secrets are missing ──────────────────────────────────
+      - name: Validate required secrets
+        id: check_secrets
+        run: |
+          missing=""
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then missing="$missing SUPABASE_URL"; fi
+          if [ -z "${{ secrets.SUPABASE_KEY }}" ]; then missing="$missing SUPABASE_KEY"; fi
+          if [ -n "$missing" ]; then
+            echo "::warning::Secrets not configured ($missing) — skipping promise refresh."
+            echo "Add them at: Settings > Secrets and variables > Actions"
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "All required secrets are configured."
+          echo "skip=false" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
+        if: steps.check_secrets.outputs.skip != 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: steps.check_secrets.outputs.skip != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements-phase1.txt -r requirements-phase3.txt
+
+      - name: Download spaCy model
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python -m spacy download es_core_news_lg
+
+      - name: Warm up sentence-transformer model
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python -m src.models.promise_model
+
+      - name: Download candidate government programs (PDFs)
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python -m src.ingestion.programa_scraper \
+            --election_year=${{ github.event.inputs.election_year || '2026' }}
+
+      - name: Extract promises from PDFs
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python -m src.processing.promise_extractor \
+            --election_year=${{ github.event.inputs.election_year || '2026' }} \
+            ${{ github.event.inputs.force_reextract == 'true' && '--force_reextract' || '' }}
+
+      - name: Train domain classifier (BERTopic)
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python -m src.processing.promise_classifier --action=train
+
+      - name: Classify promises by domain
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python -m src.processing.promise_classifier --action=classify
+
+      - name: Fetch legislative actions (SUIN + Gaceta)
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python -m src.ingestion.congreso_client
+
+      - name: Score promise-action coherence
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python -m src.processing.coherence_scorer
+
+      - name: Commit last_run.json update
+        if: steps.check_secrets.outputs.skip != 'true'
+        continue-on-error: true
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/processed/last_run.json || true
+          git diff --cached --quiet || git commit -m "chore: update last_run.json [promise refresh $(date -u +%Y-%m-%d)]"
+          git push || true
+
+      - name: Upload pipeline artifacts
+        uses: actions/upload-artifact@v4
+        if: steps.check_secrets.outputs.skip != 'true' && always()
+        with:
+          name: promise-artifacts-${{ github.run_id }}
+          path: |
+            data/processed/promises/promises.parquet
+            data/processed/promises/actions.parquet
+            data/processed/promises/coherence.parquet
+            data/processed/last_run.json
+          retention-days: 30
+          if-no-files-found: ignore

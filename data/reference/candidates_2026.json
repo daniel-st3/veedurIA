@@ -1,0 +1,13 @@
+[
+  {
+    "politician_id": "pres_placeholder_2026",
+    "name": "Candidato Presidencial Ejemplo",
+    "name_norm": "CANDIDATO PRESIDENCIAL EJEMPLO",
+    "chamber": "presidente",
+    "party": "Partido Ejemplo",
+    "programa_url": "",
+    "election_year": 2026,
+    "active": false,
+    "_note": "Placeholder entry. Populate with real candidates once registered at Registraduria (deadline Jan 31, 2026)."
+  }
+]

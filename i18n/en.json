@@ -141,5 +141,80 @@
   "how_ml_works_1": "Isolation Forest trained on millions of SECOP II contracts",
   "how_ml_works_2": "25 variables per contract: value, duration, provider, modality, timing",
   "how_ml_works_3": "Score 0–100 measures how unusual the contract is vs. the historical pattern",
-  "how_ml_works_4": "Red does NOT mean illegal — it means «deserves citizen scrutiny»"
+  "how_ml_works_4": "Red does NOT mean illegal — it means «deserves citizen scrutiny»",
+
+  "apply_filters": "Apply →",
+
+  "pm_overview_kicker": "Phase 3 active · NLP · Registraduría + Congress",
+  "pm_overview_title": "PromesóMetro to verify before concluding",
+  "pm_overview_sub": "This phase does not automatically rate any politician. It compares what they promised in their government programs with recorded legislative or executive actions, explains the degree of coherence found, and links you to the sources so you can form your own judgment.",
+  "pm_no_data": "PromesóMetro data is being processed. Check back soon.",
+
+  "pm_kpi_politicians": "Politicians tracked",
+  "pm_kpi_promises": "Promises recorded",
+  "pm_kpi_coherence_rate": "Coherence rate",
+  "pm_kpi_freshness": "Data status",
+
+  "filter_politician": "Politician / Candidate",
+  "filter_domain": "Policy domain",
+  "filter_year": "Electoral period",
+  "all_domains": "All domains",
+
+  "domain_educacion": "Education",
+  "domain_salud": "Health",
+  "domain_seguridad": "Security",
+  "domain_economia": "Economy",
+  "domain_infraestructura": "Infrastructure",
+  "domain_medio_ambiente": "Environment",
+  "domain_justicia": "Justice",
+  "domain_social": "Social",
+  "domain_otro": "Other",
+
+  "pm_status_fulfilled": "With registered action",
+  "pm_status_in_progress": "Under monitoring",
+  "pm_status_no_action": "No evidence available",
+
+  "pm_scorecard_global": "Overall coherence",
+  "pm_scorecard_n_fulfilled": "With registered action",
+  "pm_scorecard_n_in_progress": "Under monitoring",
+  "pm_scorecard_n_no_action": "No evidence available",
+  "pm_scorecard_n_no_data": "No data coverage",
+
+  "pm_card_source_promise": "View promise source",
+  "pm_card_source_action": "View registered action",
+  "pm_card_disclaimer": "Automatic coherence alert. Does not constitute an official evaluation. Similarity computed by NLP model — verify source before concluding.",
+  "pm_card_similarity": "NLP similarity",
+  "pm_card_confidence": "Extraction confidence",
+
+  "pm_route_1_t": "Choose a politician",
+  "pm_route_1_b": "Filter by name or party. The scorecard shows their overall and per-domain coherence.",
+  "pm_route_2_t": "Read the domain breakdown",
+  "pm_route_2_b": "Domains with many promises and low coherence are most useful for scrutiny.",
+  "pm_route_3_t": "Open a promise and verify",
+  "pm_route_3_b": "Each card links to the official source. The model prioritizes — you decide.",
+
+  "pm_adv_filters": "⚙️ Advanced filters",
+  "pm_filter_status": "Promise status",
+  "pm_filter_min_confidence": "Minimum extraction confidence",
+  "pm_filter_min_similarity": "Minimum similarity",
+  "pm_filter_source_type": "Source type",
+  "pm_load_more": "Load more promises",
+
+  "pm_evidence_table": "📋 Evidence table · {n} promises",
+  "pm_evidence_table_caption": "For detailed analysis. The main product reading is above: scorecard and cards.",
+
+  "table_col_politician": "Politician",
+  "table_col_domain": "Domain",
+  "table_col_promise": "Promise",
+  "table_col_status": "Status",
+  "table_col_similarity": "Similarity",
+  "table_col_confidence": "Confidence",
+
+  "pm_methodology": "🔬 Model methodology",
+  "pm_method_model": "Which model is used?",
+  "pm_method_thresholds": "How are statuses assigned?",
+  "pm_method_thresholds_body": "Similarity ≥ 0.72 → With registered action · 0.45–0.71 → Under monitoring · < 0.45 → No evidence available.",
+  "pm_method_limits": "Important limitations",
+  "pm_method_limits_body": "The model does not access institutional context or full documents. Gaceta del Congreso scraping coverage may be partial. A high coherence score does not guarantee actual fulfillment — it is a signal for citizens to dig deeper.",
+  "pm_ethics_bar": "<strong>Ethical notice:</strong> This analysis is informational and does not constitute an official evaluation of any politician. Coherence scores signal patterns between texts — they do not confirm fulfillment or non-fulfillment. Always verify in official sources before concluding."
 }

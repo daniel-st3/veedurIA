@@ -141,5 +141,80 @@
   "how_ml_works_1": "Isolation Forest entrenado con millones de contratos de SECOP II",
   "how_ml_works_2": "25 variables por contrato: valor, plazos, proveedor, modalidad, temporalidad",
   "how_ml_works_3": "Puntaje 0–100 mide qué tan inusual es el contrato respecto al patrón histórico",
-  "how_ml_works_4": "Rojo NO significa irregular — significa «merece escrutinio ciudadano»"
+  "how_ml_works_4": "Rojo NO significa irregular — significa «merece escrutinio ciudadano»",
+
+  "apply_filters": "Aplicar →",
+
+  "pm_overview_kicker": "Fase 3 activa · NLP · Registraduría + Congreso",
+  "pm_overview_title": "PromesóMetro para verificar antes de concluir",
+  "pm_overview_sub": "Esta fase no califica automáticamente a ningún político. Compara lo que prometieron en sus programas de gobierno con acciones legislativas o ejecutivas registradas, explica el grado de coherencia encontrado y te lleva a las fuentes para que formes tu propio juicio.",
+  "pm_no_data": "Los datos de PromesóMetro se están procesando. Vuelve pronto.",
+
+  "pm_kpi_politicians": "Políticos en seguimiento",
+  "pm_kpi_promises": "Promesas registradas",
+  "pm_kpi_coherence_rate": "Tasa de coherencia",
+  "pm_kpi_freshness": "Estado del dato",
+
+  "filter_politician": "Político / Candidato",
+  "filter_domain": "Dominio temático",
+  "filter_year": "Período electoral",
+  "all_domains": "Todos los dominios",
+
+  "domain_educacion": "Educación",
+  "domain_salud": "Salud",
+  "domain_seguridad": "Seguridad",
+  "domain_economia": "Economía",
+  "domain_infraestructura": "Infraestructura",
+  "domain_medio_ambiente": "Medio ambiente",
+  "domain_justicia": "Justicia",
+  "domain_social": "Social",
+  "domain_otro": "Otro",
+
+  "pm_status_fulfilled": "Con acción registrada",
+  "pm_status_in_progress": "En seguimiento",
+  "pm_status_no_action": "Sin evidencia disponible",
+
+  "pm_scorecard_global": "Coherencia global",
+  "pm_scorecard_n_fulfilled": "Con acción registrada",
+  "pm_scorecard_n_in_progress": "En seguimiento",
+  "pm_scorecard_n_no_action": "Sin evidencia disponible",
+  "pm_scorecard_n_no_data": "Sin cobertura de datos",
+
+  "pm_card_source_promise": "Ver fuente de la promesa",
+  "pm_card_source_action": "Ver acción registrada",
+  "pm_card_disclaimer": "Alerta automática de coherencia. No constituye evaluación oficial. Similaridad calculada por modelo NLP — verifica la fuente antes de concluir.",
+  "pm_card_similarity": "Similaridad NLP",
+  "pm_card_confidence": "Confianza de extracción",
+
+  "pm_route_1_t": "Elige un político",
+  "pm_route_1_b": "Filtra por nombre o partido. El scorecard muestra su coherencia global y por dominio.",
+  "pm_route_2_t": "Lee el desglose por dominio",
+  "pm_route_2_b": "Los dominios con más promesas y baja coherencia son los más útiles para el escrutinio.",
+  "pm_route_3_t": "Abre una promesa y verifica",
+  "pm_route_3_b": "Cada tarjeta enlaza a la fuente oficial. El modelo prioriza — tú decides.",
+
+  "pm_adv_filters": "⚙️ Filtros avanzados",
+  "pm_filter_status": "Estado de la promesa",
+  "pm_filter_min_confidence": "Confianza mínima de extracción",
+  "pm_filter_min_similarity": "Similaridad mínima",
+  "pm_filter_source_type": "Tipo de fuente",
+  "pm_load_more": "Cargar más promesas",
+
+  "pm_evidence_table": "📋 Tabla de evidencia · {n} promesas",
+  "pm_evidence_table_caption": "Para análisis detallado. La lectura principal del producto está arriba: scorecard y tarjetas.",
+
+  "table_col_politician": "Político",
+  "table_col_domain": "Dominio",
+  "table_col_promise": "Promesa",
+  "table_col_status": "Estado",
+  "table_col_similarity": "Similaridad",
+  "table_col_confidence": "Confianza",
+
+  "pm_methodology": "🔬 Metodología del modelo",
+  "pm_method_model": "¿Qué modelo se usa?",
+  "pm_method_thresholds": "¿Cómo se asignan los estados?",
+  "pm_method_thresholds_body": "Similaridad ≥ 0.72 → Con acción registrada · 0.45–0.71 → En seguimiento · < 0.45 → Sin evidencia disponible.",
+  "pm_method_limits": "Limitaciones importantes",
+  "pm_method_limits_body": "El modelo no accede a contexto institucional ni a documentos completos. La cobertura de Gaceta del Congreso puede ser parcial. Un puntaje de coherencia alto no garantiza cumplimiento real — es una señal para que el ciudadano profundice.",
+  "pm_ethics_bar": "<strong>Aviso ético:</strong> Este análisis es informativo y no constituye una evaluación oficial de ningún político. Los puntajes de coherencia señalan patrones entre textos — no confirman cumplimiento ni incumplimiento. Verifica siempre en las fuentes oficiales antes de concluir."
 }
