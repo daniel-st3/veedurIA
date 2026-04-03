@@ -39,6 +39,9 @@ export type OverviewPayload = {
     shownRows: number;
     previewRows: number;
     latestContractDate?: string | null;
+    sourceLatestContractDate?: string | null;
+    sourceFreshnessGapDays?: number | null;
+    sourceRows?: number | null;
     lastRunTs?: string | null;
     dateRange?: {
       from?: string | null;
@@ -72,6 +75,39 @@ export type OverviewPayload = {
     trainedAt?: string | null;
     redThreshold: number;
     yellowThreshold: number;
+  };
+  liveFeed: {
+    latestDate?: string | null;
+    rowsAtSource?: number | null;
+    contracts: {
+      id: string;
+      entity: string;
+      department: string;
+      date: string;
+      value: number;
+      valueLabel: string;
+      secopUrl: string;
+    }[];
+  };
+};
+
+export type ContractsFreshnessPayload = {
+  latestContractDate?: string | null;
+  sourceLatestContractDate?: string | null;
+  sourceFreshnessGapDays?: number | null;
+  sourceRows?: number | null;
+  liveFeed: {
+    latestDate?: string | null;
+    rowsAtSource?: number | null;
+    contracts: {
+      id: string;
+      entity: string;
+      department: string;
+      date: string;
+      value: number;
+      valueLabel: string;
+      secopUrl: string;
+    }[];
   };
 };
 

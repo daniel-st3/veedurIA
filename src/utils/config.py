@@ -2,17 +2,19 @@
 Centralized config loader for VeedurIA.
 
 Priority order for secret resolution:
-  1. st.secrets  — Streamlit Cloud production (and local .streamlit/secrets.toml)
-  2. os.getenv   — local development via python-dotenv loading .env
+  1. os.getenv              — local and deployed web/backend runtime
+  2. .streamlit/secrets.toml — legacy local fallback if the file exists
 
-All callers must go through this module. Never call st.secrets or os.getenv
-directly in pages/ or in any other src/ module.
+All callers must go through this module. Never call os.getenv directly in
+other src/ modules.
 """
 
 from __future__ import annotations
 
 import os
 from functools import lru_cache
+from pathlib import Path
+import tomllib
 
 from dotenv import load_dotenv
 
@@ -21,13 +23,30 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+STREAMLIT_SECRETS_PATH = PROJECT_ROOT / ".streamlit" / "secrets.toml"
+
+
+@lru_cache(maxsize=1)
+def _load_legacy_streamlit_secrets() -> dict[str, str]:
+    if not STREAMLIT_SECRETS_PATH.exists():
+        return {}
+    try:
+        with open(STREAMLIT_SECRETS_PATH, "rb") as handle:
+            data = tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError):
+        return {}
+    return {str(key): str(value) for key, value in data.items()}
+
+
 def _get(key: str) -> str:
     """
     Resolve a secret by name.
 
-    Tries st.secrets first so Streamlit Cloud's secret management takes
-    precedence. Falls back to environment variables for CLI runs (ingestion,
-    model training) where Streamlit is not initialised.
+    Tries environment variables first for the active Next.js + FastAPI stack.
+    Falls back to `.streamlit/secrets.toml` only when that legacy local file
+    exists, so old developer setups still resolve credentials without keeping
+    Streamlit as an operational dependency.
 
     Raises RuntimeError if the key is absent in both sources so that
     misconfiguration surfaces immediately rather than producing silent
@@ -36,27 +55,19 @@ def _get(key: str) -> str:
     The resolved value is NEVER logged, printed, or stored in an attribute
     visible outside this function.
     """
-    # --- Streamlit context (app running or .streamlit/secrets.toml present) ---
-    try:
-        import streamlit as st  # lazy import — not available in CLI runs
-
-        value = st.secrets.get(key)
-        if value:
-            return value
-    except Exception:
-        # ImportError  → Streamlit not installed (shouldn't happen, but safe)
-        # RuntimeError → st.secrets not accessible outside a Streamlit app
-        # Any other    → treat as unavailable, fall through to os.getenv
-        pass
-
-    # --- CLI / local development via .env ----------------------------------------
+    # --- Active runtime: .env / process environment ------------------------------
     value = os.getenv(key)
+    if value:
+        return value
+
+    # --- Legacy local fallback: .streamlit/secrets.toml --------------------------
+    value = _load_legacy_streamlit_secrets().get(key)
     if value:
         return value
 
     raise RuntimeError(
         f"Required secret '{key}' not found. "
-        "Set it in .env (local dev) or st.secrets (Streamlit Cloud). "
+        "Set it in .env / process environment. "
         "See .env.example for the full list of required keys."
     )
 

@@ -1,11 +1,7 @@
 # requirements.txt
-# FULL dependency list — for local development only.
-# Streamlit Community Cloud points to requirements-phase1.txt, NOT this file.
-# See README.md for deployment instructions.
-
-# ─── Core Web Framework ───────────────────────────────────────────────────────
-streamlit==1.42.0
-streamlit-folium==0.23.2
+# Full Python dependency list for the active VeedurIA backend + data pipeline.
+# The product runtime is FastAPI + Next.js. Streamlit is no longer an
+# operational dependency of this repository.
 
 # ─── Data Processing ──────────────────────────────────────────────────────────
 pandas==2.2.3
@@ -13,9 +9,8 @@ polars==1.19.0
 pyarrow==18.1.0
 numpy==2.1.3
 
-# ─── Visualization ────────────────────────────────────────────────────────────
+# ─── Visualization / Analysis ────────────────────────────────────────────────
 plotly==5.24.1
-folium==0.19.2
 
 # ─── Machine Learning ─────────────────────────────────────────────────────────
 scikit-learn==1.6.0

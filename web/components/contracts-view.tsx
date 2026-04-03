@@ -19,9 +19,9 @@ import {
 
 import { ColombiaMap } from "@/components/colombia-map";
 import { SiteNav } from "@/components/site-nav";
-import { fetchContractsTable, fetchGeoJson, fetchOverview } from "@/lib/api";
+import { fetchContractsFreshness, fetchContractsTable, fetchGeoJson, fetchOverview } from "@/lib/api";
 import { contractsCopy } from "@/lib/copy";
-import type { Lang, LeadCase, OverviewPayload, TablePayload } from "@/lib/types";
+import type { ContractsFreshnessPayload, Lang, LeadCase, OverviewPayload, TablePayload } from "@/lib/types";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -111,6 +111,7 @@ export function ContractsView({
   const [overview, setOverview] = useState<OverviewPayload | null>(initialOverview ?? null);
   const [table, setTable] = useState<TablePayload | null>(initialTable ?? null);
   const [geojson, setGeojson] = useState<any>(initialGeojson ?? null);
+  const [freshness, setFreshness] = useState<ContractsFreshnessPayload | null>(null);
   const [loading, setLoading] = useState(!initialOverview);
   const [tableLoading, setTableLoading] = useState(!initialTable);
   const [selectedCase, setSelectedCase] = useState<LeadCase | null>(initialOverview?.leadCases?.[0] ?? null);
@@ -123,6 +124,18 @@ export function ContractsView({
     if (geojson) return;
     fetchGeoJson().then(setGeojson).catch(console.error);
   }, [geojson]);
+
+  useEffect(() => {
+    let alive = true;
+    fetchContractsFreshness()
+      .then((data) => {
+        if (alive) setFreshness(data);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (skipFirstOverview.current) {
@@ -350,10 +363,16 @@ export function ContractsView({
   const leadCaseMax = leadCases.reduce((max, item) => Math.max(max, item.score), 100);
   const tableValueMax = table?.rows.reduce((max, row) => Math.max(max, row.value), 0) ?? 0;
   const latestDataPoint = overview?.meta.latestContractDate ?? overview?.meta.lastRunTs?.slice(0, 10) ?? "—";
+  const sourceLatestDataPoint = freshness?.sourceLatestContractDate ?? "—";
+  const liveContracts = freshness?.liveFeed.contracts ?? [];
   const topFactor = selectedCase?.factors?.[0];
   const caseCountLabel = lang === "es" ? `${leadCases.length} casos guía` : `${leadCases.length} guide cases`;
   const previewState = overview?.meta.fullDataset ? copy.previewFull : copy.previewNote;
   const riskReference = selectedCase?.score ?? Math.round((overview?.methodology.redThreshold ?? 0.7) * 100);
+  const freshnessGap =
+    typeof freshness?.sourceFreshnessGapDays === "number" && freshness.sourceFreshnessGapDays > 0
+      ? `${freshness.sourceFreshnessGapDays} ${copy.freshnessGap}`
+      : copy.freshnessGapNone;
 
   if (isBooting) {
     return (
@@ -386,15 +405,15 @@ export function ContractsView({
         <section className="overview-card stripe-flag page-hero command-shell contract-stage" style={{ position: "relative", padding: "1.6rem 1.7rem", margin: "1.4rem 0 1rem", overflow: "hidden" }}>
           <div className="command-shell__wash" />
           <div className="reading-deck" style={{ position: "relative", zIndex: 1, marginBottom: "1rem" }}>
-            <div className="reading-deck__intro">
+            <div className="reading-deck__intro reading-deck__intro--full">
               <p className="eyebrow">{copy.pageEyebrow}</p>
-              <h1 className="phase-title" style={{ fontSize: "clamp(2.3rem,4.8vw,4.1rem)", margin: "0 0 0.7rem" }}>
+              <h1 className="phase-title" style={{ fontSize: "clamp(2.15rem,4.4vw,3.6rem)", margin: "0 0 0.7rem" }}>
                 {copy.pageTitle}
               </h1>
-              <p className="section-copy" style={{ maxWidth: 720, marginBottom: "1rem" }}>
+              <p className="section-copy" style={{ maxWidth: 760, marginBottom: "0.9rem" }}>
                 {copy.pageBody}
               </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.55rem" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.55rem", marginBottom: "0.9rem" }}>
                 <span className="tiny-pill slice-chip">{copy.currentSlice}</span>
                 {(activeSlice.length ? activeSlice : [copy.currentSliceDefault]).map((item) => (
                   <span key={item} className="tiny-pill slice-chip slice-chip--active">
@@ -416,15 +435,7 @@ export function ContractsView({
                   <span>{copy.guideStepVerify}</span>
                 </div>
               </div>
-            </div>
-            <div className="reading-deck__aside surface-soft stripe-blue">
-              <div className="label" style={{ marginBottom: "0.45rem" }}>
-                {copy.guideTitle}
-              </div>
-              <p className="body-copy reading-deck__aside-copy">
-                {copy.guideBody}
-              </p>
-              <div className="reading-deck__stack">
+              <div className="reading-deck__stack reading-deck__stack--inline">
                 <article className="reading-deck__fact">
                   <div className="label">{copy.metricSlice}</div>
                   <strong>{overview?.meta.shownRows?.toLocaleString() ?? "—"}</strong>
@@ -915,6 +926,52 @@ export function ContractsView({
               </div>
             )}
           </aside>
+        </section>
+
+        <section className="contract-freshness" style={{ marginBottom: "1rem" }}>
+          <article className="surface stripe-blue contract-freshness__panel">
+            <div className="contract-freshness__head">
+              <div>
+                <p className="eyebrow" style={{ marginBottom: "0.35rem" }}>{copy.freshnessTitle}</p>
+                <p className="section-copy" style={{ margin: 0, fontSize: "0.88rem" }}>
+                  {copy.liveFeedBody}
+                </p>
+              </div>
+              <div className="tiny-pill">{freshnessGap}</div>
+            </div>
+            <div className="contract-freshness__metrics">
+              <article className="summary-card">
+                <div className="label">{copy.freshnessScored}</div>
+                <strong>{latestDataPoint}</strong>
+              </article>
+              <article className="summary-card">
+                <div className="label">{copy.freshnessSource}</div>
+                <strong>{sourceLatestDataPoint}</strong>
+              </article>
+              <article className="summary-card">
+                <div className="label">{copy.liveFeedRows}</div>
+                <strong>{freshness?.sourceRows?.toLocaleString() ?? "—"}</strong>
+              </article>
+            </div>
+            {liveContracts.length ? (
+              <div className="contract-freshness__feed">
+                {liveContracts.map((row) => (
+                  <Link key={row.id} href={row.secopUrl || "#"} target="_blank" className="contract-freshness__item">
+                    <div>
+                      <div className="label" style={{ marginBottom: "0.2rem" }}>{row.department}</div>
+                      <strong>{row.entity}</strong>
+                    </div>
+                    <div className="contract-freshness__item-meta">
+                      <span>{row.date}</span>
+                      <span>{row.valueLabel}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="surface-soft" style={{ padding: "0.95rem 1rem" }}>{copy.liveFeedEmpty}</div>
+            )}
+          </article>
         </section>
 
         <section className="analysis-suite surface stripe-green" style={{ padding: "1rem 1.1rem", marginBottom: "1rem" }}>

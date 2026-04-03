@@ -11,6 +11,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.contracts_service import (
+    get_freshness_payload,
     get_overview_payload,
     get_table_payload,
     load_geojson,
@@ -65,6 +66,11 @@ def contracts_overview(
         date_to=date_to,
         limit=limit,
     )
+
+
+@app.get("/contracts/freshness")
+def contracts_freshness() -> dict:
+    return get_freshness_payload()
 
 
 @app.get("/contracts/table")

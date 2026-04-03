@@ -79,19 +79,19 @@ STATUS_LABELS = {
 
 POLITICIAN_FALLBACKS = {
     "pol_001": {
-        "politician_name": "Piloto Presidencial A",
-        "chamber": "Presidencia",
-        "party": "Coalicion Civica",
+        "politician_name": "Iván Cepeda",
+        "chamber": "Presidencia 2026",
+        "party": "Pacto Histórico",
     },
     "pol_002": {
-        "politician_name": "Piloto Senado B",
-        "chamber": "Senado",
-        "party": "Lista Transparente",
+        "politician_name": "Paloma Valencia",
+        "chamber": "Presidencia 2026",
+        "party": "Centro Democrático",
     },
     "pol_003": {
-        "politician_name": "Piloto Camara C",
-        "chamber": "Camara",
-        "party": "Pacto Regional",
+        "politician_name": "Sergio Fajardo",
+        "chamber": "Presidencia 2026",
+        "party": "Centro",
     },
 }
 
@@ -101,9 +101,9 @@ DEMO_ROWS: list[dict[str, Any]] = [
         "promise_id": "p_demo_001",
         "action_id": "a_demo_001",
         "politician_id": "pol_001",
-        "politician_name": "Piloto Presidencial A",
-        "chamber": "Presidencia",
-        "party": "Coalicion Civica",
+        "politician_name": "Iván Cepeda",
+        "chamber": "Presidencia 2026",
+        "party": "Pacto Histórico",
         "domain": "educacion",
         "promise_text": "Ampliaremos la jornada escolar rural con conectividad y formacion docente en municipios intermedios.",
         "promise_source_url": "https://www.registraduria.gov.co/",
@@ -128,9 +128,9 @@ DEMO_ROWS: list[dict[str, Any]] = [
         "promise_id": "p_demo_002",
         "action_id": "a_demo_002",
         "politician_id": "pol_001",
-        "politician_name": "Piloto Presidencial A",
-        "chamber": "Presidencia",
-        "party": "Coalicion Civica",
+        "politician_name": "Iván Cepeda",
+        "chamber": "Presidencia 2026",
+        "party": "Pacto Histórico",
         "domain": "salud",
         "promise_text": "Reduciremos tiempos de autorizacion en la red publica con una ventanilla digital unica de atencion.",
         "promise_source_url": "https://www.registraduria.gov.co/",
@@ -155,9 +155,9 @@ DEMO_ROWS: list[dict[str, Any]] = [
         "promise_id": "p_demo_003",
         "action_id": "NONE",
         "politician_id": "pol_001",
-        "politician_name": "Piloto Presidencial A",
-        "chamber": "Presidencia",
-        "party": "Coalicion Civica",
+        "politician_name": "Iván Cepeda",
+        "chamber": "Presidencia 2026",
+        "party": "Pacto Histórico",
         "domain": "seguridad",
         "promise_text": "Desplegaremos una estrategia de seguridad barrial con analitica urbana y patrullaje coordinado.",
         "promise_source_url": "https://www.registraduria.gov.co/",
@@ -182,9 +182,9 @@ DEMO_ROWS: list[dict[str, Any]] = [
         "promise_id": "p_demo_004",
         "action_id": "a_demo_004",
         "politician_id": "pol_002",
-        "politician_name": "Piloto Senado B",
-        "chamber": "Senado",
-        "party": "Lista Transparente",
+        "politician_name": "Paloma Valencia",
+        "chamber": "Presidencia 2026",
+        "party": "Centro Democrático",
         "domain": "economia",
         "promise_text": "Impulsaremos compras publicas abiertas para mipymes locales con trazabilidad digital en tiempo real.",
         "promise_source_url": "https://www.registraduria.gov.co/",
@@ -209,9 +209,9 @@ DEMO_ROWS: list[dict[str, Any]] = [
         "promise_id": "p_demo_005",
         "action_id": "a_demo_005",
         "politician_id": "pol_002",
-        "politician_name": "Piloto Senado B",
-        "chamber": "Senado",
-        "party": "Lista Transparente",
+        "politician_name": "Paloma Valencia",
+        "chamber": "Presidencia 2026",
+        "party": "Centro Democrático",
         "domain": "justicia",
         "promise_text": "Crearemos un tablero publico para seguimiento de sanciones por contratacion y conflicto de interes.",
         "promise_source_url": "https://www.registraduria.gov.co/",
@@ -236,9 +236,9 @@ DEMO_ROWS: list[dict[str, Any]] = [
         "promise_id": "p_demo_006",
         "action_id": "NONE",
         "politician_id": "pol_002",
-        "politician_name": "Piloto Senado B",
-        "chamber": "Senado",
-        "party": "Lista Transparente",
+        "politician_name": "Paloma Valencia",
+        "chamber": "Presidencia 2026",
+        "party": "Centro Democrático",
         "domain": "medio_ambiente",
         "promise_text": "Frenaremos la deforestacion en corredores amazónicos con compras publicas libres de tala.",
         "promise_source_url": "https://www.registraduria.gov.co/",
@@ -263,9 +263,9 @@ DEMO_ROWS: list[dict[str, Any]] = [
         "promise_id": "p_demo_007",
         "action_id": "a_demo_007",
         "politician_id": "pol_003",
-        "politician_name": "Piloto Camara C",
-        "chamber": "Camara",
-        "party": "Pacto Regional",
+        "politician_name": "Sergio Fajardo",
+        "chamber": "Presidencia 2026",
+        "party": "Centro",
         "domain": "infraestructura",
         "promise_text": "Priorizaremos mantenimiento de vias secundarias con control social y tableros de obra abiertos.",
         "promise_source_url": "https://www.registraduria.gov.co/",
@@ -290,9 +290,9 @@ DEMO_ROWS: list[dict[str, Any]] = [
         "promise_id": "p_demo_008",
         "action_id": "a_demo_008",
         "politician_id": "pol_003",
-        "politician_name": "Piloto Camara C",
-        "chamber": "Camara",
-        "party": "Pacto Regional",
+        "politician_name": "Sergio Fajardo",
+        "chamber": "Presidencia 2026",
+        "party": "Centro",
         "domain": "social",
         "promise_text": "Consolidaremos una ruta de cuidado y alimentacion para hogares con jefatura femenina.",
         "promise_source_url": "https://www.registraduria.gov.co/",
@@ -513,6 +513,23 @@ def _politician_option(frame: pd.DataFrame, lang: str) -> list[dict[str, str]]:
     return out
 
 
+def _candidate_reference_options(election_year: int) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    for row in load_candidate_reference().values():
+        if int(row.get("election_year", 0) or 0) != election_year:
+            continue
+        if not bool(row.get("active", True)):
+            continue
+        politician_id = str(row.get("politician_id") or "").strip()
+        name = str(row.get("name") or politician_id).strip()
+        chamber = str(row.get("chamber") or "").strip()
+        if not politician_id or not name:
+            continue
+        label = f"{name} · {chamber}" if chamber else name
+        out.append({"value": politician_id, "label": label})
+    return sorted(out, key=lambda item: item["label"])
+
+
 def _domain_scores(frame: pd.DataFrame, lang: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for domain in DOMAIN_ORDER:
@@ -532,11 +549,12 @@ def _domain_scores(frame: pd.DataFrame, lang: str) -> list[dict[str, Any]]:
 
 def _scorecard(frame: pd.DataFrame, lang: str, requested_politician: str | None) -> dict[str, Any]:
     if frame.empty:
+        meta = _fallback_politician_meta(requested_politician or "")
         return {
             "politicianId": requested_politician or "",
-            "politicianName": "—",
-            "chamber": "—",
-            "party": "—",
+            "politicianName": meta["politician_name"] if requested_politician else "—",
+            "chamber": meta["chamber"] if requested_politician else "—",
+            "party": meta["party"] if requested_politician else "—",
             "overallScore": 0,
             "statusCounts": {"fulfilled": 0, "monitoring": 0, "noAction": 0},
             "domains": [],
@@ -621,6 +639,12 @@ def get_promises_payload(
     cards_frame = filtered if not filtered.empty else focus_frame
     cards = [_card(row, lang) for _, row in cards_frame.head(limit).iterrows()]
 
+    option_rows = _politician_option(options_frame, lang)
+    if coverage_mode == "pilot":
+        extra_candidates = _candidate_reference_options(election_year)
+        seen = {item["value"] for item in option_rows}
+        option_rows.extend(item for item in extra_candidates if item["value"] not in seen)
+
     return {
         "meta": {
             "lang": lang,
@@ -636,7 +660,7 @@ def get_promises_payload(
             ),
         },
         "options": {
-            "politicians": _politician_option(options_frame, lang),
+            "politicians": option_rows,
             "domains": [{"value": "all", "label": "Todos los dominios" if lang == "es" else "All domains"}]
             + [{"value": key, "label": DOMAIN_LABELS[lang][key]} for key in DOMAIN_ORDER],
             "statuses": [{"value": key, "label": value} for key, value in STATUS_LABELS[lang].items()],

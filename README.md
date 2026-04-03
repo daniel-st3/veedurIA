@@ -17,12 +17,10 @@ real web frontend that can scale across all three phases.
 
 ## Quick Start
 
-### New web app + API
-
 ```bash
 cp .env.example .env
 # Python API
-pip install -r requirements-api.txt
+pip install -r requirements.txt
 uvicorn backend.main:app --reload --port 8000
 
 # Next.js frontend
@@ -31,38 +29,23 @@ npm install
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 npm run dev
 ```
 
-### Legacy Streamlit app
-
-```bash
-pip install -r requirements-phase1.txt
-streamlit run app.py
-```
-
 ## Deployment
-
-### Web + API
 
 - Deploy `web/` to Vercel
 - Deploy `backend/` to a Python host such as Render / Railway / Fly
 - Set `NEXT_PUBLIC_API_BASE_URL` in the frontend host
 
-### Legacy Streamlit deployment
-
-Point Streamlit Community Cloud to **`requirements-phase1.txt`**, not `requirements.txt`.
-
-In app settings: **Advanced settings → Python packages file → `requirements-phase1.txt`**
-
 | File | Purpose |
 |---|---|
-| `requirements-phase1.txt` | Phase 1 deps — use for Streamlit Cloud deployment |
-| `requirements-phase3.txt` | Heavy NLP deps (transformers, bertopic, spacy) — Phase 3 local only |
-| `requirements.txt` | Full list (all 3 phases) — local development only |
+| `requirements.txt` | Backend + pipeline dependencies for the active product |
+| `requirements-api.txt` | Minimal backend runtime set |
+| `requirements-phase3.txt` | Extra NLP dependencies for PromesMetro ingestion / scoring |
 
 ## Data Storage
 
-Processed Parquet files live in **Supabase Storage** (bucket: `veeduria-processed`), not
-in the git repo. GitHub tracks only: code, metadata JSONs, model validation results, and
-reference data < 1MB.
+Processed Parquet files live in **Supabase Storage** (bucket: `veeduria-processed`) and
+may also exist locally during development. GitHub tracks only code, metadata JSONs,
+model validation results, and light reference data.
 
 ## Documentation
 

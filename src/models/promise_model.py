@@ -142,22 +142,13 @@ def encode_texts(
 
 def get_cached_model():
     """
-    Return the model via st.cache_resource if Streamlit is available,
-    otherwise fall back to the module-level singleton.
+    Return the module-level singleton used by the active FastAPI + Next.js
+    runtime.
 
-    Import this in pages/3_PromesometroNLP.py instead of get_promise_model()
-    to get Streamlit-aware caching.
+    This helper name is kept for compatibility with older callers, but the
+    operational stack no longer depends on Streamlit caching.
     """
-    try:
-        import streamlit as st
-
-        @st.cache_resource(show_spinner=False)
-        def _load():
-            return get_promise_model()
-
-        return _load()
-    except ImportError:
-        return get_promise_model()
+    return get_promise_model()
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,10 @@
-import type { Lang, OverviewPayload, PromisesPayload, TablePayload } from "@/lib/types";
+import type {
+  ContractsFreshnessPayload,
+  Lang,
+  OverviewPayload,
+  PromisesPayload,
+  TablePayload,
+} from "@/lib/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
@@ -62,6 +68,16 @@ export async function fetchContractsTable(
   });
   if (!response.ok) {
     throw new Error("Failed to fetch table");
+  }
+  return response.json();
+}
+
+export async function fetchContractsFreshness(): Promise<ContractsFreshnessPayload> {
+  const response = await fetch(`${API_BASE}/contracts/freshness`, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch contracts freshness");
   }
   return response.json();
 }

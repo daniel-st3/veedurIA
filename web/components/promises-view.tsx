@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowUpRight, BookOpenText, Landmark, Radar, Search, Sparkles } from "lucide-react";
+import { BookOpenText, Landmark, Radar, Search, Sparkles } from "lucide-react";
 
 import { SiteNav } from "@/components/site-nav";
 import { fetchPromisesOverview } from "@/lib/api";
@@ -152,37 +152,36 @@ export function PromisesView({
       />
 
       <main className="page">
-        <section className="overview-card stripe-flag promise-hero">
-          <div className="promise-stage">
-            <div className="promise-stage__copy">
-              <p className="eyebrow">{copy.pageEyebrow}</p>
-              <h1 className="phase-title promise-stage__title">{copy.pageTitle}</h1>
-              <p className="section-copy promise-stage__body">{copy.pageBody}</p>
-              <div className="promise-stage__pills">
-                <span className="tiny-pill slice-chip slice-chip--active">{coverageLabel}</span>
-                <span className="tiny-pill slice-chip">{payload?.highlights.focusDomain ?? "—"}</span>
-                <span className="tiny-pill slice-chip">{payload?.highlights.focusStatus ?? "—"}</span>
-              </div>
+        <section className="overview-card stripe-flag promise-hero promise-hero--clean">
+          <div className="promise-hero__intro">
+            <p className="eyebrow">{copy.pageEyebrow}</p>
+            <h1 className="phase-title promise-stage__title">{copy.pageTitle}</h1>
+            <p className="section-copy promise-stage__body">{copy.pageBody}</p>
+            <div className="promise-stage__pills">
+              <span className="tiny-pill slice-chip slice-chip--active">{coverageLabel}</span>
+              <span className="tiny-pill slice-chip">{copy.activeRealNames}</span>
+              <span className="tiny-pill slice-chip">{payload?.highlights.focusDomain ?? "—"}</span>
+              <span className="tiny-pill slice-chip">{payload?.highlights.focusStatus ?? "—"}</span>
             </div>
-            <div className="promise-stage__visual surface-soft stripe-blue">
-              <div className="promise-stage__orb" />
-              <div className="promise-stage__stat">
-                <span className="label">{copy.highlightsPolitician}</span>
-                <strong>{payload?.highlights.focusPolitician ?? "—"}</strong>
-              </div>
-              <div className="promise-stage__stat">
-                <span className="label">{copy.highlightsDomain}</span>
-                <strong>{payload?.highlights.focusDomain ?? "—"}</strong>
-              </div>
-              <div className="promise-stage__stat">
-                <span className="label">{copy.highlightsStatus}</span>
-                <strong>{payload?.highlights.focusStatus ?? "—"}</strong>
-              </div>
-              <div className="promise-stage__meta">
-                <Radar size={18} color="var(--blue)" />
-                <span>{payload?.meta.pilotNote}</span>
-              </div>
-            </div>
+          </div>
+
+          <div className="promise-hero__top">
+            <article className="promise-hero__stat surface-soft stripe-blue">
+              <span className="label">{copy.highlightsPolitician}</span>
+              <strong>{payload?.highlights.focusPolitician ?? "—"}</strong>
+            </article>
+            <article className="promise-hero__stat surface-soft stripe-yellow">
+              <span className="label">{copy.highlightsDomain}</span>
+              <strong>{payload?.highlights.focusDomain ?? "—"}</strong>
+            </article>
+            <article className="promise-hero__stat surface-soft stripe-red">
+              <span className="label">{copy.highlightsStatus}</span>
+              <strong>{payload?.highlights.focusStatus ?? "—"}</strong>
+            </article>
+            <article className="promise-hero__stat promise-hero__stat--note surface-soft stripe-green">
+              <span className="label">{payload?.meta.lastScoredAt?.slice(0, 10) ?? "—"}</span>
+              <p className="body-copy">{payload?.meta.pilotNote}</p>
+            </article>
           </div>
 
           <div className="filter-bar page-controls promise-filters">

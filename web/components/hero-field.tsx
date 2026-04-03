@@ -6,6 +6,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 
 import { ColombiaMap } from "@/components/colombia-map";
+import type { Lang } from "@/lib/types";
 
 type SignalCard = {
   label: string;
@@ -14,6 +15,7 @@ type SignalCard = {
 };
 
 type Props = {
+  lang: Lang;
   status: string;
   title: string;
   body: string;
@@ -30,84 +32,21 @@ const HERO_DEPARTMENTS = [
   { key: "ATLANTICO", label: "Atlántico", geoName: "ATLANTICO", avgRisk: 0.55, contractCount: 8420 },
 ] as const;
 
-const METER_VALUES = [0.3, 0.48, 0.72, 0.58, 0.9, 0.66, 0.42];
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)} / 100`;
+}
 
-export function HeroField({ status, title, body, legend, graphLabel, notes, geojson }: Props) {
+export function HeroField({ lang, status, title, body, legend, graphLabel, notes, geojson }: Props) {
   const scope = useRef<HTMLDivElement | null>(null);
   const [activeDepartment, setActiveDepartment] = useState<string>(HERO_DEPARTMENTS[0].geoName);
 
   useGSAP(
-    (_context, contextSafe) => {
-      const root = scope.current;
-      if (!root) return;
-      const safe = contextSafe ?? ((fn: any) => fn);
-      const panel = root.querySelector<HTMLElement>("[data-stage]");
-      const glow = root.querySelector<HTMLElement>("[data-glow]");
-      const pointer = root.querySelector<HTMLElement>("[data-pointer]");
-      const chips = Array.from(root.querySelectorAll<HTMLElement>("[data-chip]"));
-      const meters = Array.from(root.querySelectorAll<HTMLElement>("[data-meter]"));
-
+    () => {
       gsap.fromTo(
-        root,
-        { autoAlpha: 0, y: 22, scale: 0.986 },
-        { autoAlpha: 1, y: 0, scale: 1, duration: 0.92, ease: "power3.out", delay: 0.14 },
+        ".hero-field, .hero-field__summary-card, .hero-field__phase-card, .hero-field__territory-chip",
+        { autoAlpha: 0, y: 18 },
+        { autoAlpha: 1, y: 0, duration: 0.64, stagger: 0.05, ease: "power3.out" },
       );
-
-      gsap.fromTo(
-        chips,
-        { autoAlpha: 0, y: 26 },
-        { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.08, ease: "power3.out", delay: 0.18 },
-      );
-
-      gsap.fromTo(
-        meters,
-        { scaleY: 0.16, autoAlpha: 0.25 },
-        { scaleY: 1, autoAlpha: 1, duration: 0.8, stagger: 0.05, ease: "power3.out", transformOrigin: "center bottom", delay: 0.3 },
-      );
-
-      const handleMove = safe((clientX: number, clientY: number) => {
-        const rect = root.getBoundingClientRect();
-        const x = clientX - rect.left;
-        const y = clientY - rect.top;
-        const nx = x / rect.width - 0.5;
-        const ny = y / rect.height - 0.5;
-
-        gsap.to(pointer, { autoAlpha: 1, x, y, duration: 0.22, ease: "power3.out", overwrite: true });
-        gsap.to(glow, { x: nx * 56, y: ny * 38, duration: 0.38, ease: "power3.out", overwrite: true });
-        gsap.to(panel, {
-          x: nx * 12,
-          y: ny * 14,
-          rotateY: nx * 5,
-          rotateX: ny * -5,
-          duration: 0.46,
-          ease: "power3.out",
-          overwrite: true,
-        });
-      });
-
-      const reset = safe(() => {
-        gsap.to(pointer, { autoAlpha: 0, duration: 0.22, overwrite: true });
-        gsap.to(glow, { x: 0, y: 0, duration: 0.42, ease: "power3.out", overwrite: true });
-        gsap.to(panel, { x: 0, y: 0, rotateY: 0, rotateX: 0, duration: 0.5, ease: "power3.out", overwrite: true });
-      });
-
-      const onPointerMove = (event: PointerEvent) => handleMove(event.clientX, event.clientY);
-      const onTouchMove = (event: TouchEvent) => {
-        if (!event.touches[0]) return;
-        handleMove(event.touches[0].clientX, event.touches[0].clientY);
-      };
-
-      root.addEventListener("pointermove", onPointerMove);
-      root.addEventListener("pointerleave", reset);
-      root.addEventListener("touchmove", onTouchMove, { passive: true });
-      root.addEventListener("touchend", reset, { passive: true });
-
-      return () => {
-        root.removeEventListener("pointermove", onPointerMove);
-        root.removeEventListener("pointerleave", reset);
-        root.removeEventListener("touchmove", onTouchMove);
-        root.removeEventListener("touchend", reset);
-      };
     },
     { scope },
   );
@@ -117,31 +56,77 @@ export function HeroField({ status, title, body, legend, graphLabel, notes, geoj
     [activeDepartment],
   );
 
+  const phaseCards = useMemo(
+    () => [
+      {
+        tone: "blue",
+        label: notes[0].label,
+        title: notes[0].title,
+        body:
+          lang === "es"
+            ? `${currentDepartment.label}: ${currentDepartment.contractCount.toLocaleString()} contratos visibles en la capa marcada hoy.`
+            : `${currentDepartment.label}: ${currentDepartment.contractCount.toLocaleString()} contracts visible in the active layer today.`,
+      },
+      {
+        tone: "yellow",
+        label: notes[1].label,
+        title: notes[1].title,
+        body:
+          lang === "es"
+            ? `El territorio activo cambia la lectura: contratos, promesas y luego redes se explican desde la misma base territorial.`
+            : `The active territory changes the reading: contracts, promises, and later networks are explained from the same territorial base.`,
+      },
+      {
+        tone: "red",
+        label: notes[2].label,
+        title: notes[2].title,
+        body:
+          lang === "es"
+            ? `La interacción no navega el mapa por navegarlo: actualiza el foco del producto y la señal visible.`
+            : `This interaction is not map-for-map's-sake: it updates the product focus and the visible signal.`,
+      },
+    ],
+    [currentDepartment, lang, notes],
+  );
+
   return (
     <div ref={scope} className="surface hero-field hero-field--map stripe-flag">
-      <div className="hero-field__topline">
-        <span className="hero-field__status label">{status}</span>
-        <span className="hero-field__graph label">{graphLabel}</span>
+      <div className="hero-field__intro">
+        <div>
+          <div className="hero-field__topline">
+            <span className="hero-field__status label">{status}</span>
+            <span className="hero-field__graph label">{graphLabel}</span>
+          </div>
+          <h2>{title}</h2>
+          <p className="body-copy">{body}</p>
+        </div>
+        <div className="hero-field__legend">
+          <span className="label hero-field__legend-item">
+            <span className="status-dot" style={{ background: "var(--yellow)" }} /> {legend[0]}
+          </span>
+          <span className="label hero-field__legend-item">
+            <span className="status-dot" style={{ background: "var(--blue)" }} /> {legend[1]}
+          </span>
+          <span className="label hero-field__legend-item">
+            <span className="status-dot" style={{ background: "var(--red)" }} /> {legend[2]}
+          </span>
+        </div>
       </div>
 
-      <div className="hero-field__ambient" data-glow />
-      <div className="hero-field__pointer" data-pointer />
-
-      <div className="hero-field__stack">
-        <div className="hero-field__canvas" data-stage>
-          <div className="hero-field__canvas-head" data-chip>
+      <div className="hero-field__canvas">
+        <div className="hero-field__map-panel surface-soft">
+          <div className="hero-field__map-copy">
             <div>
-              <div className="label" style={{ marginBottom: "0.35rem" }}>{notes[0].label}</div>
-              <h3>{currentDepartment.label}</h3>
-              <p className="body-copy hero-field__canvas-subline">{notes[0].body}</p>
+              <div className="label">{lang === "es" ? "Foco territorial" : "Territorial focus"}</div>
+              <strong>{currentDepartment.label}</strong>
             </div>
-            <div className="hero-field__canvas-pills">
-              <span className="tiny-pill">{`${Math.round(currentDepartment.avgRisk * 100)} ${legend[2]}`}</span>
-              <span className="tiny-pill">{currentDepartment.contractCount.toLocaleString()}</span>
+            <div className="tiny-pill">
+              {lang === "es"
+                ? `${currentDepartment.contractCount.toLocaleString()} contratos`
+                : `${currentDepartment.contractCount.toLocaleString()} contracts`}
             </div>
           </div>
-
-          <div className="hero-field__map-stage">
+          <div className="hero-field__map-shell">
             {geojson ? (
               <ColombiaMap
                 geojson={geojson}
@@ -158,59 +143,45 @@ export function HeroField({ status, title, body, legend, graphLabel, notes, geoj
               </div>
             )}
           </div>
-
-          <div className="hero-field__canvas-foot" data-chip>
-            <div className="hero-field__canvas-copy">
-              <div className="label" style={{ marginBottom: "0.35rem" }}>{title}</div>
-              <p className="body-copy">{body}</p>
-            </div>
-            <div className="hero-field__signal surface-soft">
-              <div className="label" style={{ marginBottom: "0.55rem" }}>{graphLabel}</div>
-              <div className="hero-field__bars">
-                {METER_VALUES.map((value, index) => (
-                  <span key={`${value}-${index}`} className="hero-field__bar-wrap">
-                    <span
-                      data-meter
-                      className={`hero-field__bar hero-field__bar--${index % 3 === 0 ? "yellow" : index % 3 === 1 ? "blue" : "red"}`}
-                      style={{ height: `${Math.round(value * 100)}%` }}
-                    />
-                  </span>
-                ))}
-              </div>
-              <div className="hero-field__signal-meta">
-                <span className="tiny-pill">{legend[0]}</span>
-                <span className="tiny-pill">{legend[1]}</span>
-                <span className="tiny-pill">{legend[2]}</span>
-              </div>
-            </div>
+          <div className="hero-field__map-foot">
+            <article className="hero-field__summary-card">
+              <span className="label">{lang === "es" ? "Señal media" : "Mean signal"}</span>
+              <strong>{formatPercent(currentDepartment.avgRisk)}</strong>
+            </article>
+            <article className="hero-field__summary-card">
+              <span className="label">{lang === "es" ? "Lectura sugerida" : "Suggested reading"}</span>
+              <strong>{currentDepartment.avgRisk >= 0.7 ? "ContratoLimpio" : "PromesMetro"}</strong>
+            </article>
+            <article className="hero-field__summary-card">
+              <span className="label">{lang === "es" ? "Interacción" : "Interaction"}</span>
+              <strong>{lang === "es" ? "Pulsa un territorio" : "Tap a territory"}</strong>
+            </article>
           </div>
         </div>
 
-        <div className="hero-field__dock" data-chip>
-          {notes.slice(1).map((note, index) => (
-            <article
-              key={note.title}
-              className={`hero-field__dock-card surface-soft stripe-${index === 0 ? "blue" : index === 1 ? "yellow" : "red"}`}
-            >
-              <div className="label" style={{ marginBottom: "0.4rem" }}>{note.label}</div>
-              <h3>{note.title}</h3>
-              <p className="body-copy">{note.body}</p>
-            </article>
-          ))}
-          <div className="hero-field__legend-shell">
-            <div className="label" style={{ marginBottom: "0.35rem" }}>{status}</div>
-            <div className="body-copy" style={{ fontSize: "0.82rem", marginBottom: "0.55rem" }}>{body}</div>
-            <div className="hero-field__legend">
-              <span className="label hero-field__legend-item">
-                <span className="status-dot" style={{ background: "var(--yellow)" }} /> {legend[0]}
-              </span>
-              <span className="label hero-field__legend-item">
-                <span className="status-dot" style={{ background: "var(--blue)" }} /> {legend[1]}
-              </span>
-              <span className="label hero-field__legend-item">
-                <span className="status-dot" style={{ background: "var(--red)" }} /> {legend[2]}
-              </span>
-            </div>
+        <div className="hero-field__rail">
+          <div className="hero-field__quick">
+            {HERO_DEPARTMENTS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`hero-field__territory-chip territory-chip ${item.geoName === activeDepartment ? "territory-chip--active" : ""}`}
+                onClick={() => setActiveDepartment(item.geoName)}
+              >
+                <span>{item.label}</span>
+                <span className="territory-chip__meter" style={{ width: `${Math.max(20, item.avgRisk * 100)}%` }} />
+              </button>
+            ))}
+          </div>
+
+          <div className="hero-field__phases">
+            {phaseCards.map((item) => (
+              <article key={item.title} className={`hero-field__phase-card surface-soft stripe-${item.tone}`}>
+                <div className="label">{item.label}</div>
+                <h3>{item.title}</h3>
+                <p className="body-copy">{item.body}</p>
+              </article>
+            ))}
           </div>
         </div>
       </div>

@@ -1,13 +1,129 @@
 [
   {
-    "politician_id": "pres_placeholder_2026",
-    "name": "Candidato Presidencial Ejemplo",
-    "name_norm": "CANDIDATO PRESIDENCIAL EJEMPLO",
-    "chamber": "presidente",
-    "party": "Partido Ejemplo",
-    "programa_url": "",
+    "politician_id": "pres_ivan_cepeda_2026",
+    "name": "Iván Cepeda",
+    "chamber": "Presidencia 2026",
+    "party": "Pacto Histórico",
+    "formula_name": "Aída Quilcué",
     "election_year": 2026,
-    "active": false,
-    "_note": "Placeholder entry. Populate with real candidates once registered at Registraduria (deadline Jan 31, 2026)."
+    "active": true,
+    "source_note": "Nombres alineados con la lista de fórmulas inscritas reportada tras el cierre oficial de inscripciones de marzo de 2026."
+  },
+  {
+    "politician_id": "pres_paloma_valencia_2026",
+    "name": "Paloma Valencia",
+    "chamber": "Presidencia 2026",
+    "party": "Centro Democrático",
+    "formula_name": "Juan Daniel Oviedo",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_claudia_lopez_2026",
+    "name": "Claudia López",
+    "chamber": "Presidencia 2026",
+    "party": "Consulta de las Soluciones",
+    "formula_name": "Leonardo Huerta",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_roy_barreras_2026",
+    "name": "Roy Barreras",
+    "chamber": "Presidencia 2026",
+    "party": "Frente por la Vida",
+    "formula_name": "Martha Lucía Zamora",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_abelardo_de_la_espriella_2026",
+    "name": "Abelardo de la Espriella",
+    "chamber": "Presidencia 2026",
+    "party": "Por firmas",
+    "formula_name": "José Manuel Restrepo",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_sondra_macollins_2026",
+    "name": "Sondra Macollins",
+    "chamber": "Presidencia 2026",
+    "party": "Por firmas",
+    "formula_name": "Leonardo Karam Helo",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_luis_gilberto_murillo_2026",
+    "name": "Luis Gilberto Murillo",
+    "chamber": "Presidencia 2026",
+    "party": "Por firmas",
+    "formula_name": "Luz María Zapata",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_mauricio_lizcano_2026",
+    "name": "Mauricio Lizcano",
+    "chamber": "Presidencia 2026",
+    "party": "Por firmas",
+    "formula_name": "Luis Carlos Reyes",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_sergio_fajardo_2026",
+    "name": "Sergio Fajardo",
+    "chamber": "Presidencia 2026",
+    "party": "Centro",
+    "formula_name": "Edna Bonilla",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_clara_lopez_2026",
+    "name": "Clara López",
+    "chamber": "Presidencia 2026",
+    "party": "Coalición progresista",
+    "formula_name": "María Consuelo del Río",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_miguel_uribe_londono_2026",
+    "name": "Miguel Uribe Londoño",
+    "chamber": "Presidencia 2026",
+    "party": "Coalición liberal-conservadora",
+    "formula_name": "Luisa Fernanda Villegas",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_santiago_botero_2026",
+    "name": "Santiago Botero",
+    "chamber": "Presidencia 2026",
+    "party": "Movimiento ciudadano",
+    "formula_name": "Carlos Fernando Cuevas",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_carlos_caicedo_2026",
+    "name": "Carlos Caicedo",
+    "chamber": "Presidencia 2026",
+    "party": "Fuerza territorial",
+    "formula_name": "Nelson Alarcón",
+    "election_year": 2026,
+    "active": true
+  },
+  {
+    "politician_id": "pres_gustavo_matamoros_2026",
+    "name": "Gustavo Matamoros",
+    "chamber": "Presidencia 2026",
+    "party": "Movimiento de seguridad democrática",
+    "formula_name": "Robinson Giraldo",
+    "election_year": 2026,
+    "active": true
   }
 ]

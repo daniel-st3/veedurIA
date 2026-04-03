@@ -18,9 +18,11 @@ from typing import Any
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+from sodapy import Socrata
 
 from src.models.isolation_forest import RED_THRESHOLD, YELLOW_THRESHOLD
 from src.models.shap_explainer import FEATURE_LABELS
+from src.utils.config import get_socrata_app_token
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_PROCESSED = PROJECT_ROOT / "data" / "processed"
@@ -30,6 +32,8 @@ LAST_RUN_PATH = DATA_PROCESSED / "last_run.json"
 MODEL_META_DIR = DATA_PROCESSED / "models"
 
 PREVIEW_SIZE = 50_000
+SOCRATA_DOMAIN = "www.datos.gov.co"
+SOCRATA_CONTRACTS_DATASET = "jbjy-vk9h"
 
 SECOP_TO_GEOJSON: dict[str, str] = {
     "BOGOTA": "SANTAFE DE BOGOTA D.C",
@@ -191,6 +195,10 @@ def _extract_url(raw: Any) -> str:
     return ""
 
 
+def _extract_live_contract_url(row: dict[str, Any]) -> str:
+    return _extract_url(row.get("urlproceso"))
+
+
 def _iso_date(raw: Any) -> str:
     dt = pd.to_datetime(raw, errors="coerce", utc=True)
     if pd.isna(dt):
@@ -203,6 +211,58 @@ def _safe_ts(raw: Any) -> pd.Timestamp:
     if pd.isna(dt):
         return pd.Timestamp("1970-01-01", tz="UTC")
     return dt
+
+
+@lru_cache(maxsize=1)
+def load_live_source_snapshot() -> dict[str, Any]:
+    try:
+        client = Socrata(SOCRATA_DOMAIN, get_socrata_app_token(), timeout=120)
+    except Exception:
+        return {"latestDate": None, "rowsAtSource": None, "contracts": []}
+
+    try:
+        max_rows = client.get(
+            SOCRATA_CONTRACTS_DATASET,
+            select="max(fecha_de_firma) as max_fecha, count(*) as total",
+            where="fecha_de_firma is not null",
+            limit=1,
+        )
+        latest_date = max_rows[0].get("max_fecha") if max_rows else None
+        rows_at_source = int(max_rows[0].get("total", 0)) if max_rows else None
+        latest_contracts: list[dict[str, Any]] = []
+        if latest_date:
+            raw_rows = client.get(
+                SOCRATA_CONTRACTS_DATASET,
+                select="fecha_de_firma,id_contrato,nombre_entidad,valor_del_contrato,departamento,urlproceso",
+                where=f"fecha_de_firma = '{latest_date}'",
+                order="id_contrato ASC",
+                limit=5,
+            )
+            for row in raw_rows:
+                value = _parse_cop(row.get("valor_del_contrato"))
+                latest_contracts.append(
+                    {
+                        "id": str(row.get("id_contrato") or ""),
+                        "entity": str(row.get("nombre_entidad") or ""),
+                        "department": str(row.get("departamento") or ""),
+                        "date": _iso_date(row.get("fecha_de_firma")),
+                        "value": value,
+                        "valueLabel": _format_cop(value, "es"),
+                        "secopUrl": _extract_live_contract_url(row),
+                    }
+                )
+        return {
+            "latestDate": _iso_date(latest_date),
+            "rowsAtSource": rows_at_source,
+            "contracts": latest_contracts,
+        }
+    except Exception:
+        return {"latestDate": None, "rowsAtSource": None, "contracts": []}
+    finally:
+        try:
+            client.close()
+        except Exception:
+            pass
 
 
 def _resolve_columns(schema: set[str]) -> list[str]:
@@ -264,11 +324,24 @@ def load_contracts(full: bool) -> pd.DataFrame:
     path = _resolve_parquet_path()
     schema = _schema_names(path)
     columns = _resolve_columns(schema)
+    df = pd.read_parquet(path, columns=columns)
+    frame = _normalize_frame(df)
     if full:
-        df = pd.read_parquet(path, columns=columns)
-    else:
-        df = _read_tail(path, columns, PREVIEW_SIZE)
-    return _normalize_frame(df)
+        return frame
+    return frame.sort_values(["fecha_ts", "risk_score", "valor_num"], ascending=[False, False, False]).head(PREVIEW_SIZE).reset_index(drop=True)
+
+
+@lru_cache(maxsize=1)
+def get_scored_latest_contract_date() -> str | None:
+    path = _resolve_parquet_path()
+    schema = _schema_names(path)
+    if "fecha_firma" not in schema:
+        return None
+    df = pd.read_parquet(path, columns=["fecha_firma"])
+    series = pd.to_datetime(df["fecha_firma"], errors="coerce", utc=True)
+    if series.notna().sum() == 0:
+        return None
+    return series.max().strftime("%Y-%m-%d")
 
 
 @lru_cache(maxsize=1)
@@ -538,7 +611,11 @@ def _options(df: pd.DataFrame) -> dict[str, list[dict[str, str]]]:
 def _freshness() -> dict[str, Any]:
     data = load_last_run()
     last_run_ts = data.get("last_run_ts")
-    return {"lastRunTs": last_run_ts}
+    return {
+        "lastRunTs": last_run_ts,
+        "sourceLatestContractDate": None,
+        "sourceRows": None,
+    }
 
 
 def get_overview_payload(
@@ -572,7 +649,8 @@ def get_overview_payload(
             "totalRows": get_total_row_count(),
             "shownRows": int(len(df_all)),
             "previewRows": PREVIEW_SIZE,
-            "latestContractDate": df_context["fecha_label"].max() if not df_context.empty else None,
+            "latestContractDate": get_scored_latest_contract_date(),
+            "sourceFreshnessGapDays": None,
             "dateRange": {
                 "from": date_from,
                 "to": date_to,
@@ -598,6 +676,29 @@ def get_overview_payload(
             "redThreshold": meta.get("red_threshold", RED_THRESHOLD),
             "yellowThreshold": meta.get("yellow_threshold", YELLOW_THRESHOLD),
         },
+        "liveFeed": {
+            "latestDate": None,
+            "rowsAtSource": None,
+            "contracts": [],
+        },
+    }
+
+
+def get_freshness_payload() -> dict[str, Any]:
+    scored_latest = get_scored_latest_contract_date()
+    live_source = load_live_source_snapshot()
+    gap_days = None
+    if scored_latest and live_source.get("latestDate"):
+        scored_ts = pd.to_datetime(scored_latest, errors="coerce", utc=True)
+        source_ts = pd.to_datetime(live_source["latestDate"], errors="coerce", utc=True)
+        if pd.notna(scored_ts) and pd.notna(source_ts):
+            gap_days = max(0, int((source_ts - scored_ts).days))
+    return {
+        "latestContractDate": scored_latest,
+        "sourceLatestContractDate": live_source.get("latestDate"),
+        "sourceFreshnessGapDays": gap_days,
+        "sourceRows": live_source.get("rowsAtSource"),
+        "liveFeed": live_source,
     }
 
 

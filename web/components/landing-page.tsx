@@ -321,6 +321,11 @@ export function LandingPage({
             <div className="hero-data-pill hero-data-pill--centered">
               <span className="label">{copy.heroDataLabel}</span>
               <strong>{freshness?.latestContractDate ?? loadingLabel}</strong>
+              {freshness?.sourceLatestContractDate ? (
+                <span className="body-copy" style={{ fontSize: "0.8rem" }}>
+                  {`SECOP ${freshness.sourceLatestContractDate}`}
+                </span>
+              ) : null}
             </div>
             <div className="hero-cta hero-cta--centered" style={{ display: "flex", gap: "0.8rem", flexWrap: "wrap" }}>
               <Link href={`/contrato-limpio?lang=${lang}`} className="btn-primary btn-primary--hero">
@@ -354,6 +359,7 @@ export function LandingPage({
             </div>
           </div>
           <HeroField
+            lang={lang}
             status={copy.heroPlay}
             title={copy.heroPlay}
             body={copy.heroPlayBody}
