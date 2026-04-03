@@ -1337,6 +1337,16 @@ select:focus {
   gap: 0.8rem;
 }
 
+.dashboard-context > *,
+.reading-deck__intro,
+.reading-deck__aside,
+.map-brief__summary,
+.map-brief__rail,
+.focus-card__summary-grid > *,
+.focus-card__analysis > * {
+  min-width: 0;
+}
+
 .dashboard-context__note,
 .dashboard-context__meter {
   position: relative;
@@ -1429,13 +1439,17 @@ select:focus {
 
 .map-panel,
 .side-panel {
-  min-height: 100%;
+  min-height: 0;
+  align-self: start;
 }
 
 .map-panel {
   background:
     radial-gradient(circle at 84% 10%, rgba(13,91,215,0.09), transparent 24%),
     linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.62));
+  display: grid;
+  gap: 0.72rem;
+  align-content: start;
 }
 
 .side-panel {
@@ -1463,7 +1477,7 @@ select:focus {
 
 .map-shell {
   position: relative;
-  min-height: 420px;
+  min-height: 360px;
   border-radius: calc(var(--radius-lg) - 4px);
   background: linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0.38));
   border: 1px solid rgba(23,32,51,0.05);
@@ -1472,10 +1486,10 @@ select:focus {
 
 .map-brief {
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(280px, 1.08fr);
-  gap: 0.9rem;
-  margin-top: 0.8rem;
-  padding: 0.9rem 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  margin-top: 0;
+  padding: 0.85rem 0.95rem;
   border-radius: calc(var(--radius-lg) - 6px);
 }
 
@@ -1509,6 +1523,7 @@ select:focus {
 .map-brief__rail {
   display: grid;
   align-content: start;
+  padding-top: 0.1rem;
 }
 
 .map-legend {
@@ -1551,6 +1566,7 @@ select:focus {
   cursor: pointer;
   overflow: hidden;
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  min-width: 0;
 }
 
 .territory-chip:hover,
@@ -1659,6 +1675,7 @@ select:focus {
   font-size: 0.98rem;
   line-height: 1.15;
   letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
 }
 
 .focus-card__intro {
@@ -1679,6 +1696,7 @@ select:focus {
   font-size: 1.08rem;
   line-height: 1.15;
   letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
 }
 
 .focus-card__factor-lead {
@@ -1729,6 +1747,7 @@ select:focus {
   letter-spacing: -0.04em;
   font-weight: 700;
   margin-bottom: 0.22rem;
+  overflow-wrap: anywhere;
 }
 
 .case-card__meta {
@@ -1877,6 +1896,26 @@ select:focus {
   font-size: 1.08rem;
   line-height: 1.1;
   letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+.metric-shell,
+.summary-card,
+.case-card,
+.focus-card,
+.hero-field__dock-card,
+.map-brief__stat strong,
+.reading-deck__fact strong,
+.body-copy,
+.section-copy {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tiny-pill {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
 }
 
 .explorer-card__metrics {
