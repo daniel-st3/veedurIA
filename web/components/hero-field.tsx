@@ -144,13 +144,17 @@ export function HeroField({ status, title, body, legend, graphLabel, notes, geoj
               <div className="hero-map-skeleton__outline" />
             </div>
           )}
-          <div className="hero-field__map-badge surface-soft">
-            <span className="label">{notes[0].label}</span>
-            <strong>{currentDepartment.label}</strong>
-          </div>
         </div>
 
         <div className="hero-field__sidebar">
+          <div className="hero-field__territory surface-soft" data-chip>
+            <div className="label" style={{ marginBottom: "0.45rem" }}>
+              {notes[0].label}
+            </div>
+            <strong>{currentDepartment.label}</strong>
+            <span className="hero-field__territory-meta">{`${currentDepartment.contractCount.toLocaleString()} ${graphLabel}`}</span>
+          </div>
+
           <div className="hero-field__panel surface-soft" data-chip>
             <div className="label" style={{ marginBottom: "0.45rem" }}>
               {notes[1].label}

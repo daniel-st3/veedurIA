@@ -131,6 +131,10 @@ select:focus {
   flex-wrap: wrap;
 }
 
+.nav-actions {
+  gap: 1.1rem;
+}
+
 .nav-links a {
   font-size: 0.88rem;
   font-weight: 600;
@@ -160,12 +164,13 @@ select:focus {
   align-items: center;
   gap: 0.6rem;
   padding: 0.95rem 1.28rem;
-  color: #fff;
-  background: linear-gradient(135deg, var(--blue), var(--blue-2));
+  color: var(--blue);
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(13, 91, 215, 0.14);
   border-radius: 999px;
   font-weight: 700;
-  box-shadow: 0 16px 34px rgba(13, 91, 215, 0.2);
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  box-shadow: 0 12px 24px rgba(20, 30, 50, 0.08);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, border-color 0.22s ease;
   position: relative;
   overflow: hidden;
 }
@@ -173,7 +178,9 @@ select:focus {
 .nav-cta:hover,
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 20px 38px rgba(13, 91, 215, 0.24);
+  box-shadow: 0 18px 32px rgba(20, 30, 50, 0.11);
+  border-color: rgba(13, 91, 215, 0.24);
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .nav-cta::after,
@@ -181,7 +188,7 @@ select:focus {
   content: "→";
   font-family: "JetBrains Mono", monospace;
   font-size: 0.82rem;
-  opacity: 0.82;
+  opacity: 0.62;
 }
 
 .btn-secondary {
@@ -211,42 +218,47 @@ select:focus {
 
 .language-switch {
   display: inline-flex;
-  gap: 0.28rem;
-  padding: 0.24rem;
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0 0.1rem;
+  border-bottom: 1px solid rgba(23, 32, 51, 0.12);
 }
 
 .language-switch a {
-  min-width: 98px;
-  min-height: 40px;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
   font-family: "JetBrains Mono", monospace;
-  font-size: 0.68rem;
+  font-size: 0.74rem;
   color: var(--text-m);
-  gap: 0.45rem;
-  padding: 0.5rem 0.78rem;
-  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  padding: 0.58rem 0;
+  transition: color 0.18s ease, transform 0.18s ease;
 }
 
 .language-switch a.active {
-  background: rgba(13, 91, 215, 0.1);
   color: var(--blue);
   transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(13, 91, 215, 0.08);
+}
+
+.language-switch a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.18s ease;
+}
+
+.language-switch a.active::after {
+  background: linear-gradient(90deg, var(--yellow), var(--blue));
 }
 
 .language-switch__code {
   font-weight: 700;
   letter-spacing: 0.08em;
-}
-
-.language-switch__label {
-  font-family: "Inter", sans-serif;
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0;
 }
 
 .page {
@@ -622,6 +634,26 @@ select:focus {
   align-content: flex-start;
 }
 
+.hero-field__territory {
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.9rem 1rem;
+}
+
+.hero-field__territory strong {
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  letter-spacing: -0.04em;
+}
+
+.hero-field__territory-meta {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-m);
+}
+
 .hero-field__panel {
   padding: 0.95rem 1rem;
 }
@@ -724,23 +756,6 @@ select:focus {
   position: relative;
   padding: 0.95rem 1rem;
   backdrop-filter: blur(10px);
-}
-
-.hero-field__map-badge {
-  position: absolute;
-  left: 0.8rem;
-  top: 0.8rem;
-  display: grid;
-  gap: 0.2rem;
-  padding: 0.75rem 0.85rem;
-  min-width: 148px;
-  z-index: 3;
-}
-
-.hero-field__map-badge strong {
-  font-family: "Sora", sans-serif;
-  font-size: 0.96rem;
-  line-height: 1;
 }
 
 .hero-field__bars {
@@ -1768,14 +1783,14 @@ select:focus {
   }
 
   .site-nav__meta,
-  .language-switch__label {
+  .site-nav__meta {
     display: none;
   }
 
   .language-switch a {
-    min-width: 44px;
-    padding-left: 0.72rem;
-    padding-right: 0.72rem;
+    min-width: 0;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .territory-rail {

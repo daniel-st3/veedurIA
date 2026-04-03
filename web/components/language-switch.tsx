@@ -19,11 +19,9 @@ export function LanguageSwitch({ lang }: { lang: Lang }) {
     <div className="language-switch" aria-label="language switch">
       <Link href={hrefFor("es")} className={lang === "es" ? "active" : ""}>
         <span className="language-switch__code">ES</span>
-        <span className="language-switch__label">Español</span>
       </Link>
       <Link href={hrefFor("en")} className={lang === "en" ? "active" : ""}>
         <span className="language-switch__code">EN</span>
-        <span className="language-switch__label">English</span>
       </Link>
     </div>
   );
