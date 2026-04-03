@@ -112,7 +112,7 @@ export function LandingPage({
 
         heroTl
           .fromTo(".hero-pill, .hero-line > span", { autoAlpha: 0, y: 36 }, { autoAlpha: 1, y: 0, stagger: 0.07, duration: 0.72 })
-          .fromTo(".hero-body, .hero-chip, .hero-cta, .scroll-cue", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, stagger: 0.08, duration: 0.6 }, "-=0.36");
+          .fromTo(".hero-body, .hero-protocol__item, .hero-data-pill, .hero-cta, .scroll-cue", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, stagger: 0.08, duration: 0.6 }, "-=0.36");
 
         gsap.to(".hero-field", {
           yPercent: 6,
@@ -249,19 +249,23 @@ export function LandingPage({
             <div className="hero-body">
               <p>{copy.heroBody}</p>
             </div>
-            <div className="hero-meta" style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", margin: "1rem 0 0.85rem" }}>
-              <span className="chip hero-chip hero-chip--blue" style={{ padding: "0.65rem 0.9rem" }}>
-                <strong>IF</strong>&nbsp;{copy.heroPointA}
-              </span>
-              <span className="chip hero-chip hero-chip--yellow" style={{ padding: "0.65rem 0.9rem" }}>
-                <strong>SHAP</strong>&nbsp;{copy.heroPointB}
-              </span>
-              <span className="chip hero-chip hero-chip--red" style={{ padding: "0.65rem 0.9rem" }}>
-                <strong>SECOP</strong>&nbsp;{copy.heroPointC}
-              </span>
-              <span className="chip hero-chip" style={{ padding: "0.65rem 0.9rem", color: "var(--text-2)" }}>
-                <strong>DATA</strong>&nbsp;{freshness?.latestContractDate ?? loadingLabel}
-              </span>
+            <div className="hero-protocol">
+              <div className="hero-protocol__item">
+                <span className="hero-protocol__index">01</span>
+                <span>{copy.heroProtocolA}</span>
+              </div>
+              <div className="hero-protocol__item">
+                <span className="hero-protocol__index">02</span>
+                <span>{copy.heroProtocolB}</span>
+              </div>
+              <div className="hero-protocol__item">
+                <span className="hero-protocol__index">03</span>
+                <span>{copy.heroProtocolC}</span>
+              </div>
+            </div>
+            <div className="hero-data-pill">
+              <span className="label">{copy.heroDataLabel}</span>
+              <strong>{freshness?.latestContractDate ?? loadingLabel}</strong>
             </div>
             <div className="hero-track">
               <div className="hero-track__line hero-track__line--yellow" />
