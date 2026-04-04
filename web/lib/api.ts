@@ -6,6 +6,7 @@ import type {
   TablePayload,
 } from "@/lib/types";
 import { getMockFreshness, getMockOverview, getMockPromises, getMockTable } from "@/lib/mock-data";
+import { formatCompactCop } from "@/lib/format";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 const OFFICIAL_CONTRACTS_SUMMARY =
@@ -78,24 +79,6 @@ function buildQuery(params: Record<string, string | number | boolean | undefined
   return search.toString();
 }
 
-function formatOfficialCurrency(value: number, lang: Lang) {
-  if (!Number.isFinite(value) || value <= 0) return lang === "es" ? "Sin dato" : "No data";
-  if (value >= 1_000_000_000_000) {
-    return lang === "es" ? `$${(value / 1_000_000_000_000).toFixed(1)} billones COP` : `$${(value / 1_000_000_000_000).toFixed(1)}T COP`;
-  }
-  if (value >= 1_000_000_000) {
-    return lang === "es" ? `$${(value / 1_000_000_000).toFixed(1)} mil millones COP` : `$${(value / 1_000_000_000).toFixed(1)}B COP`;
-  }
-  if (value >= 1_000_000) {
-    return lang === "es" ? `$${(value / 1_000_000).toFixed(1)} millones COP` : `$${(value / 1_000_000).toFixed(1)}M COP`;
-  }
-  return new Intl.NumberFormat(lang === "es" ? "es-CO" : "en-US", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 function parseOfficialCurrency(raw: unknown) {
   if (typeof raw === "number") return raw;
   if (typeof raw !== "string") return 0;
@@ -133,7 +116,7 @@ async function fetchOfficialContractsFallback(lang: Lang) {
           department: String(row.departamento ?? ""),
           date: String(row.fecha_de_firma ?? "").slice(0, 10),
           value,
-          valueLabel: formatOfficialCurrency(value, lang),
+          valueLabel: formatCompactCop(value, lang),
           secopUrl:
             typeof row.urlproceso === "string"
               ? row.urlproceso
