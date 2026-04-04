@@ -17,11 +17,15 @@ import { fetchPromisesOverview } from "@/lib/api";
 import { promisesCopy } from "@/lib/copy";
 import type { Lang, PromiseCard, PromisesPayload } from "@/lib/types";
 
+type CoveragePeriod = 2018 | 2022 | 2026;
+type ChamberKey = "all" | "executive" | "senate" | "house";
+
 type ReferenceCard = {
   id: string;
   name: string;
   role: string;
   period: string;
+  chamber: Exclude<ChamberKey, "all">;
   party: string;
   promiseQuote: string;
   outcomeQuote: string;
@@ -50,6 +54,12 @@ const PARTY_COLORS: Record<string, string> = {
   espriella_2026: "#ff7b7b",
 };
 
+const CYCLE_OPTIONS: Array<{ value: CoveragePeriod; labelEs: string; labelEn: string }> = [
+  { value: 2022, labelEs: "2022-2026", labelEn: "2022-2026" },
+  { value: 2018, labelEs: "2018-2022", labelEn: "2018-2022" },
+  { value: 2026, labelEs: "2026", labelEn: "2026" },
+];
+
 const WIKIPEDIA_PAGES: Record<string, string> = {
   "gustavo-petro": "Gustavo_Petro",
   "francia-marquez": "Francia_M%C3%A1rquez",
@@ -74,6 +84,7 @@ const HISTORICAL_REFERENCES: ReferenceCard[] = [
     name: "Iván Duque",
     role: "Presidencia",
     period: "2018-2022",
+    chamber: "executive",
     party: "Centro Democrático",
     promiseQuote: "“Legalidad, emprendimiento y equidad” como marco para crecimiento, seguridad y reactivación.",
     outcomeQuote: "El ciclo cerró con un PND ejecutado, pero con rezagos visibles en implementación territorial y conflictividad social alta.",
@@ -88,6 +99,7 @@ const HISTORICAL_REFERENCES: ReferenceCard[] = [
     name: "Gustavo Petro",
     role: "Presidencia",
     period: "2018-2022",
+    chamber: "executive",
     party: "Colombia Humana",
     promiseQuote: "“Transición energética y cambio del modelo productivo” como eje de campaña presidencial.",
     outcomeQuote: "La promesa quedó en fase programática y se volvió útil como antecedente para comparar con el gobierno iniciado en 2022.",
@@ -102,6 +114,7 @@ const HISTORICAL_REFERENCES: ReferenceCard[] = [
     name: "Sergio Fajardo",
     role: "Presidencia",
     period: "2018-2022",
+    chamber: "executive",
     party: "Centro",
     promiseQuote: "“Educación primero” y gestión pública con foco técnico y territorial.",
     outcomeQuote: "Quedó como referencia programática y permite contrastar cómo envejecen las promesas cuando no pasan a gobierno.",
@@ -111,6 +124,66 @@ const HISTORICAL_REFERENCES: ReferenceCard[] = [
     outcomeUrl: "https://sergiofajardo.co/",
     note: "Es útil para leer promesas no ejecutadas, promesas retomadas por otros actores y continuidad temática en 2022.",
   },
+  {
+    id: "angelica_lozano_2018",
+    name: "Angélica Lozano",
+    role: "Senado",
+    period: "2018-2022",
+    chamber: "senate",
+    party: "Alianza Verde",
+    promiseQuote: "“Agenda anticorrupción, transparencia y reforma política con control ciudadano.”",
+    outcomeQuote: "Su huella pública del ciclo quedó asociada a debates, agenda anticorrupción y defensa de reformas institucionales visibles en Senado.",
+    sourceLabel: "Perfil legislativo 2018",
+    sourceUrl: "https://www.senado.gov.co/",
+    outcomeLabel: "Actividad legislativa visible",
+    outcomeUrl: "https://www.senado.gov.co/",
+    note: "Sirve para contrastar promesa legislativa con ponencias, debates y agenda pública sostenida durante el cuatrienio.",
+  },
+  {
+    id: "gustavo_bolivar_2018",
+    name: "Gustavo Bolívar",
+    role: "Senado",
+    period: "2018-2022",
+    chamber: "senate",
+    party: "Lista de la Decencia",
+    promiseQuote: "“Oposición, control político y visibilidad del gasto público desde el Senado.”",
+    outcomeQuote: "El periodo dejó rastro claro en debates de oposición y denuncias públicas, más que en legislación aprobada propia.",
+    sourceLabel: "Perfil legislativo 2018",
+    sourceUrl: "https://www.senado.gov.co/",
+    outcomeLabel: "Actividad legislativa visible",
+    outcomeUrl: "https://www.senado.gov.co/",
+    note: "Ayuda a leer cómo se mide coherencia cuando el peso principal está en control político y no en ejecución gubernamental.",
+  },
+  {
+    id: "juanita_goebertus_2018",
+    name: "Juanita Goebertus",
+    role: "Cámara",
+    period: "2018-2022",
+    chamber: "house",
+    party: "Alianza Verde",
+    promiseQuote: "“Defensa del Acuerdo de Paz, reformas institucionales y seguimiento a derechos humanos.”",
+    outcomeQuote: "El registro visible del periodo concentra debates, proyectos y monitoreo legislativo sobre paz, protesta y seguridad.",
+    sourceLabel: "Cámara de Representantes",
+    sourceUrl: "https://www.camara.gov.co/",
+    outcomeLabel: "Actividad legislativa visible",
+    outcomeUrl: "https://www.camara.gov.co/",
+    note: "Es una referencia útil para comparar agenda programática y trabajo de control desde la Cámara.",
+  },
+  {
+    id: "katherine_miranda_2018",
+    name: "Katherine Miranda",
+    role: "Cámara",
+    period: "2018-2022",
+    chamber: "house",
+    party: "Alianza Verde",
+    promiseQuote: "“Fiscalización al gasto, control político y trazabilidad sobre contratación pública.”",
+    outcomeQuote: "El ciclo dejó una huella pública más fuerte en debates de vigilancia y exposición de casos que en leyes cerradas.",
+    sourceLabel: "Cámara de Representantes",
+    sourceUrl: "https://www.camara.gov.co/",
+    outcomeLabel: "Actividad legislativa visible",
+    outcomeUrl: "https://www.camara.gov.co/",
+    note: "Permite ver cómo envejecen promesas legislativas de vigilancia cuando el resultado principal es visibilización y presión pública.",
+  },
 ];
 
 const LEGISLATIVE_SPOTLIGHTS: ReferenceCard[] = [
@@ -119,6 +192,7 @@ const LEGISLATIVE_SPOTLIGHTS: ReferenceCard[] = [
     name: "Katherine Miranda",
     role: "Cámara",
     period: "2022-2026",
+    chamber: "house",
     party: "Alianza Verde",
     promiseQuote: "“Más transparencia contractual y mejor control político sobre compras públicas.”",
     outcomeQuote: "Su actividad pública visible se concentra en debates de control y proyectos sobre trazabilidad contractual.",
@@ -133,6 +207,7 @@ const LEGISLATIVE_SPOTLIGHTS: ReferenceCard[] = [
     name: "María José Pizarro",
     role: "Senado",
     period: "2022-2026",
+    chamber: "senate",
     party: "Pacto Histórico",
     promiseQuote: "“Paz, garantías democráticas y reformas sociales con seguimiento legislativo.”",
     outcomeQuote: "La evidencia visible se concentra en debates, ponencias y posicionamiento de proyectos en el Senado.",
@@ -147,6 +222,7 @@ const LEGISLATIVE_SPOTLIGHTS: ReferenceCard[] = [
     name: "David Luna",
     role: "Senado",
     period: "2022-2026",
+    chamber: "senate",
     party: "Cambio Radical",
     promiseQuote: "“Control político fuerte, enfoque digital y vigilancia al gasto público.”",
     outcomeQuote: "El seguimiento visible muestra control político, debate público y oposición documentada frente a reformas clave.",
@@ -164,6 +240,7 @@ const RADAR_2026: ReferenceCard[] = [
     name: "Iván Cepeda",
     role: "Presidencia",
     period: "2026",
+    chamber: "executive",
     party: "Pacto Histórico",
     promiseQuote: "Promesas en observación sobre paz, reforma institucional y continuidad de agenda social.",
     outcomeQuote: "Todavía no hay gestión ejecutiva que medir para este ciclo; aquí solo se documenta promesa, fuente y lenguaje programático.",
@@ -178,6 +255,7 @@ const RADAR_2026: ReferenceCard[] = [
     name: "Paloma Valencia",
     role: "Presidencia",
     period: "2026",
+    chamber: "executive",
     party: "Centro Democrático",
     promiseQuote: "Promesas en observación sobre seguridad, crecimiento y oposición a reformas estructurales del actual gobierno.",
     outcomeQuote: "En 2026 todavía corresponde leer propuestas, discursos y consistencia programática; no hay ejecución gubernamental que comparar.",
@@ -192,6 +270,7 @@ const RADAR_2026: ReferenceCard[] = [
     name: "Claudia López",
     role: "Presidencia",
     period: "2026",
+    chamber: "executive",
     party: "Por firmas",
     promiseQuote: "Promesas en observación sobre seguridad urbana, gerencia pública y reactivación económica con foco local.",
     outcomeQuote: "La comparación todavía es programática: el módulo muestra fuente, lenguaje y temas dominantes, no cumplimiento.",
@@ -206,6 +285,7 @@ const RADAR_2026: ReferenceCard[] = [
     name: "Abelardo de la Espriella",
     role: "Presidencia",
     period: "2026",
+    chamber: "executive",
     party: "Por firmas",
     promiseQuote: "Promesas en observación sobre seguridad, justicia y endurecimiento institucional.",
     outcomeQuote: "No hay resultado que comparar todavía: el tablero los muestra solo como promesas tempranas verificables en fuente pública.",
@@ -214,6 +294,156 @@ const RADAR_2026: ReferenceCard[] = [
     outcomeLabel: "Ciclo aún sin ejecución",
     outcomeUrl: "https://www.registraduria.gov.co/",
     note: "Promesa 2026 significa lenguaje de campaña. El cumplimiento empieza a medirse después de la elección y el acceso al cargo.",
+  },
+  {
+    id: "roy_barreras_2026",
+    name: "Roy Barreras",
+    role: "Presidencia",
+    period: "2026",
+    chamber: "executive",
+    party: "Frente por la Vida",
+    promiseQuote: "Promesas tempranas en observación sobre salud, gobernabilidad y continuidad de reformas sociales.",
+    outcomeQuote: "El módulo las mantiene como radar de campaña: por ahora solo importan fuente, promesa y consistencia del lenguaje.",
+    sourceLabel: "Referencia pública 2026",
+    sourceUrl: "https://www.registraduria.gov.co/",
+    outcomeLabel: "Sin ejecución 2026",
+    outcomeUrl: "https://www.registraduria.gov.co/",
+    note: "Cuando el programa oficial esté disponible, el extractor lo separa en compromisos verificables y comparables con el resto del tablero.",
+  },
+  {
+    id: "lizcano_2026",
+    name: "Mauricio Lizcano",
+    role: "Presidencia",
+    period: "2026",
+    chamber: "executive",
+    party: "Por firmas",
+    promiseQuote: "Promesas tempranas en observación sobre tecnología pública, conectividad y competitividad territorial.",
+    outcomeQuote: "La lectura todavía es preelectoral: fuente, promesa visible y consistencia del lenguaje, no cumplimiento.",
+    sourceLabel: "Referencia pública 2026",
+    sourceUrl: "https://www.registraduria.gov.co/",
+    outcomeLabel: "Sin ejecución 2026",
+    outcomeUrl: "https://www.registraduria.gov.co/",
+    note: "La etapa útil hoy es capturar el programa y extraer compromisos frase por frase antes de que exista gestión ejecutiva.",
+  },
+  {
+    id: "murillo_2026",
+    name: "Luis Gilberto Murillo",
+    role: "Presidencia",
+    period: "2026",
+    chamber: "executive",
+    party: "Por firmas",
+    promiseQuote: "Promesas tempranas en observación sobre transición energética, diplomacia climática y gerencia pública.",
+    outcomeQuote: "Todavía no hay gestión de este ciclo que contrastar. Aquí solo se documentan lenguaje programático y fuente pública disponible.",
+    sourceLabel: "Referencia pública 2026",
+    sourceUrl: "https://www.registraduria.gov.co/",
+    outcomeLabel: "Sin ejecución 2026",
+    outcomeUrl: "https://www.registraduria.gov.co/",
+    note: "En cuanto aparezca un programa descargable, el extractor parte el texto en compromisos y clasifica cada frase por tema.",
+  },
+  {
+    id: "fajardo_2026",
+    name: "Sergio Fajardo",
+    role: "Presidencia",
+    period: "2026",
+    chamber: "executive",
+    party: "Centro",
+    promiseQuote: "Promesas tempranas en observación sobre educación, seguridad urbana y gestión territorial.",
+    outcomeQuote: "El módulo las mantiene en radar preelectoral y no las mezcla todavía con ejecución o cumplimiento.",
+    sourceLabel: "Referencia pública 2026",
+    sourceUrl: "https://www.registraduria.gov.co/",
+    outcomeLabel: "Sin ejecución 2026",
+    outcomeUrl: "https://www.registraduria.gov.co/",
+    note: "El valor actual está en extraer temas, verbos y metas cuando el programa oficial esté público y descargable.",
+  },
+  {
+    id: "clara_lopez_2026",
+    name: "Clara López",
+    role: "Presidencia",
+    period: "2026",
+    chamber: "executive",
+    party: "Coalición progresista",
+    promiseQuote: "Promesas tempranas en observación sobre empleo, reindustrialización y protección social.",
+    outcomeQuote: "En esta fase todavía no hay acción ejecutiva asociada. La lectura es programática y comparativa.",
+    sourceLabel: "Referencia pública 2026",
+    sourceUrl: "https://www.registraduria.gov.co/",
+    outcomeLabel: "Sin ejecución 2026",
+    outcomeUrl: "https://www.registraduria.gov.co/",
+    note: "La comparación útil por ahora es entre tono, prioridades y detalle programático frente al resto del radar presidencial.",
+  },
+  {
+    id: "miguel_uribe_2026",
+    name: "Miguel Uribe",
+    role: "Presidencia",
+    period: "2026",
+    chamber: "executive",
+    party: "Centro Democrático",
+    promiseQuote: "Promesas tempranas en observación sobre seguridad, crecimiento económico y reforma del Estado.",
+    outcomeQuote: "Todavía corresponde documentar promesas y fuentes, no medir cumplimiento.",
+    sourceLabel: "Referencia pública 2026",
+    sourceUrl: "https://www.registraduria.gov.co/",
+    outcomeLabel: "Sin ejecución 2026",
+    outcomeUrl: "https://www.registraduria.gov.co/",
+    note: "Cuando haya texto programático completo, el extractor NLP lo separa por compromisos y permite compararlo con otros candidatos.",
+  },
+  {
+    id: "caicedo_2026",
+    name: "Carlos Caicedo",
+    role: "Presidencia",
+    period: "2026",
+    chamber: "executive",
+    party: "Fuerza Ciudadana",
+    promiseQuote: "Promesas tempranas en observación sobre descentralización, Caribe y justicia social territorial.",
+    outcomeQuote: "La lectura sigue siendo de campaña: fuente pública, lenguaje y foco temático.",
+    sourceLabel: "Referencia pública 2026",
+    sourceUrl: "https://www.registraduria.gov.co/",
+    outcomeLabel: "Sin ejecución 2026",
+    outcomeUrl: "https://www.registraduria.gov.co/",
+    note: "La capa útil hoy es radar comparativo: qué promete, con qué nivel de detalle y en qué temas insiste.",
+  },
+  {
+    id: "sondra_macollins_2026",
+    name: "Sondra Macollins",
+    role: "Presidencia",
+    period: "2026",
+    chamber: "executive",
+    party: "Por firmas",
+    promiseQuote: "Promesas tempranas en observación desde fuentes abiertas y lanzamientos públicos de campaña.",
+    outcomeQuote: "Aún no existe ejecución que medir; el tablero conserva solo referencia de fuente y perfil político.",
+    sourceLabel: "Referencia pública 2026",
+    sourceUrl: "https://www.registraduria.gov.co/",
+    outcomeLabel: "Sin ejecución 2026",
+    outcomeUrl: "https://www.registraduria.gov.co/",
+    note: "Mientras no exista programa descargable, el módulo deja explícito que la cobertura es de radar y no de cumplimiento.",
+  },
+  {
+    id: "santiago_botero_2026",
+    name: "Santiago Botero",
+    role: "Presidencia",
+    period: "2026",
+    chamber: "executive",
+    party: "Por firmas",
+    promiseQuote: "Promesas tempranas en observación desde apariciones públicas y referencias abiertas.",
+    outcomeQuote: "No hay ejecución asociada todavía. Solo se documenta la etapa programática inicial.",
+    sourceLabel: "Referencia pública 2026",
+    sourceUrl: "https://www.registraduria.gov.co/",
+    outcomeLabel: "Sin ejecución 2026",
+    outcomeUrl: "https://www.registraduria.gov.co/",
+    note: "Este radar sirve para detectar cuándo aparece un programa más completo que se pueda extraer automáticamente.",
+  },
+  {
+    id: "matamoros_2026",
+    name: "Gustavo Matamoros",
+    role: "Presidencia",
+    period: "2026",
+    chamber: "executive",
+    party: "Por firmas",
+    promiseQuote: "Promesas tempranas en observación sobre seguridad, gerencia y orden institucional.",
+    outcomeQuote: "La lectura se mantiene programática hasta que exista acción pública posterior a la elección.",
+    sourceLabel: "Referencia pública 2026",
+    sourceUrl: "https://www.registraduria.gov.co/",
+    outcomeLabel: "Sin ejecución 2026",
+    outcomeUrl: "https://www.registraduria.gov.co/",
+    note: "Por ahora el tablero distingue claramente entre promesa temprana y cumplimiento para no mezclar campaña con gobierno.",
   },
 ];
 
@@ -231,12 +461,52 @@ const SOURCE_MATRIX = {
 };
 
 function getColor(id: string) {
-  return PARTY_COLORS[id] ?? "#f0c351";
+  if (PARTY_COLORS[id]) return PARTY_COLORS[id];
+  const palette = ["#f0c351", "#5de2a5", "#7bb6ff", "#ff8f70", "#9d7bff", "#ff6f91", "#38bdf8"];
+  const seed = [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return palette[seed % palette.length];
 }
 
 function fallbackPortrait(name: string, color: string) {
-  const hex = color.replace("#", "");
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${hex}&color=06111f&size=512&bold=true`;
+  const initials = name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("")
+    .slice(0, 2);
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+      <defs>
+        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${color}" />
+          <stop offset="100%" stop-color="#08111f" />
+        </linearGradient>
+      </defs>
+      <rect width="640" height="640" rx="48" fill="url(#g)" />
+      <circle cx="320" cy="240" r="126" fill="rgba(255,255,255,0.12)" />
+      <path d="M164 542c34-98 98-146 156-146s122 48 156 146" fill="rgba(255,255,255,0.18)" />
+      <text x="320" y="352" text-anchor="middle" font-size="148" font-family="Arial, sans-serif" font-weight="700" fill="#f5efe1">${initials}</text>
+    </svg>
+  `;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function chamberKeyFromText(text: string): Exclude<ChamberKey, "all"> {
+  const normalized = text.toLowerCase();
+  if (normalized.includes("cámara") || normalized.includes("camara") || normalized.includes("representante")) {
+    return "house";
+  }
+  if (normalized.includes("senado") || normalized.includes("senador")) {
+    return "senate";
+  }
+  return "executive";
+}
+
+function chamberLabel(lang: Lang, chamber: Exclude<ChamberKey, "all">) {
+  if (chamber === "executive") return lang === "es" ? "Presidencia / Ejecutivo" : "Presidency / Executive";
+  if (chamber === "senate") return lang === "es" ? "Senado" : "Senate";
+  return lang === "es" ? "Cámara" : "House";
 }
 
 function getStatusMeta(card: PromiseCard, lang: Lang) {
@@ -310,17 +580,24 @@ export function PromisesView({
   const [selectedId, setSelectedId] = useState<string | undefined>(defaultId);
   const [domainFilter, setDomainFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [activePeriod, setActivePeriod] = useState<CoveragePeriod>(2022);
+  const [activeChamber, setActiveChamber] = useState<ChamberKey>("all");
   const [payload, setPayload] = useState<PromisesPayload | null>(initialPayload);
   const [loading, setLoading] = useState(!initialPayload);
   const [openCardId, setOpenCardId] = useState<string | null>(initialPayload?.cards[0]?.id ?? null);
   const [portraits, setPortraits] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(Boolean(initialPayload));
+  const [activeHistoricalId, setActiveHistoricalId] = useState<string | null>(HISTORICAL_REFERENCES[0]?.id ?? null);
+  const [activeRadarId, setActiveRadarId] = useState<string | null>(RADAR_2026[0]?.id ?? null);
 
   useEffect(() => {
     if (initialized) {
       setInitialized(false);
       return;
     }
+
+    if (activePeriod !== 2022) return;
+    if (!selectedId) return;
 
     let alive = true;
     setLoading(true);
@@ -329,6 +606,7 @@ export function PromisesView({
       politicianId: selectedId,
       domain: domainFilter,
       status: statusFilter,
+      electionYear: 2022,
       limit: 18,
     })
       .then((data) => {
@@ -343,22 +621,85 @@ export function PromisesView({
     return () => {
       alive = false;
     };
-  }, [selectedId, domainFilter, statusFilter, lang, initialized]);
+  }, [selectedId, domainFilter, statusFilter, lang, initialized, activePeriod]);
 
   const politicians = payload?.options.politicians ?? [];
+  const chamberOptions = useMemo(() => {
+    const fromPoliticians = politicians.map((politician) => chamberKeyFromText(politician.label));
+    const fromHistorical = HISTORICAL_REFERENCES.map((item) => item.chamber);
+    const fromRadar = RADAR_2026.map((item) => item.chamber);
+    const set = new Set<Exclude<ChamberKey, "all">>();
+    const pool = activePeriod === 2022 ? fromPoliticians : activePeriod === 2018 ? fromHistorical : fromRadar;
+    pool.forEach((item) => set.add(item));
+    return [...set];
+  }, [activePeriod, politicians]);
+
+  const visiblePoliticians = useMemo(
+    () =>
+      politicians.filter((politician) =>
+        activeChamber === "all" ? true : chamberKeyFromText(politician.label) === activeChamber,
+      ),
+    [activeChamber, politicians],
+  );
+
+  useEffect(() => {
+    if (activeChamber === "all") return;
+    if (!chamberOptions.includes(activeChamber)) {
+      setActiveChamber("all");
+    }
+  }, [activeChamber, chamberOptions]);
+
+  useEffect(() => {
+    if (activePeriod !== 2022) return;
+    const firstVisible = visiblePoliticians[0]?.value;
+    if (!firstVisible) return;
+    if (!selectedId || !visiblePoliticians.some((item) => item.value === selectedId)) {
+      setSelectedId(firstVisible);
+    }
+  }, [activePeriod, selectedId, visiblePoliticians]);
+
   const cards = payload?.cards ?? [];
   const scorecard = payload?.scorecard;
   const openCard = cards.find((card) => card.id === openCardId) ?? null;
+  const visibleHistorical = useMemo(
+    () => HISTORICAL_REFERENCES.filter((item) => (activeChamber === "all" ? true : item.chamber === activeChamber)),
+    [activeChamber],
+  );
+  const visibleRadar = useMemo(
+    () => RADAR_2026.filter((item) => (activeChamber === "all" ? true : item.chamber === activeChamber)),
+    [activeChamber],
+  );
+
+  useEffect(() => {
+    if (activePeriod !== 2018) return;
+    const fallback = visibleHistorical[0]?.id ?? null;
+    if (!fallback) return;
+    if (!visibleHistorical.some((item) => item.id === activeHistoricalId)) {
+      setActiveHistoricalId(fallback);
+    }
+  }, [activeHistoricalId, activePeriod, visibleHistorical]);
+
+  useEffect(() => {
+    if (activePeriod !== 2026) return;
+    const fallback = visibleRadar[0]?.id ?? null;
+    if (!fallback) return;
+    if (!visibleRadar.some((item) => item.id === activeRadarId)) {
+      setActiveRadarId(fallback);
+    }
+  }, [activePeriod, activeRadarId, visibleRadar]);
+
+  const activeHistorical = visibleHistorical.find((item) => item.id === activeHistoricalId) ?? visibleHistorical[0] ?? null;
+  const activeRadar = visibleRadar.find((item) => item.id === activeRadarId) ?? visibleRadar[0] ?? null;
   const portraitTargets = useMemo(
     () => [
-      ...politicians.map((politician) => {
+      ...visiblePoliticians.map((politician) => {
         const name = politician.label.split(" · ")[0] ?? politician.label;
         return { id: politician.value, name };
       }),
       ...HISTORICAL_REFERENCES.map((item) => ({ id: item.id, name: item.name })),
       ...RADAR_2026.map((item) => ({ id: item.id, name: item.name })),
     ],
-    [politicians],
+    [visiblePoliticians],
   );
 
   useEffect(() => {
@@ -403,6 +744,39 @@ export function PromisesView({
   const trackedPortrait = scorecard
     ? portraits[scorecard.politicianId] || fallbackPortrait(scorecard.politicianName, partyColor)
     : fallbackPortrait("VeedurIA", "#f0c351");
+  const activeReference = activePeriod === 2018 ? activeHistorical : activeRadar;
+  const activeReferenceColor = getColor(activeReference?.id ?? "reference");
+  const activeReferencePortrait = activeReference
+    ? portraits[activeReference.id] || fallbackPortrait(activeReference.name, activeReferenceColor)
+    : fallbackPortrait("VeedurIA", "#f0c351");
+  const periodTitle =
+    activePeriod === 2022
+      ? lang === "es"
+        ? "Seguimiento 2022-2026"
+        : "2022-2026 tracking"
+      : activePeriod === 2018
+        ? lang === "es"
+          ? "Referencias 2018-2022"
+          : "2018-2022 references"
+        : lang === "es"
+          ? "Radar 2026"
+          : "2026 radar";
+  const periodBody =
+    activePeriod === 2022
+      ? lang === "es"
+        ? "Aquí sí se compara promesa con acción pública visible y se puede bajar al detalle por actor, dominio y estado."
+        : "Here the board does compare promises against visible public action, with drill-down by actor, domain, and status."
+      : activePeriod === 2018
+        ? lang === "es"
+          ? "Este corte sirve como referencia histórica: cómo envejecieron promesas y qué huella pública dejaron en el cierre del periodo."
+          : "This slice works as a historical reference: how promises aged and what public footprint they left by the end of the cycle."
+        : lang === "es"
+          ? "En 2026 todavía no corresponde medir cumplimiento. El tablero separa promesa temprana, fuente pública y etapa preelectoral."
+          : "In 2026 it is still too early to measure compliance. The board separates early promises, public source, and pre-electoral stage.";
+  const periodProfiles =
+    activePeriod === 2022 ? visiblePoliticians.length : activePeriod === 2018 ? visibleHistorical.length : visibleRadar.length;
+  const periodRecords =
+    activePeriod === 2022 ? payload?.kpis.promisesTracked ?? 0 : activePeriod === 2018 ? visibleHistorical.length : visibleRadar.length;
 
   return (
     <div className="shell">
@@ -419,392 +793,398 @@ export function PromisesView({
         <section className="pmr-hero">
           <div className="pmr-hero__copy">
             <p className="eyebrow">{lang === "es" ? "Promesas, evidencia y comparación por ciclo político" : "Promises, evidence, and comparison by political cycle"}</p>
-            <h1>{lang === "es" ? "Promesómetro con más contexto y menos ruido" : "A promise tracker with more context and less noise"}</h1>
-            <p className="pmr-hero__body">
-              {lang === "es"
-                ? "El tablero separa tres lecturas: seguimiento detallado 2022-2026, referencias del ciclo 2018-2022 y radar presidencial 2026, donde todavía solo existen promesas."
-                : "The board separates three reads: detailed 2022-2026 tracking, 2018-2022 historical references, and the 2026 presidential radar, where only promises exist so far."}
-            </p>
+            <h1>{periodTitle}</h1>
+            <p className="pmr-hero__body">{periodBody}</p>
           </div>
 
           <div className="pmr-hero__stats">
             <article>
-              <span>{copy.kpiPoliticians}</span>
-              <strong>{payload?.kpis.politiciansTracked ?? 0}</strong>
+              <span>{lang === "es" ? "Perfiles visibles" : "Visible profiles"}</span>
+              <strong>{periodProfiles}</strong>
             </article>
             <article>
-              <span>{copy.kpiPromises}</span>
-              <strong>{payload?.kpis.promisesTracked ?? 0}</strong>
+              <span>{lang === "es" ? "Registros visibles" : "Visible records"}</span>
+              <strong>{periodRecords}</strong>
             </article>
             <article>
-              <span>{copy.kpiCoherence}</span>
-              <strong>{payload?.kpis.coherenceRate ?? 0}%</strong>
+              <span>{activePeriod === 2022 ? copy.kpiCoherence : lang === "es" ? "Periodo activo" : "Active cycle"}</span>
+              <strong>{activePeriod === 2022 ? `${payload?.kpis.coherenceRate ?? 0}%` : periodTitle}</strong>
             </article>
             <article>
-              <span>{lang === "es" ? "Radar visible" : "Visible radar"}</span>
-              <strong>{HISTORICAL_REFERENCES.length + RADAR_2026.length + politicians.length}</strong>
+              <span>{lang === "es" ? "Cámara activa" : "Active chamber"}</span>
+              <strong>{activeChamber === "all" ? (lang === "es" ? "Todas" : "All") : chamberLabel(lang, activeChamber)}</strong>
             </article>
           </div>
         </section>
 
-        <section className="pmr-board">
-          <div className="pmr-board__top">
-            <div className="pmr-board__note">
-              <span>{lang === "es" ? "Cobertura principal" : "Main coverage"}</span>
-              <strong>{lang === "es" ? "Seguimiento 2022-2026" : "2022-2026 tracking"}</strong>
-              <p>{payload?.meta.pilotNote ?? ""}</p>
-            </div>
-
-            <div className="pmr-filter-row">
-              <label className="pmr-filter">
-                <span>{copy.filterDomain}</span>
-                <select value={domainFilter} onChange={(event) => setDomainFilter(event.target.value)}>
-                  {(payload?.options.domains ?? []).map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="pmr-filter">
-                <span>{copy.filterStatus}</span>
-                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                  {(payload?.options.statuses ?? []).map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+        <section className="pmr-cycle-bar surface-soft">
+          <div className="pmr-cycle-tabs">
+            {CYCLE_OPTIONS.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                className={`pmr-cycle-tab ${activePeriod === item.value ? "pmr-cycle-tab--active" : ""}`}
+                onClick={() => setActivePeriod(item.value)}
+              >
+                <span>{lang === "es" ? "Periodo" : "Cycle"}</span>
+                <strong>{lang === "es" ? item.labelEs : item.labelEn}</strong>
+              </button>
+            ))}
           </div>
 
-          <div className="pmr-politician-strip">
-            {politicians.map((politician) => {
-              const isActive = politician.value === selectedId;
-              const name = politician.label.split(" · ")[0] ?? politician.label;
-              const role = politician.label.split(" · ")[1] ?? "";
-              const portrait = portraits[politician.value] || fallbackPortrait(name, getColor(politician.value));
-
-              return (
-                <button
-                  key={politician.value}
-                  type="button"
-                  className={`pmr-politician-card ${isActive ? "pmr-politician-card--active" : ""}`}
-                  onClick={() => setSelectedId(politician.value)}
-                  style={isActive ? { borderColor: getColor(politician.value) } : undefined}
-                >
-                  <div className="pmr-politician-card__media">
-                    <img src={portrait} alt={name} className="pmr-politician-card__img" />
-                    <span className="pmr-politician-card__glow" style={{ background: `linear-gradient(135deg, ${getColor(politician.value)}, transparent)` }} />
-                  </div>
-                  <div>
-                    <strong>{name}</strong>
-                    <span>{role}</span>
-                  </div>
-                </button>
-              );
-            })}
+          <div className="pmr-chamber-pills">
+            <button
+              type="button"
+              className={`pmr-chamber-pill ${activeChamber === "all" ? "pmr-chamber-pill--active" : ""}`}
+              onClick={() => setActiveChamber("all")}
+            >
+              {lang === "es" ? "Todas las cámaras" : "All chambers"}
+            </button>
+            {chamberOptions.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={`pmr-chamber-pill ${activeChamber === item ? "pmr-chamber-pill--active" : ""}`}
+                onClick={() => setActiveChamber(item)}
+              >
+                {chamberLabel(lang, item)}
+              </button>
+            ))}
           </div>
+        </section>
 
-          {scorecard ? (
-            <section className="pmr-spotlight">
-              <div className="pmr-spotlight__media">
-                <img src={trackedPortrait} alt={scorecard.politicianName} className="pmr-spotlight__img" />
-                <div className="pmr-spotlight__overlay" />
+        {activePeriod === 2022 ? (
+          <section className="pmr-board">
+            <div className="pmr-board__top">
+              <div className="pmr-board__note">
+                <span>{lang === "es" ? "Cobertura principal" : "Main coverage"}</span>
+                <strong>{periodTitle}</strong>
+                <p>{payload?.meta.pilotNote ?? ""}</p>
               </div>
 
-              <div className="pmr-spotlight__content">
-                <div className="pmr-spotlight__person">
-                  <div>
-                    <span className="pmr-spotlight__role">{selectedRole || scorecard.chamber}</span>
-                    <h2>{scorecard.politicianName}</h2>
-                    <p>{scorecard.party}</p>
-                  </div>
+              <div className="pmr-filter-row">
+                <label className="pmr-filter">
+                  <span>{copy.filterDomain}</span>
+                  <select value={domainFilter} onChange={(event) => setDomainFilter(event.target.value)}>
+                    {(payload?.options.domains ?? []).map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <div className="pmr-spotlight__score">
-                    <div className="pmr-spotlight__score-ring" style={{ borderColor: partyColor, color: partyColor }}>
-                      {scorecard.overallScore}
+                <label className="pmr-filter">
+                  <span>{copy.filterStatus}</span>
+                  <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                    {(payload?.options.statuses ?? []).map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div className="pmr-politician-strip">
+              {visiblePoliticians.map((politician) => {
+                const isActive = politician.value === selectedId;
+                const name = politician.label.split(" · ")[0] ?? politician.label;
+                const role = politician.label.split(" · ")[1] ?? "";
+                const fallback = fallbackPortrait(name, getColor(politician.value));
+                const portrait = portraits[politician.value] || fallback;
+
+                return (
+                  <button
+                    key={politician.value}
+                    type="button"
+                    className={`pmr-politician-card ${isActive ? "pmr-politician-card--active" : ""}`}
+                    onClick={() => setSelectedId(politician.value)}
+                    style={isActive ? { borderColor: getColor(politician.value) } : undefined}
+                  >
+                    <div className="pmr-politician-card__media">
+                      <img
+                        src={portrait}
+                        alt={name}
+                        className="pmr-politician-card__img"
+                        onError={(event) => {
+                          event.currentTarget.src = fallback;
+                        }}
+                      />
+                      <span className="pmr-politician-card__glow" style={{ background: `linear-gradient(135deg, ${getColor(politician.value)}, transparent)` }} />
                     </div>
                     <div>
-                      <span>{lang === "es" ? "lectura de coherencia" : "coherence read"}</span>
-                      <strong>{lang === "es" ? "promesa vs acción observable" : "promise vs observable action"}</strong>
+                      <strong>{name}</strong>
+                      <span>{role}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {scorecard ? (
+              <section className="pmr-spotlight">
+                <div className="pmr-spotlight__media">
+                  <img
+                    src={trackedPortrait}
+                    alt={scorecard.politicianName}
+                    className="pmr-spotlight__img"
+                    onError={(event) => {
+                      event.currentTarget.src = fallbackPortrait(scorecard.politicianName, partyColor);
+                    }}
+                  />
+                  <div className="pmr-spotlight__overlay" />
+                </div>
+
+                <div className="pmr-spotlight__content">
+                  <div className="pmr-spotlight__person">
+                    <div>
+                      <span className="pmr-spotlight__role">{selectedRole || scorecard.chamber}</span>
+                      <h2>{scorecard.politicianName}</h2>
+                      <p>{scorecard.party}</p>
+                    </div>
+
+                    <div className="pmr-spotlight__score">
+                      <div className="pmr-spotlight__score-ring" style={{ borderColor: partyColor, color: partyColor }}>
+                        {scorecard.overallScore}
+                      </div>
+                      <div>
+                        <span>{lang === "es" ? "lectura de coherencia" : "coherence read"}</span>
+                        <strong>{lang === "es" ? "promesa vs acción observable" : "promise vs observable action"}</strong>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="pmr-spotlight__counts">
-                  <article>
-                    <span>{copy.scoreFulfilled}</span>
-                    <strong>{scorecard.statusCounts.fulfilled}</strong>
-                  </article>
-                  <article>
-                    <span>{copy.scoreMonitoring}</span>
-                    <strong>{scorecard.statusCounts.monitoring}</strong>
-                  </article>
-                  <article>
-                    <span>{copy.scoreNoAction}</span>
-                    <strong>{scorecard.statusCounts.noAction}</strong>
-                  </article>
-                </div>
-
-                <div className="pmr-domain-bars">
-                  {scorecard.domains.map((domain) => (
-                    <article key={domain.key} className="pmr-domain-bars__item">
-                      <div className="pmr-domain-bars__head">
-                        <span>{domain.label}</span>
-                        <strong>{Math.round(domain.score * 100)}%</strong>
-                      </div>
-                      <div className="pmr-domain-bars__track">
-                        <span style={{ width: `${Math.max(8, domain.score * 100)}%`, background: partyColor }} />
-                      </div>
+                  <div className="pmr-spotlight__counts">
+                    <article>
+                      <span>{copy.scoreFulfilled}</span>
+                      <strong>{scorecard.statusCounts.fulfilled}</strong>
                     </article>
-                  ))}
+                    <article>
+                      <span>{copy.scoreMonitoring}</span>
+                      <strong>{scorecard.statusCounts.monitoring}</strong>
+                    </article>
+                    <article>
+                      <span>{copy.scoreNoAction}</span>
+                      <strong>{scorecard.statusCounts.noAction}</strong>
+                    </article>
+                  </div>
+
+                  <div className="pmr-domain-bars">
+                    {scorecard.domains.map((domain) => (
+                      <article key={domain.key} className="pmr-domain-bars__item">
+                        <div className="pmr-domain-bars__head">
+                          <span>{domain.label}</span>
+                          <strong>{Math.round(domain.score * 100)}%</strong>
+                        </div>
+                        <div className="pmr-domain-bars__track">
+                          <span style={{ width: `${Math.max(8, domain.score * 100)}%`, background: partyColor }} />
+                        </div>
+                      </article>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </section>
-          ) : null}
+              </section>
+            ) : null}
 
-          <section className="pmr-promise-wall">
-            <div className="pmr-promise-wall__header">
-              <div>
-                <p className="eyebrow">{lang === "es" ? "Promesas rastreadas" : "Tracked promises"}</p>
-                <h2>{lang === "es" ? "Promesa, evidencia y lectura comparada" : "Promise, evidence, and compared reading"}</h2>
-              </div>
-              <span>{cards.length} {lang === "es" ? "registros visibles" : "visible records"}</span>
-            </div>
-
-            {loading ? (
-              <div className="surface-soft" style={{ padding: "2rem", textAlign: "center" }}>{copy.cardsEmpty}</div>
-            ) : cards.length === 0 ? (
-              <div className="surface-soft" style={{ padding: "2rem", textAlign: "center" }}>{copy.cardsEmpty}</div>
-            ) : (
-              <div className="pmr-card-grid">
-                {cards.map((card) => {
-                  const meta = getStatusMeta(card, lang);
-                  const isActive = openCardId === card.id;
-
-                  return (
-                    <button
-                      key={card.id}
-                      type="button"
-                      className={`pmr-promise-card ${isActive ? "pmr-promise-card--active" : ""}`}
-                      onClick={() => setOpenCardId(card.id)}
-                    >
-                      <div className="pmr-promise-card__top">
-                        <span className={`pmr-status-dot pmr-status-dot--${meta.tone}`} />
-                        <span className={`pmr-status-pill pmr-status-pill--${meta.tone}`}>{meta.label}</span>
-                        <strong>{card.similarityScore}%</strong>
-                      </div>
-                      <h3>{card.promiseText}</h3>
-                      <p>{meta.summary}</p>
-                      <div className="pmr-promise-card__meta">
-                        <span>{card.domainLabel}</span>
-                        <span>{card.actionDate || "—"}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          {openCard ? (
-            <section className="pmr-detail">
-              <div className="pmr-detail__header">
+            <section className="pmr-promise-wall">
+              <div className="pmr-promise-wall__header">
                 <div>
-                  <p className="eyebrow">{lang === "es" ? "Lectura detallada" : "Detailed readout"}</p>
-                  <h2>{openCard.promiseText}</h2>
+                  <p className="eyebrow">{lang === "es" ? "Promesas rastreadas" : "Tracked promises"}</p>
+                  <h2>{lang === "es" ? "Promesa, evidencia y lectura comparada" : "Promise, evidence, and compared reading"}</h2>
                 </div>
-                <div className="pmr-detail__scorebox">
-                  <span>{lang === "es" ? "similitud" : "similarity"}</span>
-                  <strong>{openCard.similarityScore}%</strong>
+                <span>{cards.length} {lang === "es" ? "registros visibles" : "visible records"}</span>
+              </div>
+
+              {loading ? (
+                <div className="surface-soft" style={{ padding: "2rem", textAlign: "center" }}>{copy.cardsEmpty}</div>
+              ) : cards.length === 0 ? (
+                <div className="surface-soft" style={{ padding: "2rem", textAlign: "center" }}>{copy.cardsEmpty}</div>
+              ) : (
+                <div className="pmr-card-grid">
+                  {cards.map((card) => {
+                    const meta = getStatusMeta(card, lang);
+                    const isActive = openCardId === card.id;
+
+                    return (
+                      <button
+                        key={card.id}
+                        type="button"
+                        className={`pmr-promise-card ${isActive ? "pmr-promise-card--active" : ""}`}
+                        onClick={() => setOpenCardId(card.id)}
+                      >
+                        <div className="pmr-promise-card__top">
+                          <span className={`pmr-status-dot pmr-status-dot--${meta.tone}`} />
+                          <span className={`pmr-status-pill pmr-status-pill--${meta.tone}`}>{meta.label}</span>
+                          <strong>{card.similarityScore}%</strong>
+                        </div>
+                        <h3>{card.promiseText}</h3>
+                        <p>{meta.summary}</p>
+                        <div className="pmr-promise-card__meta">
+                          <span>{card.domainLabel}</span>
+                          <span>{card.actionDate || "—"}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-
-              <div className="pmr-quote-grid">
-                <article className="pmr-quote-card">
-                  <div className="pmr-detail-card__label">
-                    <Quote size={15} />
-                    {lang === "es" ? "Lo prometido" : "What was promised"}
-                  </div>
-                  <p>“{openCard.promiseText}”</p>
-                </article>
-                <article className="pmr-quote-card">
-                  <div className="pmr-detail-card__label">
-                    <Quote size={15} />
-                    {lang === "es" ? "Lo observado" : "What was observed"}
-                  </div>
-                  <p>“{openCard.actionSummary || copy.noEvidence}”</p>
-                </article>
-              </div>
-
-              <div className="pmr-detail__grid">
-                <article className="pmr-detail-card">
-                  <div className="pmr-detail-card__label">
-                    <BookOpenText size={15} />
-                    {lang === "es" ? "Fuente de la promesa" : "Promise source"}
-                  </div>
-                  <strong>{openCard.promiseSourceLabel}</strong>
-                  <p>{openCard.promiseText}</p>
-                  <a href={openCard.promiseSourceUrl} target="_blank" rel="noreferrer" className="btn-secondary">
-                    {copy.verifyPromise} <ArrowUpRight size={14} />
-                  </a>
-                </article>
-
-                <article className="pmr-detail-card">
-                  <div className="pmr-detail-card__label">
-                    <Landmark size={15} />
-                    {lang === "es" ? "Fuente de la acción" : "Action source"}
-                  </div>
-                  <strong>{openCard.actionTitle}</strong>
-                  <p>{openCard.actionSummary || copy.noEvidence}</p>
-                  <a href={openCard.actionSourceUrl} target="_blank" rel="noreferrer" className="btn-secondary">
-                    {copy.verifyAction} <ArrowUpRight size={14} />
-                  </a>
-                </article>
-
-                <article className="pmr-detail-card pmr-detail-card--analysis">
-                  <div className="pmr-detail-card__label">
-                    <ScanSearch size={15} />
-                    {lang === "es" ? "Cómo se enlaza" : "How the link is built"}
-                  </div>
-                  <strong>{getSemanticReadout(openCard, lang).title}</strong>
-                  <p>{getSemanticReadout(openCard, lang).body}</p>
-                  <div className="pmr-metric-list">
-                    <div>
-                      <span>{copy.extraction}</span>
-                      <strong>{openCard.extractionConfidence}%</strong>
-                    </div>
-                    <div>
-                      <span>{copy.confidence}</span>
-                      <strong>{openCard.statusConfidence}%</strong>
-                    </div>
-                    <div>
-                      <span>{lang === "es" ? "fuente de acción" : "action source"}</span>
-                      <strong>{openCard.actionSourceSystem || "—"}</strong>
-                    </div>
-                  </div>
-                </article>
-              </div>
+              )}
             </section>
-          ) : null}
-        </section>
 
-        <section className="pmr-reference-section surface-soft">
-          <div className="pmr-section-header">
-            <div>
-              <p className="eyebrow">{lang === "es" ? "Perfiles legislativos 2022-2026" : "2022-2026 legislative profiles"}</p>
-              <h2>{lang === "es" ? "Senado y Cámara en la lectura principal" : "Senate and House in the main read"}</h2>
-            </div>
-            <p>
-              {lang === "es"
-                ? "Además del Ejecutivo, el tablero deja visibles perfiles legislativos con promesas, control político y huella pública rastreable."
-                : "Beyond the executive branch, the board keeps visible legislative profiles with promises, oversight, and traceable public footprint."}
-            </p>
-          </div>
-
-          <div className="pmr-reference-grid">
-            {LEGISLATIVE_SPOTLIGHTS.map((item) => {
-              const portrait = portraits[item.id] || fallbackPortrait(item.name, getColor(item.id));
-              return (
-                <article key={item.id} className="pmr-reference-card">
-                  <div className="pmr-reference-card__media">
-                    <img src={portrait} alt={item.name} />
-                    <span style={{ background: `linear-gradient(180deg, transparent, ${getColor(item.id)})` }} />
+            {openCard ? (
+              <section className="pmr-detail">
+                <div className="pmr-detail__header">
+                  <div>
+                    <p className="eyebrow">{lang === "es" ? "Lectura detallada" : "Detailed readout"}</p>
+                    <h2>{openCard.promiseText}</h2>
                   </div>
-                  <div className="pmr-reference-card__body">
-                    <small>{item.period} · {item.role}</small>
-                    <strong>{item.name}</strong>
-                    <p>{item.promiseQuote}</p>
-                    <p>{item.outcomeQuote}</p>
-                    <div className="pmr-reference-card__links">
-                      <a href={item.sourceUrl} target="_blank" rel="noreferrer">{item.sourceLabel}</a>
-                      <a href={item.outcomeUrl} target="_blank" rel="noreferrer">{item.outcomeLabel}</a>
+                  <div className="pmr-detail__scorebox">
+                    <span>{lang === "es" ? "similitud" : "similarity"}</span>
+                    <strong>{openCard.similarityScore}%</strong>
+                  </div>
+                </div>
+
+                <div className="pmr-quote-grid">
+                  <article className="pmr-quote-card">
+                    <div className="pmr-detail-card__label">
+                      <Quote size={15} />
+                      {lang === "es" ? "Lo prometido" : "What was promised"}
                     </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="pmr-reference-section surface-soft">
-          <div className="pmr-section-header">
-            <div>
-              <p className="eyebrow">{lang === "es" ? "Comparativos 2018-2022" : "2018-2022 comparisons"}</p>
-              <h2>{lang === "es" ? "Referencias históricas para leer el siguiente ciclo" : "Historical references to read the next cycle"}</h2>
-            </div>
-            <p>
-              {lang === "es"
-                ? "Estas tarjetas no miden cumplimiento en tiempo real: ayudan a contrastar cómo envejece una promesa cuando cambia el ciclo político."
-                : "These cards do not measure real-time compliance: they help contrast how a promise ages as the political cycle changes."}
-            </p>
-          </div>
-
-          <div className="pmr-reference-grid">
-            {HISTORICAL_REFERENCES.map((item) => {
-              const portrait = portraits[item.id] || fallbackPortrait(item.name, getColor(item.id));
-              return (
-                <article key={item.id} className="pmr-reference-card">
-                  <div className="pmr-reference-card__media">
-                    <img src={portrait} alt={item.name} />
-                    <span style={{ background: `linear-gradient(180deg, transparent, ${getColor(item.id)})` }} />
-                  </div>
-                  <div className="pmr-reference-card__body">
-                    <small>{item.period} · {item.role}</small>
-                    <strong>{item.name}</strong>
-                    <p>{item.promiseQuote}</p>
-                    <p>{item.outcomeQuote}</p>
-                    <div className="pmr-reference-card__links">
-                      <a href={item.sourceUrl} target="_blank" rel="noreferrer">{item.sourceLabel}</a>
-                      <a href={item.outcomeUrl} target="_blank" rel="noreferrer">{item.outcomeLabel}</a>
+                    <p>“{openCard.promiseText}”</p>
+                  </article>
+                  <article className="pmr-quote-card">
+                    <div className="pmr-detail-card__label">
+                      <Quote size={15} />
+                      {lang === "es" ? "Lo observado" : "What was observed"}
                     </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
+                    <p>“{openCard.actionSummary || copy.noEvidence}”</p>
+                  </article>
+                </div>
 
-        <section className="pmr-reference-section pmr-reference-section--dark surface">
-          <div className="pmr-section-header">
-            <div>
-              <p className="eyebrow">{lang === "es" ? "Radar presidencial 2026" : "2026 presidential radar"}</p>
-              <h2>{lang === "es" ? "Promesas tempranas, todavía sin ejecución" : "Early promises, still without execution"}</h2>
-            </div>
-            <p>
-              {lang === "es"
-                ? "Aquí no se mezcla campaña con cumplimiento. Por ahora solo importa la fuente, el lenguaje de la promesa y el tema dominante."
-                : "Campaign and compliance are not mixed here. For now, only the source, the promise language, and the dominant theme matter."}
-            </p>
-          </div>
-
-          <div className="pmr-reference-grid pmr-reference-grid--radar">
-            {RADAR_2026.map((item) => {
-              const portrait = portraits[item.id] || fallbackPortrait(item.name, getColor(item.id));
-              return (
-                <article key={item.id} className="pmr-reference-card pmr-reference-card--radar">
-                  <div className="pmr-reference-card__media">
-                    <img src={portrait} alt={item.name} />
-                    <span style={{ background: `linear-gradient(180deg, transparent, ${getColor(item.id)})` }} />
-                  </div>
-                  <div className="pmr-reference-card__body">
-                    <small>{item.period} · {item.role}</small>
-                    <strong>{item.name}</strong>
-                    <p>{item.promiseQuote}</p>
-                    <p>{item.note}</p>
-                    <div className="pmr-reference-card__links">
-                      <a href={item.sourceUrl} target="_blank" rel="noreferrer">{item.sourceLabel}</a>
-                      <a href={item.outcomeUrl} target="_blank" rel="noreferrer">{item.outcomeLabel}</a>
+                <div className="pmr-detail__grid">
+                  <article className="pmr-detail-card">
+                    <div className="pmr-detail-card__label">
+                      <BookOpenText size={15} />
+                      {lang === "es" ? "Fuente de la promesa" : "Promise source"}
                     </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
+                    <strong>{openCard.promiseSourceLabel}</strong>
+                    <p>{openCard.promiseText}</p>
+                    <a href={openCard.promiseSourceUrl} target="_blank" rel="noreferrer" className="btn-secondary">
+                      {copy.verifyPromise} <ArrowUpRight size={14} />
+                    </a>
+                  </article>
+
+                  <article className="pmr-detail-card">
+                    <div className="pmr-detail-card__label">
+                      <Landmark size={15} />
+                      {lang === "es" ? "Fuente de la acción" : "Action source"}
+                    </div>
+                    <strong>{openCard.actionTitle}</strong>
+                    <p>{openCard.actionSummary || copy.noEvidence}</p>
+                    <a href={openCard.actionSourceUrl} target="_blank" rel="noreferrer" className="btn-secondary">
+                      {copy.verifyAction} <ArrowUpRight size={14} />
+                    </a>
+                  </article>
+
+                  <article className="pmr-detail-card pmr-detail-card--analysis">
+                    <div className="pmr-detail-card__label">
+                      <ScanSearch size={15} />
+                      {lang === "es" ? "Cómo se enlaza" : "How the link is built"}
+                    </div>
+                    <strong>{getSemanticReadout(openCard, lang).title}</strong>
+                    <p>{getSemanticReadout(openCard, lang).body}</p>
+                    <div className="pmr-metric-list">
+                      <div>
+                        <span>{copy.extraction}</span>
+                        <strong>{openCard.extractionConfidence}%</strong>
+                      </div>
+                      <div>
+                        <span>{copy.confidence}</span>
+                        <strong>{openCard.statusConfidence}%</strong>
+                      </div>
+                      <div>
+                        <span>{lang === "es" ? "fuente de acción" : "action source"}</span>
+                        <strong>{openCard.actionSourceSystem || "—"}</strong>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            ) : null}
+          </section>
+        ) : activeReference ? (
+          <section className={`pmr-reference-stage ${activePeriod === 2026 ? "pmr-reference-stage--dark surface" : "surface-soft"}`}>
+            <div className="pmr-section-header">
+              <div>
+                <p className="eyebrow">{activePeriod === 2018 ? (lang === "es" ? "Referencias 2018-2022" : "2018-2022 references") : (lang === "es" ? "Radar 2026" : "2026 radar")}</p>
+                <h2>
+                  {activePeriod === 2018
+                    ? lang === "es"
+                      ? "Perfiles históricos para comparar ciclo, cámara y huella pública"
+                      : "Historical profiles to compare cycle, chamber, and public footprint"
+                    : lang === "es"
+                      ? "Promesa temprana, fuente pública y seguimiento preelectoral"
+                      : "Early promise, public source, and pre-electoral tracking"}
+                </h2>
+              </div>
+              <p>{periodBody}</p>
+            </div>
+
+            <div className="pmr-reference-picker">
+              {(activePeriod === 2018 ? visibleHistorical : visibleRadar).map((item) => {
+                const isActive = item.id === activeReference.id;
+                const fallback = fallbackPortrait(item.name, getColor(item.id));
+                const portrait = portraits[item.id] || fallback;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`pmr-reference-choice ${isActive ? "pmr-reference-choice--active" : ""}`}
+                    onClick={() => (activePeriod === 2018 ? setActiveHistoricalId(item.id) : setActiveRadarId(item.id))}
+                    style={isActive ? { borderColor: getColor(item.id) } : undefined}
+                  >
+                    <img
+                      src={portrait}
+                      alt={item.name}
+                      onError={(event) => {
+                        event.currentTarget.src = fallback;
+                      }}
+                    />
+                    <div>
+                      <strong>{item.name}</strong>
+                      <span>{item.role}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <article className="pmr-reference-focus">
+              <div className="pmr-reference-focus__media">
+                <img
+                  src={activeReferencePortrait}
+                  alt={activeReference.name}
+                  onError={(event) => {
+                    event.currentTarget.src = fallbackPortrait(activeReference.name, activeReferenceColor);
+                  }}
+                />
+                <span style={{ background: `linear-gradient(180deg, transparent, ${activeReferenceColor})` }} />
+              </div>
+              <div className="pmr-reference-focus__body">
+                <small>{activeReference.period} · {activeReference.role}</small>
+                <h3>{activeReference.name}</h3>
+                <p>{activeReference.promiseQuote}</p>
+                <p>{activeReference.outcomeQuote}</p>
+                <p>{activeReference.note}</p>
+                <div className="pmr-reference-card__links">
+                  <a href={activeReference.sourceUrl} target="_blank" rel="noreferrer">{activeReference.sourceLabel}</a>
+                  <a href={activeReference.outcomeUrl} target="_blank" rel="noreferrer">{activeReference.outcomeLabel}</a>
+                </div>
+              </div>
+            </article>
+          </section>
+        ) : null}
 
         <section className="pmr-reference-section surface-soft">
           <div className="pmr-section-header">

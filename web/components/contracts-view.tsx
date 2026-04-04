@@ -386,14 +386,17 @@ export function ContractsView({
   const freshnessGap = freshness?.sourceFreshnessGapDays ?? overview?.meta.sourceFreshnessGapDays ?? null;
   const sourceUpdatedAt = freshness?.sourceUpdatedAt ?? overview?.meta.sourceUpdatedAt ?? null;
   const currentDepartment = filters.department
-    ? overview?.map.departments.find((item) => item.geoName === filters.department)
+    ? overview?.map?.departments.find((item) => item.geoName === filters.department)
     : null;
   const explorerGroups = useMemo(() => buildExplorerGroups(tableRows, explorerGroup), [tableRows, explorerGroup]);
   const selectedTone = selectedCase ? scoreTone(selectedCase.score) : "low";
-  const sliceMeanScore = Math.round((overview?.benchmarks.sliceMeanRisk ?? 0) * 100);
-  const nationalMeanScore = Math.round((overview?.benchmarks.nationalMeanRisk ?? 0) * 100);
-  const departmentMeanScore = Math.round((overview?.benchmarks.departmentMeanRisk ?? 0) * 100);
-  const sliceMedianValue = overview?.benchmarks.sliceMedianValue ?? 0;
+  const sliceMeanRisk = overview?.benchmarks?.sliceMeanRisk ?? leadCases.reduce((sum, item) => sum + item.score / 100, 0) / Math.max(leadCases.length, 1);
+  const nationalMeanRisk = overview?.benchmarks?.nationalMeanRisk ?? sliceMeanRisk;
+  const departmentMeanRisk = overview?.benchmarks?.departmentMeanRisk ?? currentDepartment?.avgRisk ?? null;
+  const sliceMeanScore = Math.round(sliceMeanRisk * 100);
+  const nationalMeanScore = Math.round(nationalMeanRisk * 100);
+  const departmentMeanScore = Math.round((departmentMeanRisk ?? 0) * 100);
+  const sliceMedianValue = overview?.benchmarks?.sliceMedianValue ?? 0;
   const summaryHighlights = [
     {
       label: lang === "es" ? "Territorio dominante" : "Dominant territory",
@@ -762,7 +765,7 @@ export function ContractsView({
                 </article>
                 <article className="cv-focus-compare-card">
                   <span>{lang === "es" ? "Referencia territorial" : "Territorial reference"}</span>
-                  <strong>{filters.department && overview?.benchmarks.departmentMeanRisk !== null ? `${departmentMeanScore}/100` : "—"}</strong>
+                  <strong>{filters.department && departmentMeanRisk !== null ? `${departmentMeanScore}/100` : "—"}</strong>
                 </article>
               </div>
 

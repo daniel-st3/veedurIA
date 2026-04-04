@@ -20,6 +20,48 @@ export type ContractsFilters = {
   dateTo?: string;
 };
 
+function hasObjectShape(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isValidOverviewPayload(value: unknown): value is OverviewPayload {
+  if (!hasObjectShape(value)) return false;
+  const payload = value as Record<string, unknown>;
+  const benchmarks = payload.benchmarks;
+  return (
+    hasObjectShape(payload.meta) &&
+    hasObjectShape(payload.options) &&
+    hasObjectShape(payload.map) &&
+    hasObjectShape(payload.slice) &&
+    Array.isArray(payload.leadCases) &&
+    hasObjectShape(benchmarks) &&
+    typeof benchmarks.sliceMeanRisk === "number" &&
+    typeof benchmarks.nationalMeanRisk === "number"
+  );
+}
+
+function isValidFreshnessPayload(value: unknown): value is ContractsFreshnessPayload {
+  if (!hasObjectShape(value)) return false;
+  const payload = value as Record<string, unknown>;
+  return hasObjectShape(payload.liveFeed) && Array.isArray(payload.liveFeed.contracts);
+}
+
+function isRichPromisesPayload(value: unknown): value is PromisesPayload {
+  if (!hasObjectShape(value)) return false;
+  const payload = value as Record<string, unknown>;
+  return (
+    hasObjectShape(payload.meta) &&
+    hasObjectShape(payload.options) &&
+    hasObjectShape(payload.kpis) &&
+    hasObjectShape(payload.scorecard) &&
+    Array.isArray(payload.cards) &&
+    Array.isArray(payload.options.politicians) &&
+    payload.options.politicians.length >= 8 &&
+    typeof payload.kpis.promisesTracked === "number" &&
+    payload.kpis.promisesTracked >= 24
+  );
+}
+
 function buildQuery(params: Record<string, string | number | boolean | undefined>) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -45,7 +87,9 @@ export async function fetchOverview(filters: ContractsFilters): Promise<Overview
       cache: "no-store",
     });
     if (!response.ok) throw new Error("Failed to fetch overview");
-    return await response.json();
+    const payload = await response.json();
+    if (!isValidOverviewPayload(payload)) throw new Error("Incomplete overview payload");
+    return payload;
   } catch {
     return getMockOverview(filters);
   }
@@ -83,7 +127,9 @@ export async function fetchContractsFreshness(): Promise<ContractsFreshnessPaylo
       cache: "no-store",
     });
     if (!response.ok) throw new Error("Failed to fetch contracts freshness");
-    return await response.json();
+    const payload = await response.json();
+    if (!isValidFreshnessPayload(payload)) throw new Error("Incomplete freshness payload");
+    return payload;
   } catch {
     return getMockFreshness();
   }
@@ -105,6 +151,7 @@ export type PromiseFilters = {
   domain?: string;
   status?: string;
   electionYear?: number;
+  chamber?: string;
   query?: string;
   limit?: number;
 };
@@ -124,7 +171,9 @@ export async function fetchPromisesOverview(filters: PromiseFilters): Promise<Pr
       cache: "no-store",
     });
     if (!response.ok) throw new Error("Failed to fetch promises overview");
-    return await response.json();
+    const payload = await response.json();
+    if (!isRichPromisesPayload(payload)) throw new Error("Thin promises payload");
+    return payload;
   } catch {
     return getMockPromises(filters);
   }

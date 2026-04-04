@@ -128,24 +128,54 @@ export function LandingPage({
 
       <main className="page lp-page">
         <section className="lp-hero-shell surface stripe-flag">
-          <div className="lp-hero-copy">
-            <p className="eyebrow">
-              {lang === "es"
-                ? "VeedurIA · contratos, promesas y señales de poder en una sola entrada"
-                : "VeedurIA · contracts, promises, and power signals in one entry point"}
-            </p>
+          <div className="lp-hero-top">
+            <div className="lp-hero-copy">
+              <p className="eyebrow">
+                {lang === "es"
+                  ? "VeedurIA · contratos, promesas y señales de poder en una sola entrada"
+                  : "VeedurIA · contracts, promises, and power signals in one entry point"}
+              </p>
 
-            <h1 className="lp-hero-title">
-              <span className="flag-yellow">{lang === "es" ? "Ver" : "See"}</span>{" "}
-              <span className="flag-blue">{lang === "es" ? "qué pasó" : "what happened"}</span>{" "}
-              <span className="flag-red">{lang === "es" ? "y dónde mirar" : "and where to look"}</span>
-            </h1>
+              <h1 className="lp-hero-title">
+                <span className="flag-yellow">{lang === "es" ? "Ver" : "See"}</span>{" "}
+                <span className="flag-blue">{lang === "es" ? "qué pasó" : "what happened"}</span>{" "}
+                <span className="flag-red">{lang === "es" ? "y dónde mirar" : "and where to look"}</span>
+              </h1>
 
-            <p className="lp-hero-body">
-              {lang === "es"
-                ? "VeedurIA organiza lo importante primero: contratación pública, promesas rastreables y los patrones que ameritan revisión humana."
-                : "VeedurIA puts the important signals first: public procurement, traceable promises, and the patterns worth human review."}
-            </p>
+              <p className="lp-hero-body">
+                {lang === "es"
+                  ? "Audita contratación, compara promesas y entra directo a la fuente útil sin perder tiempo en pantallas mudas o texto de relleno."
+                  : "Audit procurement, compare promises, and jump straight into the useful source without wasting time on empty screens or filler copy."}
+              </p>
+
+              <div className="lp-hero-tags">
+                <span>{lang === "es" ? "SECOP II" : "SECOP II"}</span>
+                <span>{lang === "es" ? "Congreso" : "Congress"}</span>
+                <span>{lang === "es" ? "Radar 2026" : "2026 radar"}</span>
+              </div>
+            </div>
+
+            <div className="lp-hero-signal">
+              <div className="lp-hero-signal__header">
+                <span>{lang === "es" ? "Empieza por aquí" : "Start here"}</span>
+                <strong>{lang === "es" ? "Tres entradas claras, una sola lectura" : "Three clear entries, one reading flow"}</strong>
+              </div>
+
+              <article className="lp-hero-signal__card lp-hero-signal__card--yellow">
+                <strong>ContratoLimpio</strong>
+                <p>{lang === "es" ? "Territorio, filtros, caso principal y regreso al expediente." : "Territory, filters, lead case, and jump back to the record."}</p>
+              </article>
+
+              <article className="lp-hero-signal__card lp-hero-signal__card--blue">
+                <strong>Promesómetro</strong>
+                <p>{lang === "es" ? "Periodo político, actor público y evidencia observable en un tablero." : "Political cycle, public actor, and observable evidence in one board."}</p>
+              </article>
+
+              <article className="lp-hero-signal__card lp-hero-signal__card--red">
+                <strong>SigueElDinero</strong>
+                <p>{lang === "es" ? "La próxima capa conectará contratos, redes y trazabilidad de poder." : "The next layer will connect contracts, networks, and power traceability."}</p>
+              </article>
+            </div>
           </div>
 
           <div className="lp-kpi-row">
