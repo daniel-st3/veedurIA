@@ -203,6 +203,7 @@ export type PromisesPayload = {
     domains: PromiseScoreDomain[];
   };
   cards: PromiseCard[];
+  sandboxCards: PromiseCard[];
   highlights: {
     focusPolitician: string;
     focusDomain: string;

@@ -10,7 +10,7 @@ export default async function PromesMetroPage({
   const params = await searchParams;
   const lang = resolveLang(params.lang);
   
-  const payload = await fetchPromisesOverview({ lang, limit: 18 });
+  const payload = await fetchPromisesOverview({ lang, limit: 48 });
 
   return <PromisesView lang={lang} initialPayload={payload} />;
 }

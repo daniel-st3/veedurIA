@@ -57,34 +57,39 @@ const FEATURES = (lang: Lang, totalContracts: number, redAlerts: number) => [
       lang === "es"
         ? `${redAlerts.toLocaleString("es-CO")} alertas altas ya sirven de semilla`
         : `${redAlerts.toLocaleString("en-US")} high-signal alerts already seed the graph`,
-    href: "#",
-    cta: lang === "es" ? "Próximo módulo" : "Next module",
+    href: `/sigue-el-dinero?lang=${lang}`,
+    cta: lang === "es" ? "Entrar al mapa relacional" : "Open relationship map",
     icon: Waypoints,
-    disabled: true,
   },
 ];
 
 const ENTRY_POINTS = (lang: Lang) => [
   {
-    title: lang === "es" ? "Si quieres revisar contratos" : "If you want to review contracts",
+    title: lang === "es" ? "Rastrea compras públicas" : "Trace public procurement",
     body:
       lang === "es"
-        ? "Empieza por territorio, identifica el caso principal y revisa los últimos contratos cargados desde la fuente oficial."
-        : "Start by territory, inspect the lead case, and review the most recent contracts loaded from the official source.",
+        ? "Abre el corte, toca un departamento y entra directo al contrato que conviene revisar primero."
+        : "Open the slice, tap a department, and jump straight into the contract worth reviewing first.",
+    href: `/contrato-limpio?lang=${lang}`,
+    tone: "yellow" as FeatureTone,
   },
   {
-    title: lang === "es" ? "Si quieres seguir promesas" : "If you want to track promises",
+    title: lang === "es" ? "Contrasta promesas y hechos" : "Contrast promises and facts",
     body:
       lang === "es"
-        ? "Abre el periodo político, compara la promesa original y salta a la acción pública o al programa que la respalda."
-        : "Open the political cycle, compare the original promise, and jump to the public action or source program behind it.",
+        ? "Escoge el periodo, el actor y el tema para ver qué prometió, qué sí aparece y qué sigue sin evidencia."
+        : "Choose the cycle, actor, and theme to see what was promised, what already appears, and what still lacks evidence.",
+    href: `/promesmetro?lang=${lang}`,
+    tone: "blue" as FeatureTone,
   },
   {
-    title: lang === "es" ? "Si quieres entender redes" : "If you want to understand networks",
+    title: lang === "es" ? "Conecta redes de poder" : "Connect power networks",
     body:
       lang === "es"
-        ? "Usa la capa de señales actuales para ubicar proveedores, entidades y territorios que merecen una revisión relacional."
-        : "Use the current signal layer to locate providers, entities, and territories worth relational review.",
+        ? "Pasa del caso aislado a la relación entre contratistas, entidades, donaciones y señales repetidas."
+        : "Move from the isolated case to the relationship between contractors, entities, donations, and repeated signals.",
+    href: `/sigue-el-dinero?lang=${lang}`,
+    tone: "red" as FeatureTone,
   },
 ];
 
@@ -109,6 +114,30 @@ export function LandingPage({
     };
   }, [lang]);
 
+  useEffect(() => {
+    const nodes = [...document.querySelectorAll<HTMLElement>("[data-reveal]")];
+    if (!nodes.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.18, rootMargin: "0px 0px -10% 0px" },
+    );
+
+    nodes.forEach((node, index) => {
+      node.style.setProperty("--reveal-delay", `${index * 80}ms`);
+      observer.observe(node);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   const totalContracts = overview.meta.sourceRows || overview.meta.totalRows || overview.slice.totalContracts;
   const redAlerts = overview.slice.redAlerts;
   const latestDate = overview.meta.sourceLatestContractDate ?? overview.meta.latestContractDate ?? "—";
@@ -122,91 +151,59 @@ export function LandingPage({
         links={[
           { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
           { href: `/promesmetro?lang=${lang}`, label: "Promesómetro" },
-          { href: "#", label: "SigueElDinero" },
+          { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
         ]}
       />
 
       <main className="page lp-page">
-        <section className="lp-hero-shell surface stripe-flag">
-          <div className="lp-hero-top">
-            <div className="lp-hero-copy">
-              <p className="eyebrow">
-                {lang === "es"
-                  ? "VeedurIA · contratos, promesas y señales de poder en una sola entrada"
-                  : "VeedurIA · contracts, promises, and power signals in one entry point"}
-              </p>
+        <section className="lp-hero-shell surface stripe-flag" data-reveal>
+          <div className="lp-hero-copy lp-hero-copy--single">
+            <p className="eyebrow">
+              {lang === "es"
+                ? "VeedurIA · contratos, promesas y redes públicas en una sola entrada"
+                : "VeedurIA · contracts, promises, and public networks in one entry point"}
+            </p>
 
-              <h1 className="lp-hero-title">
-                <span className="flag-yellow">{lang === "es" ? "Ver" : "See"}</span>{" "}
-                <span className="flag-blue">{lang === "es" ? "qué pasó" : "what happened"}</span>{" "}
-                <span className="flag-red">{lang === "es" ? "y dónde mirar" : "and where to look"}</span>
-              </h1>
+            <h1 className="lp-hero-title">
+              <span className="flag-yellow">{lang === "es" ? "Detecta" : "Detect"}</span>{" "}
+              <span className="flag-blue">{lang === "es" ? "la señal" : "the signal"}</span>{" "}
+              <span className="flag-red">{lang === "es" ? "antes de que se pierda" : "before it disappears"}</span>
+            </h1>
 
-              <p className="lp-hero-body">
-                {lang === "es"
-                  ? "Audita contratación, compara promesas y entra directo a la fuente útil sin perder tiempo en pantallas mudas o texto de relleno."
-                  : "Audit procurement, compare promises, and jump straight into the useful source without wasting time on empty screens or filler copy."}
-              </p>
+            <p className="lp-hero-body">
+              {lang === "es"
+                ? "Entra por contratación, promesas o redes. Cada ruta arranca con un caso, una lectura corta y un clic directo a la fuente que importa."
+                : "Start from procurement, promises, or networks. Each route begins with a useful case, a short read, and a direct click to the source that matters."}
+            </p>
 
-              <div className="lp-hero-tags">
-                <span>{lang === "es" ? "SECOP II" : "SECOP II"}</span>
-                <span>{lang === "es" ? "Congreso" : "Congress"}</span>
-                <span>{lang === "es" ? "Radar 2026" : "2026 radar"}</span>
-              </div>
-            </div>
-
-            <div className="lp-hero-signal">
-              <div className="lp-hero-signal__header">
-                <span>{lang === "es" ? "Empieza por aquí" : "Start here"}</span>
-                <strong>{lang === "es" ? "Tres entradas claras, una sola lectura" : "Three clear entries, one reading flow"}</strong>
-              </div>
-
-              <article className="lp-hero-signal__card lp-hero-signal__card--yellow">
-                <strong>ContratoLimpio</strong>
-                <p>{lang === "es" ? "Territorio, filtros, caso principal y regreso al expediente." : "Territory, filters, lead case, and jump back to the record."}</p>
-              </article>
-
-              <article className="lp-hero-signal__card lp-hero-signal__card--blue">
-                <strong>Promesómetro</strong>
-                <p>{lang === "es" ? "Periodo político, actor público y evidencia observable en un tablero." : "Political cycle, public actor, and observable evidence in one board."}</p>
-              </article>
-
-              <article className="lp-hero-signal__card lp-hero-signal__card--red">
-                <strong>SigueElDinero</strong>
-                <p>{lang === "es" ? "La próxima capa conectará contratos, redes y trazabilidad de poder." : "The next layer will connect contracts, networks, and power traceability."}</p>
-              </article>
+            <div className="lp-hero-tags">
+              <span>{lang === "es" ? `${totalContracts.toLocaleString("es-CO")} registros visibles` : `${totalContracts.toLocaleString("en-US")} visible records`}</span>
+              <span>{lang === "es" ? `fuente al ${latestDate}` : `source through ${latestDate}`}</span>
+              <span>{lang === "es" ? `${redAlerts.toLocaleString("es-CO")} alertas altas` : `${redAlerts.toLocaleString("en-US")} high alerts`}</span>
             </div>
           </div>
 
-          <div className="lp-kpi-row">
-            <article className="lp-kpi-card lp-kpi-card--yellow">
-              <span>{lang === "es" ? "Universo visible" : "Visible universe"}</span>
-              <strong>{totalContracts.toLocaleString("es-CO")}</strong>
-              <p>{lang === "es" ? "filas oficiales cargadas" : "official rows loaded"}</p>
-            </article>
-            <article className="lp-kpi-card lp-kpi-card--blue">
-              <span>{lang === "es" ? "Último dato fuente" : "Latest source date"}</span>
-              <strong>{latestDate}</strong>
-              <p>{lang === "es" ? "desde SECOP II / datos.gov.co" : "from SECOP II / datos.gov.co"}</p>
-            </article>
-            <article className="lp-kpi-card lp-kpi-card--red">
-              <span>{lang === "es" ? "Alertas altas" : "High alerts"}</span>
-              <strong>{redAlerts.toLocaleString("es-CO")}</strong>
-              <p>{lang === "es" ? "casos que conviene abrir primero" : "cases worth opening first"}</p>
-            </article>
-          </div>
+          <div className="lp-start-panel" data-reveal>
+            <div className="lp-start-panel__copy">
+              <span>{lang === "es" ? "Empieza por aquí" : "Start here"}</span>
+              <strong>{lang === "es" ? "Tres entradas claras, una sola lectura" : "Three clear entries, one reading flow"}</strong>
+            </div>
 
-          <div className="lp-entry-grid">
-            {entryPoints.map((item) => (
-              <article key={item.title} className="lp-entry-card">
-                <strong>{item.title}</strong>
-                <p>{item.body}</p>
-              </article>
-            ))}
+            <div className="lp-start-grid">
+              {entryPoints.map((item) => (
+                <Link key={item.title} href={item.href} className={`lp-start-card lp-start-card--${item.tone}`}>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <p>{item.body}</p>
+                  </div>
+                  <ArrowRight size={18} />
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className="lp-modules">
+        <section className="lp-modules" data-reveal>
           {features.map((feature) => {
             const Icon = feature.icon;
 
@@ -229,16 +226,12 @@ export function LandingPage({
                 <div className={`lp-module__cta lp-module__cta--${feature.tone}`}>
                   <Icon size={16} />
                   <span>{feature.cta}</span>
-                  {!feature.disabled ? <ArrowRight size={16} /> : null}
+                  <ArrowRight size={16} />
                 </div>
               </>
             );
 
-            return feature.disabled ? (
-              <article key={feature.title} className={`lp-module lp-module--${feature.tone} lp-module--disabled surface`}>
-                {content}
-              </article>
-            ) : (
+            return (
               <Link key={feature.title} href={feature.href} className={`lp-module lp-module--${feature.tone} surface`}>
                 {content}
               </Link>
@@ -246,14 +239,14 @@ export function LandingPage({
           })}
         </section>
 
-        <section className="lp-proof-strip surface-soft">
+        <section className="lp-proof-strip surface-soft" data-reveal>
           <article>
             <span>{lang === "es" ? "Fuente verificable" : "Verifiable source"}</span>
             <strong>{lang === "es" ? "SECOP II, Congreso, Cámara, Senado y programas públicos" : "SECOP II, Congress, House, Senate, and public programs"}</strong>
           </article>
           <article>
             <span>{lang === "es" ? "Lectura corta" : "Short read"}</span>
-            <strong>{lang === "es" ? "Cada módulo arranca con el caso, el contexto y el siguiente clic útil" : "Each module starts with the case, the context, and the next useful click"}</strong>
+            <strong>{lang === "es" ? "Cada módulo arranca con el caso, el contexto y el siguiente paso claro" : "Each module starts with the case, the context, and the next clear step"}</strong>
           </article>
           <article>
             <span>{lang === "es" ? "Escala nacional" : "National scale"}</span>

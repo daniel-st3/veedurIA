@@ -466,8 +466,8 @@ export function ContractsView({
               <h1>{lang === "es" ? "Contratos que vale la pena abrir primero" : "Contracts worth opening first"}</h1>
               <p className="cv-hero-panel__body">
                 {lang === "es"
-                  ? "Filtro, mapa, caso principal y regreso a SECOP II en una sola lectura. Sin relleno, sin bloques duplicados y con la frescura del dato visible."
-                  : "Filters, map, lead case, and a jump back to SECOP II in one read. No filler, no repeated blocks, and the data freshness shown upfront."}
+                  ? "Usa el filtro, mira el patrón territorial y baja al caso principal. Lo que cambia con tu corte queda separado de la información fija de la fuente para que no se mezcle."
+                  : "Use the filters, read the territorial pattern, and move down into the lead case. What changes with your slice is separated from the fixed source information so they do not get mixed."}
               </p>
             </div>
 
@@ -493,232 +493,227 @@ export function ContractsView({
             </div>
           </div>
 
-          <div className="cv-slice-row">
-            <div className="cv-slice-pill">
-              <span>{lang === "es" ? "Lectura activa" : "Active slice"}</span>
-              <strong>{activeSlice.length ? activeSlice.join(" · ") : copy.currentSliceDefault}</strong>
-            </div>
-            <div className="cv-slice-pill">
-              <span>{lang === "es" ? "Fuente oficial visible" : "Visible official source"}</span>
-              <strong>{latestSourceDate}</strong>
-            </div>
-            <div className="cv-slice-pill">
-              <span>{lang === "es" ? "Capa analítica" : "Analytical layer"}</span>
-              <strong>{latestScoredDate}</strong>
-            </div>
-            <div className="cv-slice-pill">
-              <span>{lang === "es" ? "Última actualización del portal" : "Portal updated at"}</span>
-              <strong>{formatPortalUpdated(lang, sourceUpdatedAt)}</strong>
-            </div>
-          </div>
-
-          <div className="cv-filter-grid">
-            <label className="filter-field cv-filter-grid__wide">
-              <span className="label">
-                <Search size={13} style={{ verticalAlign: "middle", marginRight: 5 }} />
-                {copy.searchLabel}
-              </span>
-              <input
-                value={draft.query ?? ""}
-                onChange={(event) => setDraft((prev) => ({ ...prev, query: event.target.value }))}
-                placeholder={copy.searchPlaceholder}
-              />
-            </label>
-
-            <label className="filter-field">
-              <span className="label">{copy.filterDepartment}</span>
-              <select
-                value={draft.department ?? ""}
-                onChange={(event) => setDraft((prev) => ({ ...prev, department: event.target.value || undefined }))}
-              >
-                <option value="">{copy.filterAll}</option>
-                {(overview?.options.departments ?? []).map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="filter-field">
-              <span className="label">{copy.filterRisk}</span>
-              <select
-                value={draft.risk}
-                onChange={(event) => setDraft((prev) => ({ ...prev, risk: event.target.value as FilterState["risk"] }))}
-              >
-                <option value="all">{copy.riskAll}</option>
-                <option value="high">{copy.riskHigh}</option>
-                <option value="medium">{copy.riskMedium}</option>
-                <option value="low">{copy.riskLow}</option>
-              </select>
-            </label>
-
-            <label className="filter-field">
-              <span className="label">{copy.filterModality}</span>
-              <select
-                value={draft.modality ?? ""}
-                onChange={(event) => setDraft((prev) => ({ ...prev, modality: event.target.value || undefined }))}
-              >
-                <option value="">{copy.filterAll}</option>
-                {(overview?.options.modalities ?? []).map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="filter-field">
-              <span className="label">{copy.filterDateFrom}</span>
-              <input
-                type="date"
-                value={draft.dateFrom ?? ""}
-                onChange={(event) => setDraft((prev) => ({ ...prev, dateFrom: event.target.value }))}
-              />
-            </label>
-
-            <label className="filter-field">
-              <span className="label">{copy.filterDateTo}</span>
-              <input
-                type="date"
-                value={draft.dateTo ?? ""}
-                onChange={(event) => setDraft((prev) => ({ ...prev, dateTo: event.target.value }))}
-              />
-            </label>
-
-            <button
-              type="button"
-              className="btn-primary cv-filter-action"
-              onClick={() => {
-                setPage(0);
-                setFilters(draft);
-              }}
-            >
-              <Filter size={15} />
-              {copy.applyFilters}
-            </button>
-
-            <button
-              type="button"
-              className="btn-secondary cv-filter-action"
-              onClick={() => {
-                const next = { ...draft, full: !draft.full };
-                setDraft(next);
-                setPage(0);
-                setFilters(next);
-              }}
-            >
-              <Database size={15} />
-              {draft.full ? copy.togglePreview : copy.toggleFull}
-            </button>
-          </div>
-
-          <p className="cv-helper-copy">
-            {draft.full
-              ? lang === "es"
-                ? "Historial completo activo. La consulta tarda más, pero deja de depender de la muestra rápida."
-                : "Full history is active. The query takes longer, but no longer depends on the quick sample."
-              : lang === "es"
-                ? "La interacción rápida trabaja sobre la muestra priorizada; el titular principal sigue mostrando el tamaño real de la fuente cuando no hay filtros fuertes."
-                : "Fast interaction uses the prioritized sample; the headline still shows the real source size when there are no strong filters."}
-          </p>
-        </section>
-
-        <section className="cv-reading-strip surface-soft">
-          <article>
-            <strong>{lang === "es" ? "Qué significa una señal alta" : "What a high signal means"}</strong>
-            <p>
-              {lang === "es"
-                ? "Que el contrato rompe el patrón más frecuente del conjunto observado por competencia, precio, concentración o momento de firma."
-                : "It means the contract breaks from the most frequent pattern in the observed set through competition, price, concentration, or timing."}
-            </p>
-          </article>
-          <article>
-            <strong>{lang === "es" ? "Qué no significa" : "What it does not mean"}</strong>
-            <p>
-              {lang === "es"
-                ? "No prueba ilegalidad. Sirve para priorizar revisión y llegar al expediente con una hipótesis concreta."
-                : "It does not prove illegality. It helps prioritize review and reach the record with a concrete hypothesis."}
-            </p>
-          </article>
-          <article>
-            <strong>{lang === "es" ? "Qué hacer después" : "What to do next"}</strong>
-            <p>
-              {lang === "es"
-                ? "Comparar con el resto del corte, abrir SECOP II y revisar documentos, cronología, proveedor y modalidad."
-                : "Compare it against the rest of the slice, open SECOP II, and inspect documents, chronology, provider, and modality."}
-            </p>
-          </article>
-        </section>
-
-        <section className="cv-block surface">
-          <div className="cv-block__header">
-            <div>
-              <p className="eyebrow">{lang === "es" ? "Mapa de riesgo" : "Risk map"}</p>
-              <h2>{lang === "es" ? "Patrón territorial del corte" : "Territorial pattern of the slice"}</h2>
-            </div>
-            <p>
-              {lang === "es"
-                ? "El color resume intensidad relativa dentro del corte visible. Al cambiar de departamento, cambia también la lectura principal de abajo."
-                : "Color summarizes relative intensity inside the visible slice. Changing departments also changes the lead reading below."}
-            </p>
-          </div>
-
-          <div className="cv-map-guide">
-            <article>
-              <strong>{lang === "es" ? "Azul" : "Blue"}</strong>
-              <p>{lang === "es" ? "Más cerca del comportamiento típico del corte." : "Closer to the slice's typical behavior."}</p>
-            </article>
-            <article>
-              <strong>{lang === "es" ? "Ámbar" : "Amber"}</strong>
-              <p>{lang === "es" ? "Territorio para contrastar con casos concretos." : "A territory worth contrasting with concrete cases."}</p>
-            </article>
-            <article>
-              <strong>{lang === "es" ? "Rojo" : "Red"}</strong>
-              <p>{lang === "es" ? "Concentra la señal más fuerte dentro del corte visible." : "Concentrates the strongest signal in the visible slice."}</p>
-            </article>
-          </div>
-
-          <div className="cv-map-insight-row">
-            <article className="cv-map-insight">
-              <span>{lang === "es" ? "Departamento activo" : "Active department"}</span>
-              <strong>{currentDepartment?.label ?? (lang === "es" ? "Colombia completa" : "Whole Colombia")}</strong>
-            </article>
-            <article className="cv-map-insight">
-              <span>{lang === "es" ? "Contratos visibles" : "Visible contracts"}</span>
-              <strong>{currentDepartment?.contractCount?.toLocaleString("es-CO") ?? (overview?.slice.totalContracts ?? 0).toLocaleString("es-CO")}</strong>
-            </article>
-            <article className="cv-map-insight">
-              <span>{lang === "es" ? "Intensidad media" : "Average intensity"}</span>
-              <strong>{currentDepartment ? `${Math.round(currentDepartment.avgRisk * 100)}/100` : `${sliceMeanScore}/100`}</strong>
-            </article>
-          </div>
-
-          <div className="cv-map-frame cv-map-frame--compact">
-            {geojson && overview ? (
-              <ColombiaMap
-                geojson={geojson}
-                departments={overview.map.departments}
-                activeDepartment={filters.department}
-                showCaption
-                captionTitle={lang === "es" ? "Lectura actual" : "Current readout"}
-                captionBody={
-                  currentDepartment
-                    ? `${currentDepartment.contractCount.toLocaleString("es-CO")} ${lang === "es" ? "contratos visibles" : "visible contracts"} · ${Math.round(currentDepartment.avgRisk * 100)}/100 ${lang === "es" ? "de intensidad" : "intensity"}`
-                    : `${(overview?.slice.totalContracts ?? 0).toLocaleString("es-CO")} ${lang === "es" ? "contratos visibles" : "visible contracts"} · ${sliceMeanScore}/100`
-                }
-                onSelect={(department) => {
-                  const next = { ...filters, department: department === filters.department ? undefined : department };
-                  setDraft(next);
-                  setFilters(next);
-                  setPage(0);
-                }}
-              />
-            ) : (
-              <div className="surface" style={{ height: 360, display: "grid", placeItems: "center" }}>
-                <span className="label">{copy.loading}</span>
+          <div className="cv-workbench">
+            <section className="cv-control-panel surface-soft">
+              <div className="cv-control-panel__head">
+                <div>
+                  <p className="eyebrow">{lang === "es" ? "Arma tu corte" : "Set your slice"}</p>
+                  <h2>{lang === "es" ? "Filtra primero, compara después" : "Filter first, compare next"}</h2>
+                </div>
+                <p>
+                  {lang === "es"
+                    ? "1. Ajusta filtros. 2. Mira cómo cambia el mapa. 3. Baja al caso principal y al explorador para revisar evidencia."
+                    : "1. Adjust filters. 2. Watch the map change. 3. Move down into the lead case and explorer to inspect evidence."}
+                </p>
               </div>
-            )}
+
+              <div className="cv-context-strip">
+                <article className="cv-context-card cv-context-card--dynamic">
+                  <span>{lang === "es" ? "Sí cambia con tus filtros" : "Changes with your filters"}</span>
+                  <strong>{activeSlice.length ? activeSlice.join(" · ") : copy.currentSliceDefault}</strong>
+                  <p>
+                    {lang === "es"
+                      ? `${(overview?.slice.totalContracts ?? 0).toLocaleString("es-CO")} contratos visibles y lectura territorial del corte activo.`
+                      : `${(overview?.slice.totalContracts ?? 0).toLocaleString("en-US")} visible contracts and territorial readout for the active slice.`}
+                  </p>
+                </article>
+                <article className="cv-context-card cv-context-card--static">
+                  <span>{lang === "es" ? "Dato oficial del portal" : "Official portal data"}</span>
+                  <strong>{lang === "es" ? `Fuente publicada al ${latestSourceDate}` : `Source published through ${latestSourceDate}`}</strong>
+                  <p>
+                    {sourceUpdatedAt
+                      ? `${lang === "es" ? "Actualización diaria del portal" : "Daily portal refresh"}: ${formatPortalUpdated(lang, sourceUpdatedAt)}`
+                      : lang === "es"
+                        ? "Sin hora oficial visible"
+                        : "No official timestamp visible"}
+                  </p>
+                </article>
+              </div>
+
+              <div className="cv-filter-grid cv-filter-grid--tight">
+                <label className="filter-field cv-filter-grid__wide">
+                  <span className="label">
+                    <Search size={13} style={{ verticalAlign: "middle", marginRight: 5 }} />
+                    {copy.searchLabel}
+                  </span>
+                  <input
+                    value={draft.query ?? ""}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, query: event.target.value }))}
+                    placeholder={copy.searchPlaceholder}
+                  />
+                </label>
+
+                <label className="filter-field">
+                  <span className="label">{copy.filterDepartment}</span>
+                  <select
+                    value={draft.department ?? ""}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, department: event.target.value || undefined }))}
+                  >
+                    <option value="">{copy.filterAll}</option>
+                    {(overview?.options.departments ?? []).map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="filter-field">
+                  <span className="label">{copy.filterRisk}</span>
+                  <select
+                    value={draft.risk}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, risk: event.target.value as FilterState["risk"] }))}
+                  >
+                    <option value="all">{copy.riskAll}</option>
+                    <option value="high">{copy.riskHigh}</option>
+                    <option value="medium">{copy.riskMedium}</option>
+                    <option value="low">{copy.riskLow}</option>
+                  </select>
+                </label>
+
+                <label className="filter-field">
+                  <span className="label">{copy.filterModality}</span>
+                  <select
+                    value={draft.modality ?? ""}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, modality: event.target.value || undefined }))}
+                  >
+                    <option value="">{copy.filterAll}</option>
+                    {(overview?.options.modalities ?? []).map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="filter-field">
+                  <span className="label">{copy.filterDateFrom}</span>
+                  <input
+                    type="date"
+                    value={draft.dateFrom ?? ""}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, dateFrom: event.target.value }))}
+                  />
+                </label>
+
+                <label className="filter-field">
+                  <span className="label">{copy.filterDateTo}</span>
+                  <input
+                    type="date"
+                    value={draft.dateTo ?? ""}
+                    onChange={(event) => setDraft((prev) => ({ ...prev, dateTo: event.target.value }))}
+                  />
+                </label>
+              </div>
+
+              <div className="cv-control-panel__actions">
+                <button
+                  type="button"
+                  className="btn-primary cv-filter-action"
+                  onClick={() => {
+                    setPage(0);
+                    setFilters(draft);
+                  }}
+                >
+                  <Filter size={15} />
+                  {copy.applyFilters}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-secondary cv-filter-action"
+                  onClick={() => {
+                    const next = { ...draft, full: !draft.full };
+                    setDraft(next);
+                    setPage(0);
+                    setFilters(next);
+                  }}
+                >
+                  <Database size={15} />
+                  {draft.full ? copy.togglePreview : copy.toggleFull}
+                </button>
+              </div>
+
+              <p className="cv-helper-copy cv-helper-copy--compact">
+                {draft.full
+                  ? lang === "es"
+                    ? "Historial completo activo. La consulta tarda más, pero deja de depender de la muestra rápida."
+                    : "Full history is active. The query takes longer, but no longer depends on the quick sample."
+                  : lang === "es"
+                    ? "La interacción rápida trabaja sobre la muestra priorizada; el titular principal sigue mostrando el tamaño real de la fuente cuando no hay filtros fuertes."
+                    : "Fast interaction uses the prioritized sample; the headline still shows the real source size when there are no strong filters."}
+              </p>
+            </section>
+
+            <section className="cv-map-stage surface">
+              <div className="cv-map-stage__head">
+                <div>
+                  <p className="eyebrow">{lang === "es" ? "Mapa de riesgo" : "Risk map"}</p>
+                  <h2>{lang === "es" ? "Patrón territorial del corte" : "Territorial pattern of the slice"}</h2>
+                </div>
+                <p>
+                  {lang === "es"
+                    ? "Haz clic en un departamento para cambiar el corte. Lo que ves abajo usa esa misma selección."
+                    : "Click a department to change the slice. What you see below uses that same selection."}
+                </p>
+              </div>
+
+              <div className="cv-map-insight-row">
+                <article className="cv-map-insight">
+                  <span>{lang === "es" ? "Departamento activo" : "Active department"}</span>
+                  <strong>{currentDepartment?.label ?? (lang === "es" ? "Colombia completa" : "Whole Colombia")}</strong>
+                </article>
+                <article className="cv-map-insight">
+                  <span>{lang === "es" ? "Contratos visibles" : "Visible contracts"}</span>
+                  <strong>{currentDepartment?.contractCount?.toLocaleString("es-CO") ?? (overview?.slice.totalContracts ?? 0).toLocaleString("es-CO")}</strong>
+                </article>
+                <article className="cv-map-insight">
+                  <span>{lang === "es" ? "Intensidad media" : "Average intensity"}</span>
+                  <strong>{currentDepartment ? `${Math.round(currentDepartment.avgRisk * 100)}/100` : `${sliceMeanScore}/100`}</strong>
+                </article>
+              </div>
+
+              <div className="cv-map-guide cv-map-guide--inline">
+                <article>
+                  <strong>{lang === "es" ? "Azul" : "Blue"}</strong>
+                  <p>{lang === "es" ? "Más cerca del patrón típico del corte." : "Closer to the slice's usual pattern."}</p>
+                </article>
+                <article>
+                  <strong>{lang === "es" ? "Ámbar" : "Amber"}</strong>
+                  <p>{lang === "es" ? "Territorio para contrastar con casos concretos." : "A territory worth contrasting with concrete cases."}</p>
+                </article>
+                <article>
+                  <strong>{lang === "es" ? "Rojo" : "Red"}</strong>
+                  <p>{lang === "es" ? "Concentra la señal más fuerte del corte visible." : "Concentrates the strongest signal in the visible slice."}</p>
+                </article>
+              </div>
+
+              <div className="cv-map-frame cv-map-frame--compact cv-map-frame--workbench">
+                {geojson && overview ? (
+                  <ColombiaMap
+                    geojson={geojson}
+                    departments={overview.map.departments}
+                    activeDepartment={filters.department}
+                    showCaption
+                    captionTitle={lang === "es" ? "Lectura actual" : "Current readout"}
+                    captionBody={
+                      currentDepartment
+                        ? `${currentDepartment.contractCount.toLocaleString("es-CO")} ${lang === "es" ? "contratos visibles" : "visible contracts"} · ${Math.round(currentDepartment.avgRisk * 100)}/100 ${lang === "es" ? "de intensidad" : "intensity"}`
+                        : `${(overview?.slice.totalContracts ?? 0).toLocaleString("es-CO")} ${lang === "es" ? "contratos visibles" : "visible contracts"} · ${sliceMeanScore}/100`
+                    }
+                    onSelect={(department) => {
+                      const next = { ...filters, department: department === filters.department ? undefined : department };
+                      setDraft(next);
+                      setFilters(next);
+                      setPage(0);
+                    }}
+                  />
+                ) : (
+                  <div className="surface" style={{ height: 360, display: "grid", placeItems: "center" }}>
+                    <span className="label">{copy.loading}</span>
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
         </section>
 
@@ -730,7 +725,7 @@ export function ContractsView({
             </div>
             <p>
               {lang === "es"
-                ? "Este bloque resume el caso más útil para abrir el expediente, entender el patrón y compararlo con el resto."
+                ? "Este bloque resume el caso que mejor muestra el patrón del corte y dónde conviene abrir el expediente."
                 : "This block summarizes the most useful case to open the record, understand the pattern, and compare it against the rest."}
             </p>
           </div>
@@ -901,8 +896,8 @@ export function ContractsView({
             </div>
             <p>
               {lang === "es"
-                ? `La fuente pública reporta contratos hasta ${latestSourceDate}. La capa analítica visible está puntuada hasta ${latestScoredDate}. Esta vista consulta la fuente cada vez que cargas el módulo y muestra la última hora reportada por datos.gov.co.`
-                : `The public source reports contracts through ${latestSourceDate}. The visible analytical layer is scored through ${latestScoredDate}. This view queries the source every time the module loads and shows the latest timestamp reported by datos.gov.co.`}
+                ? `La fuente oficial publica cortes diarios. Hoy reporta contratos hasta ${latestSourceDate} y la última actualización visible del portal es ${formatPortalUpdated(lang, sourceUpdatedAt)}. La capa analítica se compara contra ese corte y hoy está puntuada hasta ${latestScoredDate}.`
+                : `The official source publishes daily cuts. Today it reports contracts through ${latestSourceDate}, and the latest visible portal update is ${formatPortalUpdated(lang, sourceUpdatedAt)}. The analytical layer is compared against that cut and is currently scored through ${latestScoredDate}.`}
             </p>
           </div>
 
@@ -1066,11 +1061,11 @@ export function ContractsView({
           <div className="cv-block__header">
             <div>
               <p className="eyebrow">{lang === "es" ? "Cómo se construye el puntaje" : "How the score is built"}</p>
-              <h2>{lang === "es" ? "Explicación formal y específica" : "Formal and specific explanation"}</h2>
+              <h2>{lang === "es" ? "Variables que más mueven la señal" : "Variables that move the signal most"}</h2>
             </div>
             <p>
               {lang === "es"
-                ? "El puntaje va de 0 a 100. No depende de una sola regla: combina variables observables para encontrar contratos que se apartan del patrón común de su contexto."
+                ? "El puntaje va de 0 a 100. Sube cuando un contrato se aparta del patrón común de su contexto por competencia, precio, concentración o momento de firma."
                 : "The score runs from 0 to 100. It does not depend on a single rule: it combines observable variables to find contracts that depart from the common pattern in their context."}
             </p>
           </div>

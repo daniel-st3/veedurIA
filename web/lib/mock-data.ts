@@ -472,6 +472,158 @@ const POLITICIANS: PoliticianMock[] = [
   },
 ];
 
+const PROMISE_STATUS_LABELS = {
+  con_accion_registrada: "Con acción registrada",
+  en_seguimiento: "En seguimiento",
+  sin_accion_registrada: "Sin evidencia disponible",
+} as const;
+
+const PROMISE_EXPANSIONS = [
+  {
+    suffix: "trace",
+    similarityDelta: -6,
+    statusConfidenceDelta: -5,
+    extractionConfidenceDelta: -3,
+    promiseBuilder: (card: PromisesPayload["cards"][number]) =>
+      `Publicar trazabilidad, hitos y responsables para ${card.domainLabel.toLowerCase()} con seguimiento periódico verificable.`,
+    actionTitleBuilder: (card: PromisesPayload["cards"][number]) =>
+      `Tablero de seguimiento para ${card.domainLabel.toLowerCase()}`,
+    actionSummaryBuilder: (card: PromisesPayload["cards"][number]) =>
+      `La evidencia visible muestra pasos de seguimiento, tableros, debates o documentos de control asociados a ${card.domainLabel.toLowerCase()}, aunque todavía sin cerrar todo el compromiso original.`,
+    nextStatus: {
+      con_accion_registrada: "en_seguimiento",
+      en_seguimiento: "en_seguimiento",
+      sin_accion_registrada: "sin_accion_registrada",
+    } as const,
+  },
+  {
+    suffix: "deployment",
+    similarityDelta: -12,
+    statusConfidenceDelta: -8,
+    extractionConfidenceDelta: -4,
+    promiseBuilder: (card: PromisesPayload["cards"][number]) =>
+      `Llevar ${card.domainLabel.toLowerCase()} a implementación territorial, cronograma y presupuesto público con corte anual.`,
+    actionTitleBuilder: (card: PromisesPayload["cards"][number]) =>
+      `Ruta de implementación territorial para ${card.domainLabel.toLowerCase()}`,
+    actionSummaryBuilder: (card: PromisesPayload["cards"][number]) =>
+      `Se observa una ruta parcial de implementación, audiencias o anuncios con relación temática a ${card.domainLabel.toLowerCase()}, pero la cobertura sigue siendo incompleta frente a la promesa amplia.`,
+    nextStatus: {
+      con_accion_registrada: "en_seguimiento",
+      en_seguimiento: "sin_accion_registrada",
+      sin_accion_registrada: "en_seguimiento",
+    } as const,
+  },
+];
+
+function clampPercent(value: number) {
+  return Math.max(12, Math.min(96, Math.round(value)));
+}
+
+function chamberKeyFromLabel(label: string) {
+  const normalized = label.toLowerCase();
+  if (normalized.includes("cámara") || normalized.includes("camara") || normalized.includes("representante")) return "house";
+  if (normalized.includes("senado") || normalized.includes("senador")) return "senate";
+  return "executive";
+}
+
+function chamberMatches(chamber: string, filter?: string) {
+  if (!filter || filter === "all") return true;
+  return chamberKeyFromLabel(chamber) === filter;
+}
+
+function shiftedDate(raw: string, offsetDays: number) {
+  if (!raw || raw === "—") return raw;
+  const date = new Date(`${raw}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return raw;
+  date.setUTCDate(date.getUTCDate() + offsetDays);
+  return date.toISOString().slice(0, 10);
+}
+
+function expandPromiseCards(cards: PromisesPayload["cards"]) {
+  return cards.flatMap((card, index) => {
+    const expanded = [card];
+    PROMISE_EXPANSIONS.forEach((variant, variantIndex) => {
+      const nextStatus = variant.nextStatus[card.status];
+      const similarity = clampPercent(card.similarityScore + variant.similarityDelta + (index % 4));
+      const statusConfidence = clampPercent(card.statusConfidence + variant.statusConfidenceDelta + (index % 3));
+      const extractionConfidence = clampPercent(card.extractionConfidence + variant.extractionConfidenceDelta);
+      expanded.push({
+        ...card,
+        id: `${card.id}-${variant.suffix}`,
+        promiseId: `${card.promiseId}-${variant.suffix}`,
+        status: nextStatus,
+        statusLabel: PROMISE_STATUS_LABELS[nextStatus],
+        similarityScore: similarity,
+        statusConfidence,
+        extractionConfidence,
+        promiseText: variant.promiseBuilder(card),
+        actionTitle:
+          nextStatus === "sin_accion_registrada"
+            ? "Sin evidencia enlazada"
+            : variant.actionTitleBuilder(card),
+        actionSummary:
+          nextStatus === "sin_accion_registrada"
+            ? "La cobertura visible todavía no encuentra una acción pública suficientemente cercana para sostener este subcompromiso."
+            : variant.actionSummaryBuilder(card),
+        actionDate:
+          nextStatus === "sin_accion_registrada"
+            ? "—"
+            : shiftedDate(card.actionDate, 28 * (variantIndex + 1)),
+      });
+    });
+    return expanded;
+  });
+}
+
+function buildStatusCounts(cards: PromisesPayload["cards"]) {
+  return {
+    fulfilled: cards.filter((card) => card.status === "con_accion_registrada").length,
+    monitoring: cards.filter((card) => card.status === "en_seguimiento").length,
+    noAction: cards.filter((card) => card.status === "sin_accion_registrada").length,
+  };
+}
+
+function buildDomainScores(cards: PromisesPayload["cards"]) {
+  const buckets = new Map<string, { label: string; promises: number; total: number }>();
+  cards.forEach((card) => {
+    const current = buckets.get(card.domain) ?? { label: card.domainLabel, promises: 0, total: 0 };
+    current.promises += 1;
+    current.total += card.similarityScore;
+    buckets.set(card.domain, current);
+  });
+  return [...buckets.entries()]
+    .map(([key, value]) => ({
+      key,
+      label: value.label,
+      promises: value.promises,
+      score: value.promises ? value.total / value.promises / 100 : 0,
+    }))
+    .sort((left, right) => right.promises - left.promises);
+}
+
+function buildOverallScore(cards: PromisesPayload["cards"]) {
+  if (!cards.length) return 0;
+  const similarityMean = cards.reduce((sum, card) => sum + card.similarityScore, 0) / cards.length;
+  const statusWeight =
+    cards.reduce((sum, card) => {
+      if (card.status === "con_accion_registrada") return sum + 100;
+      if (card.status === "en_seguimiento") return sum + 62;
+      return sum + 24;
+    }, 0) / cards.length;
+  return Math.round(similarityMean * 0.58 + statusWeight * 0.42);
+}
+
+const ENRICHED_POLITICIANS: PoliticianMock[] = POLITICIANS.map((politician) => {
+  const cards = expandPromiseCards(politician.cards);
+  return {
+    ...politician,
+    cards,
+    overallScore: buildOverallScore(cards),
+    statusCounts: buildStatusCounts(cards),
+    domains: buildDomainScores(cards),
+  };
+});
+
 // ─── BUILD FUNCTIONS ─────────────────────────────────────────────────────────
 
 function applyContractFilters(
@@ -525,7 +677,7 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
       latestContractDate: "2025-12-31",
       sourceLatestContractDate: "2026-04-02",
       sourceFreshnessGapDays: 92,
-      sourceRows: 5_194_838,
+      sourceRows: 5_596_689,
       sourceUpdatedAt: "2026-04-03T17:47:26+0000",
       lastRunTs: "2026-01-01T03:15:00.000Z",
       dateRange: { from: "2023-01-01", to: "2025-12-31" },
@@ -591,7 +743,7 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
     },
     liveFeed: {
       latestDate: "2026-04-02",
-      rowsAtSource: 5_194_838,
+      rowsAtSource: 5_596_689,
       contracts: ALL_ROWS.slice(0, 5).map((r) => ({
         id: r.id,
         entity: r.entity,
@@ -632,11 +784,11 @@ export function getMockFreshness(): ContractsFreshnessPayload {
     latestContractDate: "2025-12-31",
     sourceLatestContractDate: "2026-04-02",
     sourceFreshnessGapDays: 92,
-    sourceRows: 5_194_838,
+    sourceRows: 5_596_689,
     sourceUpdatedAt: "2026-04-03T17:47:26+0000",
     liveFeed: {
       latestDate: "2026-04-02",
-      rowsAtSource: 5_194_838,
+      rowsAtSource: 5_596_689,
       contracts: ALL_ROWS.slice(0, 5).map((r) => ({
         id: r.id,
         entity: r.entity,
@@ -652,8 +804,10 @@ export function getMockFreshness(): ContractsFreshnessPayload {
 
 export function getMockPromises(filters: PromiseFilters): PromisesPayload {
   const lang = filters.lang ?? "es";
-  const pid = filters.politicianId ?? POLITICIANS[0].id;
-  const politician = POLITICIANS.find((p) => p.id === pid) ?? POLITICIANS[0];
+  const pool = ENRICHED_POLITICIANS.filter((politician) => chamberMatches(politician.chamber, filters.chamber));
+  const activePool = pool.length ? pool : ENRICHED_POLITICIANS;
+  const pid = filters.politicianId ?? activePool[0].id;
+  const politician = activePool.find((p) => p.id === pid) ?? activePool[0];
 
   let cards = [...politician.cards];
   if (filters.domain && filters.domain !== "all") {
@@ -672,12 +826,30 @@ export function getMockPromises(filters: PromiseFilters): PromisesPayload {
     );
   }
 
-  const allDomainValues = [...new Set(politician.cards.map((c) => c.domain))];
+  let sandboxCards = activePool.flatMap((item) => item.cards);
+  if (filters.domain && filters.domain !== "all") {
+    sandboxCards = sandboxCards.filter((card) => card.domain === filters.domain);
+  }
+  if (filters.status && filters.status !== "all") {
+    sandboxCards = sandboxCards.filter((card) => card.status === filters.status);
+  }
+  if (filters.query) {
+    const q = filters.query.toLowerCase();
+    sandboxCards = sandboxCards.filter(
+      (card) =>
+        card.promiseText.toLowerCase().includes(q) ||
+        card.actionTitle.toLowerCase().includes(q) ||
+        card.domainLabel.toLowerCase().includes(q) ||
+        card.politicianName.toLowerCase().includes(q),
+    );
+  }
+
+  const allDomainValues = [...new Set(sandboxCards.map((c) => c.domain))];
   const domainOptions = [
     { value: "all", label: lang === "es" ? "Todos" : "All" },
     ...allDomainValues.map((d) => ({
       value: d,
-      label: politician.cards.find((c) => c.domain === d)?.domainLabel ?? d,
+      label: sandboxCards.find((c) => c.domain === d)?.domainLabel ?? d,
     })),
   ];
 
@@ -692,33 +864,33 @@ export function getMockPromises(filters: PromiseFilters): PromisesPayload {
     meta: {
       lang,
       coverageMode: "pilot",
-      electionYear: 2022,
-      totalRows: politician.cards.length,
+      electionYear: filters.electionYear ?? 2022,
+      totalRows: sandboxCards.length,
       shownRows: cards.length,
       lastScoredAt: "2025-03-28",
       pilotNote:
         lang === "es"
-          ? "Cobertura piloto del ciclo 2022-2026. La evidencia proviene de programas oficiales, Congreso y acciones del Ejecutivo con fuente pública."
-          : "Pilot coverage for the 2022-2026 cycle. Evidence comes from official programs, Congress, and public executive actions.",
+          ? "Cobertura visible del tablero: promesas, subcompromisos y acciones públicas agrupadas para seguir temas, actores y estado del periodo."
+          : "Visible board coverage: promises, sub-commitments, and public actions grouped to follow themes, actors, and cycle status.",
     },
     options: {
-      politicians: POLITICIANS.map((p) => ({
+      politicians: activePool.map((p) => ({
         value: p.id,
         label: `${p.name} · ${p.role}`,
       })),
       domains: domainOptions,
       statuses: statusOptions,
-      years: [2022],
+      years: [2018, 2022, 2026],
     },
     kpis: {
-      politiciansTracked: POLITICIANS.length,
-      promisesTracked: POLITICIANS.reduce((s, p) => s + p.cards.length, 0),
+      politiciansTracked: activePool.length,
+      promisesTracked: sandboxCards.length,
       coherenceRate: Math.round(
-        (POLITICIANS.reduce((s, p) => s + p.statusCounts.fulfilled, 0) /
-          POLITICIANS.reduce((s, p) => s + p.cards.length, 0)) *
+        (activePool.reduce((s, p) => s + p.statusCounts.fulfilled, 0) /
+          Math.max(activePool.reduce((s, p) => s + p.cards.length, 0), 1)) *
           100,
       ),
-      activeDomains: 8,
+      activeDomains: new Set(sandboxCards.map((card) => card.domain)).size,
     },
     scorecard: {
       politicianId: politician.id,
@@ -730,9 +902,10 @@ export function getMockPromises(filters: PromiseFilters): PromisesPayload {
       domains: politician.domains,
     },
     cards,
+    sandboxCards,
     highlights: {
       focusPolitician: politician.name,
-      focusDomain: politician.domains[0]?.label ?? "—",
+      focusDomain: sandboxCards[0]?.domainLabel ?? politician.domains[0]?.label ?? "—",
       focusStatus:
         lang === "es"
           ? politician.statusCounts.monitoring > politician.statusCounts.fulfilled

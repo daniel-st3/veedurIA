@@ -107,8 +107,9 @@ def promises_overview(
     domain: str = "all",
     status: str = "all",
     election_year: int = Query(2022, ge=2022, le=2030),
+    chamber: str | None = None,
     query: str | None = None,
-    limit: int = Query(18, ge=1, le=40),
+    limit: int = Query(48, ge=1, le=120),
 ) -> dict:
     return get_promises_payload(
         lang=lang,
@@ -116,6 +117,7 @@ def promises_overview(
         domain=domain,
         status=status,
         election_year=election_year,
+        chamber=chamber,
         query=query,
         limit=limit,
     )

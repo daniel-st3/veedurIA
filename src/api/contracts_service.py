@@ -14,16 +14,14 @@ import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
-from urllib.request import urlopen
+from urllib.parse import quote
 
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from sodapy import Socrata
-
+import requests
 from src.models.isolation_forest import RED_THRESHOLD, YELLOW_THRESHOLD
 from src.models.shap_explainer import FEATURE_LABELS
-from src.utils.config import get_socrata_app_token
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_PROCESSED = PROJECT_ROOT / "data" / "processed"
@@ -227,28 +225,26 @@ def _safe_ts(raw: Any) -> pd.Timestamp:
 @lru_cache(maxsize=1)
 def load_live_source_snapshot() -> dict[str, Any]:
     try:
-        client = Socrata(SOCRATA_DOMAIN, get_socrata_app_token(), timeout=120)
-    except Exception:
-        return {"latestDate": None, "rowsAtSource": None, "contracts": []}
-
-    try:
-        max_rows = client.get(
-            SOCRATA_CONTRACTS_DATASET,
-            select="max(fecha_de_firma) as max_fecha, count(*) as total",
-            where="fecha_de_firma is not null",
-            limit=1,
+        summary_url = (
+            f"https://{SOCRATA_DOMAIN}/resource/{SOCRATA_CONTRACTS_DATASET}.json"
+            f"?$select={quote('max(fecha_de_firma) as max_fecha, count(*) as total')}"
+            "&$limit=1"
         )
+        max_rows = requests.get(summary_url, timeout=60).json()
+
         latest_date = max_rows[0].get("max_fecha") if max_rows else None
         rows_at_source = int(max_rows[0].get("total", 0)) if max_rows else None
         latest_contracts: list[dict[str, Any]] = []
         if latest_date:
-            raw_rows = client.get(
-                SOCRATA_CONTRACTS_DATASET,
-                select="fecha_de_firma,id_contrato,nombre_entidad,valor_del_contrato,departamento,urlproceso",
-                where=f"fecha_de_firma = '{latest_date}'",
-                order="id_contrato ASC",
-                limit=5,
+            where_clause = quote(f"fecha_de_firma = '{latest_date}'")
+            latest_rows_url = (
+                f"https://{SOCRATA_DOMAIN}/resource/{SOCRATA_CONTRACTS_DATASET}.json"
+                f"?$select={quote('fecha_de_firma,id_contrato,nombre_entidad,valor_del_contrato,departamento,urlproceso')}"
+                f"&$where={where_clause}"
+                "&$order=id_contrato ASC"
+                "&$limit=5"
             )
+            raw_rows = requests.get(latest_rows_url, timeout=60).json()
             for row in raw_rows:
                 value = _parse_cop(row.get("valor_del_contrato"))
                 latest_contracts.append(
@@ -269,18 +265,12 @@ def load_live_source_snapshot() -> dict[str, Any]:
         }
     except Exception:
         return {"latestDate": None, "rowsAtSource": None, "contracts": []}
-    finally:
-        try:
-            client.close()
-        except Exception:
-            pass
 
 
 @lru_cache(maxsize=1)
 def load_live_source_metadata() -> dict[str, Any]:
     try:
-        with urlopen(SOCRATA_METADATA_URL, timeout=40) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        payload = requests.get(SOCRATA_METADATA_URL, timeout=40).json()
     except Exception:
         return {"sourceUpdatedAt": None, "sourceWebUri": None}
 

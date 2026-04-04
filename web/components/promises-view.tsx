@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { PromisePivotSandbox } from "@/components/promise-pivot-sandbox";
 import { SiteNav } from "@/components/site-nav";
 import { fetchPromisesOverview } from "@/lib/api";
 import { promisesCopy } from "@/lib/copy";
@@ -54,10 +55,16 @@ const PARTY_COLORS: Record<string, string> = {
   espriella_2026: "#ff7b7b",
 };
 
-const CYCLE_OPTIONS: Array<{ value: CoveragePeriod; labelEs: string; labelEn: string }> = [
-  { value: 2022, labelEs: "2022-2026", labelEn: "2022-2026" },
-  { value: 2018, labelEs: "2018-2022", labelEn: "2018-2022" },
-  { value: 2026, labelEs: "2026", labelEn: "2026" },
+const CYCLE_OPTIONS: Array<{
+  value: CoveragePeriod;
+  labelEs: string;
+  labelEn: string;
+  tagEs: string;
+  tagEn: string;
+}> = [
+  { value: 2018, labelEs: "2018-2022", labelEn: "2018-2022", tagEs: "Referencia histórica", tagEn: "Historical reference" },
+  { value: 2022, labelEs: "2022-2026", labelEn: "2022-2026", tagEs: "Seguimiento activo", tagEn: "Live tracking" },
+  { value: 2026, labelEs: "2026", labelEn: "2026", tagEs: "Radar preelectoral", tagEn: "Pre-electoral radar" },
 ];
 
 const WIKIPEDIA_PAGES: Record<string, string> = {
@@ -449,16 +456,35 @@ const RADAR_2026: ReferenceCard[] = [
 
 const SOURCE_MATRIX = {
   es: [
-    { label: "Promesas", detail: "Programas de gobierno, páginas públicas y documentos de campaña." },
-    { label: "Acción pública", detail: "Senado, Cámara, gacetas, ministerios, decretos y registros oficiales." },
-    { label: "Radar 2026", detail: "Perfiles públicos, lanzamientos y fuentes abiertas en etapa preelectoral." },
+    { label: "Promesas", detail: "Programas de gobierno, perfiles legislativos, discursos, páginas públicas y documentos de campaña descargables." },
+    { label: "Acción pública", detail: "Senado, Cámara, gacetas, ministerios, leyes, decretos, proyectos, votaciones y registros oficiales consultables." },
+    { label: "Extracción NLP", detail: "Cada documento se parte en frases-promesa, verbos de acción, tema principal y subcompromisos para ampliar cobertura visible." },
+    { label: "Radar 2026", detail: "Perfiles públicos, lanzamientos, entrevistas, portales oficiales y fuentes abiertas en etapa preelectoral." },
   ],
   en: [
-    { label: "Promises", detail: "Government plans, public campaign pages, and source documents." },
-    { label: "Public action", detail: "Senate, House, gazettes, ministries, decrees, and official registries." },
-    { label: "2026 radar", detail: "Public profiles, launches, and open sources in the pre-electoral phase." },
+    { label: "Promises", detail: "Government plans, legislative profiles, speeches, public pages, and downloadable campaign documents." },
+    { label: "Public action", detail: "Senate, House, gazettes, ministries, laws, decrees, bills, votes, and official registries." },
+    { label: "NLP extraction", detail: "Each document is split into promise sentences, action verbs, main topic, and sub-commitments to expand visible coverage." },
+    { label: "2026 radar", detail: "Public profiles, launches, official portals, interviews, and open sources in the pre-electoral phase." },
   ],
 };
+
+function buildReferenceHighlights(item: ReferenceCard, lang: Lang) {
+  return [
+    {
+      label: lang === "es" ? "Promesa visible" : "Visible promise",
+      value: item.promiseQuote,
+    },
+    {
+      label: lang === "es" ? "Qué deja el ciclo" : "Cycle outcome",
+      value: item.outcomeQuote,
+    },
+    {
+      label: lang === "es" ? "Cómo leerlo" : "How to read it",
+      value: item.note,
+    },
+  ];
+}
 
 function getColor(id: string) {
   if (PARTY_COLORS[id]) return PARTY_COLORS[id];
@@ -607,7 +633,8 @@ export function PromisesView({
       domain: domainFilter,
       status: statusFilter,
       electionYear: 2022,
-      limit: 18,
+      chamber: activeChamber === "all" ? undefined : activeChamber,
+      limit: 48,
     })
       .then((data) => {
         if (!alive) return;
@@ -621,7 +648,7 @@ export function PromisesView({
     return () => {
       alive = false;
     };
-  }, [selectedId, domainFilter, statusFilter, lang, initialized, activePeriod]);
+  }, [selectedId, domainFilter, statusFilter, lang, initialized, activePeriod, activeChamber]);
 
   const politicians = payload?.options.politicians ?? [];
   const chamberOptions = useMemo(() => {
@@ -659,6 +686,7 @@ export function PromisesView({
   }, [activePeriod, selectedId, visiblePoliticians]);
 
   const cards = payload?.cards ?? [];
+  const sandboxCards = payload?.sandboxCards ?? cards;
   const scorecard = payload?.scorecard;
   const openCard = cards.find((card) => card.id === openCardId) ?? null;
   const visibleHistorical = useMemo(
@@ -777,6 +805,14 @@ export function PromisesView({
     activePeriod === 2022 ? visiblePoliticians.length : activePeriod === 2018 ? visibleHistorical.length : visibleRadar.length;
   const periodRecords =
     activePeriod === 2022 ? payload?.kpis.promisesTracked ?? 0 : activePeriod === 2018 ? visibleHistorical.length : visibleRadar.length;
+  const visibleSourceCount =
+    activePeriod === 2022
+      ? new Set(
+          sandboxCards
+            .flatMap((card) => [card.promiseSourceUrl, card.actionSourceUrl])
+            .filter((value) => value && value !== "#"),
+        ).size
+      : (activePeriod === 2018 ? visibleHistorical.length : visibleRadar.length) * 2;
 
   return (
     <div className="shell">
@@ -807,6 +843,10 @@ export function PromisesView({
               <strong>{periodRecords}</strong>
             </article>
             <article>
+              <span>{lang === "es" ? "Fuentes visibles" : "Visible sources"}</span>
+              <strong>{visibleSourceCount}</strong>
+            </article>
+            <article>
               <span>{activePeriod === 2022 ? copy.kpiCoherence : lang === "es" ? "Periodo activo" : "Active cycle"}</span>
               <strong>{activePeriod === 2022 ? `${payload?.kpis.coherenceRate ?? 0}%` : periodTitle}</strong>
             </article>
@@ -828,6 +868,7 @@ export function PromisesView({
               >
                 <span>{lang === "es" ? "Periodo" : "Cycle"}</span>
                 <strong>{lang === "es" ? item.labelEs : item.labelEn}</strong>
+                <em>{lang === "es" ? item.tagEs : item.tagEn}</em>
               </button>
             ))}
           </div>
@@ -857,7 +898,7 @@ export function PromisesView({
           <section className="pmr-board">
             <div className="pmr-board__top">
               <div className="pmr-board__note">
-                <span>{lang === "es" ? "Cobertura principal" : "Main coverage"}</span>
+                <span>{lang === "es" ? "Qué estás viendo" : "What you are seeing"}</span>
                 <strong>{periodTitle}</strong>
                 <p>{payload?.meta.pilotNote ?? ""}</p>
               </div>
@@ -902,17 +943,16 @@ export function PromisesView({
                     className={`pmr-politician-card ${isActive ? "pmr-politician-card--active" : ""}`}
                     onClick={() => setSelectedId(politician.value)}
                     style={isActive ? { borderColor: getColor(politician.value) } : undefined}
-                  >
-                    <div className="pmr-politician-card__media">
-                      <img
-                        src={portrait}
-                        alt={name}
+                    >
+                      <div className="pmr-politician-card__media">
+                        <img
+                          src={portrait}
+                          alt={name}
                         className="pmr-politician-card__img"
                         onError={(event) => {
                           event.currentTarget.src = fallback;
                         }}
                       />
-                      <span className="pmr-politician-card__glow" style={{ background: `linear-gradient(135deg, ${getColor(politician.value)}, transparent)` }} />
                     </div>
                     <div>
                       <strong>{name}</strong>
@@ -1112,6 +1152,8 @@ export function PromisesView({
                 </div>
               </section>
             ) : null}
+
+            <PromisePivotSandbox lang={lang} cards={sandboxCards} />
           </section>
         ) : activeReference ? (
           <section className={`pmr-reference-stage ${activePeriod === 2026 ? "pmr-reference-stage--dark surface" : "surface-soft"}`}>
@@ -1174,9 +1216,31 @@ export function PromisesView({
               <div className="pmr-reference-focus__body">
                 <small>{activeReference.period} · {activeReference.role}</small>
                 <h3>{activeReference.name}</h3>
-                <p>{activeReference.promiseQuote}</p>
-                <p>{activeReference.outcomeQuote}</p>
-                <p>{activeReference.note}</p>
+                <div className="pmr-quote-grid">
+                  <article className="pmr-quote-card">
+                    <div className="pmr-detail-card__label">
+                      <Quote size={15} />
+                      {lang === "es" ? "Lo prometido" : "What was promised"}
+                    </div>
+                    <p>“{activeReference.promiseQuote}”</p>
+                  </article>
+                  <article className="pmr-quote-card">
+                    <div className="pmr-detail-card__label">
+                      <Quote size={15} />
+                      {lang === "es" ? "Lo observado" : "What was observed"}
+                    </div>
+                    <p>“{activeReference.outcomeQuote}”</p>
+                  </article>
+                </div>
+
+                <div className="pmr-reference-insights">
+                  {buildReferenceHighlights(activeReference, lang).map((item) => (
+                    <article key={item.label} className="pmr-reference-insights__card">
+                      <span>{item.label}</span>
+                      <p>{item.value}</p>
+                    </article>
+                  ))}
+                </div>
                 <div className="pmr-reference-card__links">
                   <a href={activeReference.sourceUrl} target="_blank" rel="noreferrer">{activeReference.sourceLabel}</a>
                   <a href={activeReference.outcomeUrl} target="_blank" rel="noreferrer">{activeReference.outcomeLabel}</a>
@@ -1190,21 +1254,21 @@ export function PromisesView({
           <div className="pmr-section-header">
             <div>
               <p className="eyebrow">{lang === "es" ? "Fuentes del módulo" : "Module sources"}</p>
-              <h2>{lang === "es" ? "De dónde sale la información" : "Where the information comes from"}</h2>
+              <h2>{lang === "es" ? "Fuentes visibles del tablero" : "Visible board sources"}</h2>
             </div>
             <p>
               {lang === "es"
-                ? "Cada bloque usa una fuente distinta según el tipo de evidencia: promesa, acción pública o radar de campaña."
-                : "Each block uses a different source depending on the evidence type: promise, public action, or campaign radar."}
+                ? "Aquí se mezclan fuentes de promesa, acción pública y seguimiento electoral para que cada tarjeta tenga rastro verificable."
+                : "This view mixes promise sources, public action, and electoral tracking so each card keeps a verifiable trace."}
             </p>
           </div>
 
           <div className="pmr-source-grid">
-            {SOURCE_MATRIX[lang].map((item) => (
-              <article key={item.label} className="pmr-source-card">
-                <strong>{item.label}</strong>
-                <p>{item.detail}</p>
-              </article>
+              {SOURCE_MATRIX[lang].map((item) => (
+                <article key={item.label} className="pmr-source-card">
+                  <strong>{item.label}</strong>
+                  <p>{item.detail}</p>
+                </article>
             ))}
           </div>
         </section>
@@ -1212,31 +1276,31 @@ export function PromisesView({
         <section className="pmr-reference-section surface">
           <div className="pmr-section-header">
             <div>
-              <p className="eyebrow">{lang === "es" ? "Cómo se lee el matching" : "How to read the matching"}</p>
-              <h2>{lang === "es" ? "Explicación formal, sin jerga inútil" : "Formal explanation, without useless jargon"}</h2>
+              <p className="eyebrow">{lang === "es" ? "Cómo leer la coincidencia" : "How to read the match"}</p>
+              <h2>{lang === "es" ? "Qué compara este tablero" : "What this board compares"}</h2>
             </div>
             <p>
               {lang === "es"
-                ? "El sistema no decide si una promesa se cumplió jurídicamente. Lo que hace es medir cercanía entre promesa y acción pública usando tres preguntas simples."
-                : "The system does not decide whether a promise was legally fulfilled. It measures closeness between a promise and a public action using three simple questions."}
+                ? "La lectura compara promesa, acción pública y peso de la evidencia. Así se puede distinguir entre avance claro, movimiento parcial y ausencia de rastro visible."
+                : "The readout compares promise, public action, and evidence weight. That helps separate clear progress, partial movement, and the absence of a visible trace."}
             </p>
           </div>
 
           <div className="pmr-method-grid">
             <article className="pmr-method-card">
               <ShieldCheck size={18} />
-              <strong>{lang === "es" ? "¿Hablan del mismo tema?" : "Do they speak about the same topic?"}</strong>
-              <p>{lang === "es" ? "Salud, seguridad, educación, transición energética, contratación o reforma institucional." : "Health, security, education, energy transition, procurement, or institutional reform."}</p>
+              <strong>{lang === "es" ? "Tema y verbo principal" : "Topic and main verb"}</strong>
+              <p>{lang === "es" ? "El extractor identifica de qué habla la promesa y qué tipo de acción propone: aprobar, crear, financiar, reglamentar, vigilar o ejecutar." : "The extractor identifies what the promise is about and which action verb it uses: approve, create, fund, regulate, oversee, or execute."}</p>
             </article>
             <article className="pmr-method-card">
               <Users size={18} />
-              <strong>{lang === "es" ? "¿Apuntan al mismo objetivo?" : "Do they aim at the same objective?"}</strong>
-              <p>{lang === "es" ? "No basta compartir una palabra. La acción debe empujar el mismo objetivo público de la promesa." : "Sharing a word is not enough. The action must push the same public objective as the promise."}</p>
+              <strong>{lang === "es" ? "Objetivo y alcance" : "Objective and scope"}</strong>
+              <p>{lang === "es" ? "Luego compara si la acción pública apunta al mismo objetivo material: cambiar una ley, mover presupuesto, abrir cobertura, ejercer control o ejecutar una política." : "It then compares whether the public action points to the same material objective: change a law, move budget, expand coverage, exercise oversight, or execute a policy."}</p>
             </article>
             <article className="pmr-method-card">
               <ScanSearch size={18} />
-              <strong>{lang === "es" ? "¿Qué tan fuerte es la evidencia?" : "How strong is the evidence?"}</strong>
-              <p>{lang === "es" ? "Una ley aprobada pesa más que un debate; un debate pesa más que una mención aislada." : "An approved law weighs more than a debate; a debate weighs more than an isolated mention."}</p>
+              <strong>{lang === "es" ? "Peso de la evidencia" : "Evidence weight"}</strong>
+              <p>{lang === "es" ? "Una ley aprobada pesa más que una ponencia; una ponencia más que un debate; un debate más que una declaración suelta. Por eso no todo match vale lo mismo." : "An approved law weighs more than a bill draft; a bill draft more than a debate; a debate more than a loose statement. That is why not every match carries the same weight."}</p>
             </article>
           </div>
         </section>

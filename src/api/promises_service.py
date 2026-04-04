@@ -464,6 +464,7 @@ def _filter_frame(
     domain: str | None = None,
     status: str | None = None,
     election_year: int | None = None,
+    chamber: str | None = None,
     query: str | None = None,
 ) -> pd.DataFrame:
     view = frame.copy()
@@ -475,6 +476,15 @@ def _filter_frame(
         view = view[view["status"] == status]
     if election_year:
         view = view[pd.to_numeric(view["election_year"], errors="coerce").fillna(0).astype(int) == int(election_year)]
+    if chamber and chamber != "all" and "chamber" in view.columns:
+        needle = chamber.lower()
+        chamber_text = view["chamber"].fillna("").astype(str).str.lower()
+        if needle == "house":
+            view = view[chamber_text.str.contains("cámara|camara|representante", regex=True)]
+        elif needle == "senate":
+            view = view[chamber_text.str.contains("senado|senador", regex=True)]
+        elif needle == "executive":
+            view = view[~chamber_text.str.contains("cámara|camara|representante|senado|senador", regex=True)]
     if query:
         needle = query.strip().lower()
         if needle:
@@ -606,13 +616,14 @@ def get_promises_payload(
     domain: str = "all",
     status: str = "all",
     election_year: int = 2022,
+    chamber: str | None = None,
     query: str | None = None,
-    limit: int = 18,
+    limit: int = 48,
 ) -> dict[str, Any]:
     frame, coverage_mode = load_promises_frame()
     base_year = frame.copy()
     if election_year:
-        base_year = _filter_frame(base_year, election_year=election_year)
+        base_year = _filter_frame(base_year, election_year=election_year, chamber=chamber)
 
     options_frame = base_year if not base_year.empty else frame
     filtered = _filter_frame(
@@ -621,23 +632,37 @@ def get_promises_payload(
         domain=domain,
         status=status,
         election_year=election_year,
+        chamber=chamber,
         query=query,
     )
 
     focus_frame = filtered
     if focus_frame.empty and politician_id:
-        focus_frame = _filter_frame(base_year, politician_id=politician_id)
+        focus_frame = _filter_frame(base_year, politician_id=politician_id, chamber=chamber)
     if focus_frame.empty:
         first_politician = options_frame["politician_id"].iloc[0] if not options_frame.empty else None
-        focus_frame = _filter_frame(options_frame, politician_id=str(first_politician) if first_politician else None)
+        focus_frame = _filter_frame(
+            options_frame,
+            politician_id=str(first_politician) if first_politician else None,
+            chamber=chamber,
+        )
 
     last_scored = (
         str(options_frame["scored_at"].max())
         if not options_frame.empty and "scored_at" in options_frame.columns
         else None
     )
+    sandbox_frame = _filter_frame(
+        base_year,
+        domain=domain,
+        status=status,
+        election_year=election_year,
+        chamber=chamber,
+        query=query,
+    )
     cards_frame = filtered if not filtered.empty else focus_frame
     cards = [_card(row, lang) for _, row in cards_frame.head(limit).iterrows()]
+    sandbox_cards = [_card(row, lang) for _, row in sandbox_frame.head(max(limit * 2, 72)).iterrows()]
 
     option_rows = _politician_option(options_frame, lang)
     if coverage_mode == "pilot":
@@ -674,6 +699,7 @@ def get_promises_payload(
         },
         "scorecard": _scorecard(focus_frame, lang, politician_id),
         "cards": cards,
+        "sandboxCards": sandbox_cards,
         "highlights": {
             "focusPolitician": _scorecard(focus_frame, lang, politician_id)["politicianName"],
             "focusDomain": DOMAIN_LABELS[lang].get(str(cards_frame["domain"].mode().iloc[0]), "—") if not cards_frame.empty else "—",

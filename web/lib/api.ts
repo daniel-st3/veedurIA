@@ -55,10 +55,11 @@ function isRichPromisesPayload(value: unknown): value is PromisesPayload {
     hasObjectShape(payload.kpis) &&
     hasObjectShape(payload.scorecard) &&
     Array.isArray(payload.cards) &&
+    Array.isArray(payload.sandboxCards) &&
     Array.isArray(payload.options.politicians) &&
-    payload.options.politicians.length >= 8 &&
+    payload.options.politicians.length >= 10 &&
     typeof payload.kpis.promisesTracked === "number" &&
-    payload.kpis.promisesTracked >= 24
+    payload.kpis.promisesTracked >= 48
   );
 }
 
@@ -164,8 +165,9 @@ export async function fetchPromisesOverview(filters: PromiseFilters): Promise<Pr
       domain: filters.domain ?? "all",
       status: filters.status ?? "all",
       election_year: filters.electionYear ?? 2022,
+      chamber: filters.chamber,
       query: filters.query,
-      limit: filters.limit ?? 18,
+      limit: filters.limit ?? 48,
     });
     const response = await fetch(`${API_BASE}/promises/overview?${query}`, {
       cache: "no-store",
