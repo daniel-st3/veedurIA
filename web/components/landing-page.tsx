@@ -101,6 +101,7 @@ export function LandingPage({
   initialOverview: OverviewPayload;
 }) {
   const [overview, setOverview] = useState<OverviewPayload>(initialOverview);
+  const [scrollShift, setScrollShift] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -138,6 +139,24 @@ export function LandingPage({
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    let raf = 0;
+
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = window.requestAnimationFrame(() => {
+        setScrollShift(window.scrollY);
+      });
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
   const totalContracts = overview.meta.sourceRows || overview.meta.totalRows || overview.slice.totalContracts;
   const redAlerts = overview.slice.redAlerts;
   const latestDate = overview.meta.sourceLatestContractDate ?? overview.meta.latestContractDate ?? "—";
@@ -156,7 +175,13 @@ export function LandingPage({
       />
 
       <main className="page lp-page">
-        <section className="lp-hero-shell surface stripe-flag" data-reveal>
+        <section className="lp-hero-shell lp-hero-shell--open surface stripe-flag" data-reveal>
+          <div className="lp-hero-orbit" aria-hidden="true">
+            <span className="lp-hero-orbit__line lp-hero-orbit__line--yellow" style={{ transform: `translate3d(0, ${scrollShift * 0.03}px, 0)` }} />
+            <span className="lp-hero-orbit__line lp-hero-orbit__line--blue" style={{ transform: `translate3d(0, ${scrollShift * 0.05}px, 0)` }} />
+            <span className="lp-hero-orbit__line lp-hero-orbit__line--red" style={{ transform: `translate3d(0, ${scrollShift * 0.07}px, 0)` }} />
+          </div>
+
           <div className="lp-hero-copy lp-hero-copy--single">
             <p className="eyebrow">
               {lang === "es"
@@ -164,7 +189,7 @@ export function LandingPage({
                 : "VeedurIA · contracts, promises, and public networks in one entry point"}
             </p>
 
-            <h1 className="lp-hero-title">
+            <h1 className="lp-hero-title" style={{ transform: `translate3d(0, ${scrollShift * -0.06}px, 0)` }}>
               <span className="flag-yellow">{lang === "es" ? "Detecta" : "Detect"}</span>{" "}
               <span className="flag-blue">{lang === "es" ? "la señal" : "the signal"}</span>{" "}
               <span className="flag-red">{lang === "es" ? "antes de que se pierda" : "before it disappears"}</span>
@@ -183,15 +208,20 @@ export function LandingPage({
             </div>
           </div>
 
-          <div className="lp-start-panel" data-reveal>
-            <div className="lp-start-panel__copy">
+          <div className="lp-start-flow" data-reveal>
+            <div className="lp-start-flow__copy">
               <span>{lang === "es" ? "Empieza por aquí" : "Start here"}</span>
               <strong>{lang === "es" ? "Tres entradas claras, una sola lectura" : "Three clear entries, one reading flow"}</strong>
             </div>
 
-            <div className="lp-start-grid">
+            <div className="lp-start-grid lp-start-grid--open">
               {entryPoints.map((item) => (
-                <Link key={item.title} href={item.href} className={`lp-start-card lp-start-card--${item.tone}`}>
+                <Link
+                  key={item.title}
+                  href={item.href}
+                  className={`lp-start-card lp-start-card--open lp-start-card--${item.tone}`}
+                  style={{ transform: `translate3d(0, ${scrollShift * 0.01}px, 0)` }}
+                >
                   <div>
                     <strong>{item.title}</strong>
                     <p>{item.body}</p>
