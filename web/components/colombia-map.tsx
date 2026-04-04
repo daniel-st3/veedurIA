@@ -1,6 +1,9 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
+
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 
 import type { DepartmentDatum } from "@/lib/types";
 
@@ -8,6 +11,14 @@ type Feature = {
   type: string;
   properties: { NOMBRE_DPT?: string };
   geometry: { type: string; coordinates: any };
+};
+
+type TooltipDatum = {
+  label?: string;
+  contractCount?: number;
+  intensity?: number;
+  alerts?: string[];
+  clickHint?: string;
 };
 
 type Props = {
@@ -21,6 +32,7 @@ type Props = {
   captionBody?: string;
   emptyCaptionBody?: string;
   showCaption?: boolean;
+  tooltipData?: Record<string, TooltipDatum>;
 };
 
 type ProjectedFeature = {
@@ -112,13 +124,13 @@ function buildProjectedFeatures(geojson: Props["geojson"]): ProjectedFeature[] {
 function buildRiskStops(values: number[]) {
   const sorted = [...values].sort((left, right) => left - right);
   if (!sorted.length) {
-    return { medium: 0.44, high: 0.62, peak: 0.75 };
+    return { medium: 0.4, high: 0.7, peak: 0.82 };
   }
 
   const pick = (ratio: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * ratio)))];
-  const medium = pick(0.35);
-  const high = pick(0.65);
-  const peak = pick(0.85);
+  const medium = pick(0.33);
+  const high = pick(0.66);
+  const peak = pick(0.84);
 
   return {
     medium,
@@ -128,10 +140,14 @@ function buildRiskStops(values: number[]) {
 }
 
 function toneForRisk(value: number, stops: { medium: number; high: number; peak: number }) {
-  if (value >= stops.peak) return "rgba(198, 40, 57, 0.92)";
-  if (value >= stops.high) return "rgba(198, 40, 57, 0.62)";
-  if (value >= stops.medium) return "rgba(211, 162, 26, 0.86)";
-  return "rgba(13, 91, 215, 0.22)";
+  if (value >= stops.peak) return "rgba(230, 57, 70, 0.96)";
+  if (value >= stops.high) return "rgba(230, 57, 70, 0.72)";
+  if (value >= stops.medium) return "rgba(245, 197, 24, 0.92)";
+  return "rgba(46, 91, 255, 0.34)";
+}
+
+function randomPoint(range: number, offset: number) {
+  return Math.round(Math.random() * range + offset);
 }
 
 export function ColombiaMap({
@@ -145,8 +161,12 @@ export function ColombiaMap({
   captionBody,
   emptyCaptionBody,
   showCaption = true,
+  tooltipData,
 }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [introReady, setIntroReady] = useState(false);
+  const scope = useRef<HTMLDivElement>(null);
   const features = useMemo(() => buildProjectedFeatures(geojson), [geojson]);
   const summary = useMemo(
     () => new Map(departments.map((item) => [item.geoName, item])),
@@ -159,64 +179,166 @@ export function ColombiaMap({
 
   const currentDepartment = hovered || activeDepartment || departments[0]?.geoName || null;
   const currentDatum = currentDepartment ? summary.get(currentDepartment) : undefined;
+  const currentFeature = currentDepartment ? features.find((feature) => feature.key === currentDepartment) : null;
+  const currentTooltip = currentDepartment ? tooltipData?.[currentDepartment] : undefined;
 
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  useGSAP(
+    () => {
+      if (!features.length) return;
+
+      const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const dots = gsap.utils.toArray<SVGCircleElement>(".colombia-map__intro-dot");
+      const shapes = gsap.utils.toArray<SVGPathElement>(".colombia-map__shape");
+      const marker = scope.current?.querySelector(".colombia-map__marker");
+
+      if (reduceMotion) {
+        gsap.set(shapes, { autoAlpha: 1, scale: 1 });
+        gsap.set(dots, { autoAlpha: 0 });
+        if (marker) gsap.set(marker, { autoAlpha: 1 });
+        setIntroReady(true);
+        return;
+      }
+
+      gsap.set(shapes, { autoAlpha: 0, scale: 0.88, transformBox: "fill-box", transformOrigin: "50% 50%" });
+      if (marker) gsap.set(marker, { autoAlpha: 0, scale: 0.6, transformOrigin: "50% 50%" });
+
+      const timeline = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        onComplete: () => setIntroReady(true),
+      });
+
+      timeline.fromTo(
+        dots,
+        {
+          autoAlpha: 0,
+          scale: 0,
+          x: () => randomPoint(240, -120),
+          y: () => randomPoint(260, -130),
+        },
+        {
+          autoAlpha: 1,
+          scale: 1.12,
+          x: 0,
+          y: 0,
+          duration: 0.68,
+          stagger: 0.02,
+        },
+        0,
+      );
+
+      timeline.to(
+        dots,
+        {
+          autoAlpha: 0,
+          scale: 0.18,
+          duration: 0.42,
+          stagger: 0.01,
+        },
+        0.72,
+      );
+      timeline.to(
+        shapes,
+        {
+          autoAlpha: 1,
+          scale: 1,
+          duration: 0.72,
+          stagger: 0.024,
+        },
+        0.48,
+      );
+      if (marker) timeline.to(marker, { autoAlpha: 1, scale: 1, duration: 0.5 }, 1.08);
+    },
+    { scope, dependencies: [features.length, mode] },
+  );
+
+  useGSAP(
+    () => {
+      if (!currentDepartment || !scope.current) return;
+      const escaped = currentDepartment.replaceAll('"', '\\"');
+      const featureNode = scope.current.querySelector<SVGPathElement>(`[data-feature="${escaped}"]`);
+      const marker = scope.current.querySelector(".colombia-map__marker");
+      if (featureNode) {
+        gsap.fromTo(
+          featureNode,
+          { scale: 0.96, transformBox: "fill-box", transformOrigin: "50% 50%" },
+          { scale: 1.02, duration: 0.42, yoyo: true, repeat: 1, ease: "power2.out" },
+        );
+      }
+      if (marker && introReady) {
+        gsap.fromTo(marker, { scale: 0.82 }, { scale: 1, duration: 0.38, ease: "back.out(1.7)" });
+      }
+    },
+    { scope, dependencies: [currentDepartment, introReady] },
+  );
 
   if (!features.length) {
     return <div className={`colombia-map ${className ?? ""}`} />;
   }
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (mapRef.current) {
-      const rect = mapRef.current.getBoundingClientRect();
-      setMousePos({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
-    }
-  };
+  const hoveredSummary = hovered ? summary.get(hovered) : null;
+  const hoveredTooltip = hovered ? tooltipData?.[hovered] : null;
 
   return (
-    <div 
+    <div
       className={`colombia-map colombia-map--${mode} ${className ?? ""}`}
-      ref={mapRef}
-      onMouseMove={handleMouseMove}
+      ref={scope}
+      onMouseMove={(event) => {
+        const rect = scope.current?.getBoundingClientRect();
+        if (!rect) return;
+        setMousePos({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+      }}
       style={{ position: "relative" }}
     >
       <svg viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`} className="colombia-map__svg" aria-label="Mapa de Colombia">
         <defs>
           <linearGradient id={`flag-gradient-${mode}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="var(--yellow)" stopOpacity="0.94" />
-            <stop offset="52%" stopColor="var(--blue)" stopOpacity="0.88" />
-            <stop offset="100%" stopColor="var(--red)" stopOpacity="0.86" />
+            <stop offset="0%" stopColor="#F5C518" stopOpacity="0.94" />
+            <stop offset="52%" stopColor="#2E5BFF" stopOpacity="0.88" />
+            <stop offset="100%" stopColor="#E63946" stopOpacity="0.9" />
           </linearGradient>
           <radialGradient id={`map-glow-${mode}`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(13,91,215,0.28)" />
-            <stop offset="100%" stopColor="rgba(13,91,215,0)" />
+            <stop offset="0%" stopColor="rgba(46,91,255,0.24)" />
+            <stop offset="100%" stopColor="rgba(46,91,255,0)" />
           </radialGradient>
         </defs>
 
-        {mode === "hero" ? (
-          <>
-            <rect x="0" y="0" width={VIEWBOX_WIDTH} height={VIEWBOX_HEIGHT} fill="rgba(255,255,255,0.04)" />
-            <circle cx={VIEWBOX_WIDTH / 2} cy={VIEWBOX_HEIGHT / 2} r="180" fill={`url(#map-glow-${mode})`} />
-          </>
+        <rect x="0" y="0" width={VIEWBOX_WIDTH} height={VIEWBOX_HEIGHT} fill="rgba(255,255,255,0.02)" />
+        <circle cx={VIEWBOX_WIDTH / 2} cy={VIEWBOX_HEIGHT / 2} r="180" fill={`url(#map-glow-${mode})`} />
+
+        {!introReady ? (
+          <g className="colombia-map__intro">
+            {features.map((feature, index) => (
+              <circle
+                key={`${feature.key}-dot`}
+                className="colombia-map__intro-dot"
+                data-cx={feature.centerX}
+                data-cy={feature.centerY}
+                cx={feature.centerX}
+                cy={feature.centerY}
+                r={mode === "hero" ? 6 : 4.5}
+                fill={index % 3 === 0 ? "#F5C518" : index % 3 === 1 ? "#2E5BFF" : "#E63946"}
+                opacity="0"
+              />
+            ))}
+          </g>
         ) : null}
 
         <g className="colombia-map__group">
           {features.map((feature, index) => {
             const datum = summary.get(feature.key);
             const isActive = currentDepartment === feature.key;
+            const isHot = (datum?.avgRisk ?? 0) >= 0.7;
             const fill =
               mode === "hero"
                 ? isActive
                   ? `url(#flag-gradient-${mode})`
-                  : index % 3 === 0
-                    ? "rgba(211,162,26,0.16)"
-                    : index % 3 === 1
-                      ? "rgba(13,91,215,0.12)"
-                      : "rgba(198,40,57,0.1)"
+                  : datum
+                    ? toneForRisk(datum.avgRisk, stops)
+                    : index % 3 === 0
+                      ? "rgba(245,197,24,0.16)"
+                      : index % 3 === 1
+                        ? "rgba(46,91,255,0.14)"
+                        : "rgba(230,57,70,0.12)"
                 : isActive
                   ? `url(#flag-gradient-${mode})`
                   : datum
@@ -227,10 +349,11 @@ export function ColombiaMap({
               <path
                 key={feature.key}
                 d={feature.path}
+                data-feature={feature.key}
                 fill={fill}
                 fillRule="evenodd"
-                className={`colombia-map__shape ${isActive ? "is-active" : ""}`}
-                style={{ animationDelay: `${index * 34}ms` }}
+                className={`colombia-map__shape ${isActive ? "is-active" : ""} ${isHot ? "is-hot" : ""}`}
+                style={{ animationDelay: `${index * 18}ms` }}
                 onMouseEnter={() => setHovered(feature.key)}
                 onMouseLeave={() => setHovered(null)}
                 onClick={() => onSelect?.(feature.key)}
@@ -239,20 +362,10 @@ export function ColombiaMap({
           })}
         </g>
 
-        {currentDepartment ? (
+        {currentFeature ? (
           <g className="colombia-map__marker">
-            <circle
-              cx={features.find((feature) => feature.key === currentDepartment)?.centerX ?? VIEWBOX_WIDTH / 2}
-              cy={features.find((feature) => feature.key === currentDepartment)?.centerY ?? VIEWBOX_HEIGHT / 2}
-              r={mode === "hero" ? 13 : 10}
-              fill="rgba(13,91,215,0.18)"
-            />
-            <circle
-              cx={features.find((feature) => feature.key === currentDepartment)?.centerX ?? VIEWBOX_WIDTH / 2}
-              cy={features.find((feature) => feature.key === currentDepartment)?.centerY ?? VIEWBOX_HEIGHT / 2}
-              r={mode === "hero" ? 5 : 4}
-              fill="var(--blue)"
-            />
+            <circle cx={currentFeature.centerX} cy={currentFeature.centerY} r={mode === "hero" ? 15 : 11} fill="rgba(46,91,255,0.18)" />
+            <circle cx={currentFeature.centerX} cy={currentFeature.centerY} r={mode === "hero" ? 7 : 5} fill="#2E5BFF" />
           </g>
         ) : null}
       </svg>
@@ -262,48 +375,44 @@ export function ColombiaMap({
           <div className="label" style={{ marginBottom: "0.35rem" }}>
             {captionTitle ?? (mode === "hero" ? "Colombia" : "Territorio activo")}
           </div>
-          <strong>{currentDatum?.label ?? currentDepartment ?? "Colombia"}</strong>
+          <strong>{currentTooltip?.label ?? currentDatum?.label ?? currentDepartment ?? "Colombia"}</strong>
           <div className="body-copy" style={{ marginTop: "0.2rem", fontSize: "0.8rem" }}>
             {currentDatum
-              ? captionBody ?? `${currentDatum.contractCount.toLocaleString()} contratos · ${(currentDatum.avgRisk * 100).toFixed(0)}/100 de intensidad`
+              ? captionBody ??
+                `${currentDatum.contractCount.toLocaleString("es-CO")} contratos · ${Math.round((currentTooltip?.intensity ?? currentDatum.avgRisk * 100))}/100 de intensidad`
               : emptyCaptionBody ?? "Selecciona un departamento para reorganizar la lectura."}
           </div>
         </div>
       ) : null}
 
-      {hovered && (
+      {hovered ? (
         <div
           className="map-tooltip"
           style={{
-            position: "absolute",
-            left: mousePos.x + 15,
-            top: mousePos.y + 15,
-            pointerEvents: "none",
-            background: "rgba(10, 15, 25, 0.85)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            padding: "0.6rem 0.8rem",
-            borderRadius: "12px",
-            color: "white",
-            zIndex: 100,
-            transform: "translate(-50%, -100%)",
-            marginTop: "-25px",
-            whiteSpace: "nowrap",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-            transition: "opacity 0.2s ease, transform 0.1s ease-out",
+            left: mousePos.x + 18,
+            top: mousePos.y - 10,
           }}
         >
-          <div style={{ fontSize: "0.95rem", fontWeight: 600, letterSpacing: "-0.02em" }}>
-            {summary.get(hovered)?.label ?? hovered}
+          <div className="map-tooltip__title">{hoveredTooltip?.label ?? hoveredSummary?.label ?? hovered}</div>
+          <div className="map-tooltip__metric">
+            <span>📊</span>
+            <span>
+              {(hoveredTooltip?.contractCount ?? hoveredSummary?.contractCount ?? 0).toLocaleString("es-CO")} contratos visibles
+            </span>
           </div>
-          {summary.get(hovered) && (
-            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.7)", marginTop: "0.2rem" }}>
-              {(summary.get(hovered)!.avgRisk * 100).toFixed(0)} señal
+          <div className="map-tooltip__metric">
+            <span>⚠️</span>
+            <span>{Math.round(hoveredTooltip?.intensity ?? ((hoveredSummary?.avgRisk ?? 0) * 100))}/100 de intensidad</span>
+          </div>
+          {(hoveredTooltip?.alerts ?? []).slice(0, 3).map((alert) => (
+            <div key={alert} className="map-tooltip__alert">
+              <span>•</span>
+              <span>{alert}</span>
             </div>
-          )}
+          ))}
+          <div className="map-tooltip__hint">{hoveredTooltip?.clickHint ?? "Haz clic para filtrar"}</div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

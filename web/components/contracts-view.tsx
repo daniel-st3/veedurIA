@@ -1,18 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 
 import {
   ArrowUpRight,
+  Bookmark,
   Database,
   Download,
   Filter,
+  LoaderCircle,
+  RotateCcw,
   Search,
   SlidersHorizontal,
+  X,
 } from "lucide-react";
 
 import { ColombiaMap } from "@/components/colombia-map";
+import { ContractsDashboard } from "@/components/contracts-dashboard";
+import { NoticeStack, type NoticeItem } from "@/components/notice-stack";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { fetchContractsFreshness, fetchContractsTable, fetchGeoJson, fetchOverview } from "@/lib/api";
@@ -31,6 +41,12 @@ type FilterState = {
 };
 
 type ExplorerGroupKey = "department" | "modality" | "entity";
+
+type SavedSearch = {
+  id: string;
+  label: string;
+  filters: FilterState;
+};
 
 const INITIAL_FILTERS: FilterState = {
   department: undefined,
@@ -253,20 +269,69 @@ function downloadRows(rows: TablePayload["rows"], lang: Lang) {
   window.URL.revokeObjectURL(url);
 }
 
+function buildFilterQuery(lang: Lang, filters: FilterState) {
+  const search = new URLSearchParams();
+  if (lang !== "es") search.set("lang", lang);
+  if (filters.department) search.set("dept", filters.department);
+  if (filters.risk !== "all") search.set("risk", filters.risk);
+  if (filters.modality) search.set("modality", filters.modality);
+  if (filters.query?.trim()) search.set("q", filters.query.trim());
+  if (filters.dateFrom) search.set("from", filters.dateFrom);
+  if (filters.dateTo) search.set("to", filters.dateTo);
+  if (filters.full) search.set("full", "1");
+  return search.toString();
+}
+
+function isMeaningfulFilter(filters: FilterState) {
+  return Boolean(
+    filters.department ||
+      filters.modality ||
+      filters.query ||
+      filters.dateFrom ||
+      filters.dateTo ||
+      filters.risk !== "all" ||
+      filters.full,
+  );
+}
+
+function highlightText(value: string, query?: string) {
+  const term = query?.trim();
+  if (!term) return value;
+  const matcher = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig");
+  const segments = value.split(matcher);
+  if (segments.length === 1) return value;
+  return segments.map((segment, index) =>
+    segment.toLowerCase() === term.toLowerCase() ? <mark key={`${segment}-${index}`}>{segment}</mark> : <span key={`${segment}-${index}`}>{segment}</span>,
+  );
+}
+
+function monthBounds(month: string) {
+  if (!/^\d{4}-\d{2}$/.test(month)) return null;
+  const [year, monthIndex] = month.split("-").map(Number);
+  const start = `${year}-${String(monthIndex).padStart(2, "0")}-01`;
+  const end = new Date(Date.UTC(year, monthIndex, 0)).toISOString().slice(0, 10);
+  return { start, end };
+}
+
 export function ContractsView({
   lang,
   initialOverview,
   initialTable,
   initialGeojson,
+  initialFilters = INITIAL_FILTERS,
 }: {
   lang: Lang;
   initialOverview?: OverviewPayload | null;
   initialTable?: TablePayload | null;
   initialGeojson?: any | null;
+  initialFilters?: FilterState;
 }) {
+  const scope = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
   const copy = contractsCopy[lang];
-  const [draft, setDraft] = useState<FilterState>(INITIAL_FILTERS);
-  const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS);
+  const [draft, setDraft] = useState<FilterState>(initialFilters);
+  const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [overview, setOverview] = useState<OverviewPayload | null>(initialOverview ?? null);
   const [table, setTable] = useState<TablePayload | null>(initialTable ?? null);
   const [geojson, setGeojson] = useState<any>(initialGeojson ?? null);
@@ -279,6 +344,11 @@ export function ContractsView({
   const [overviewInitialized, setOverviewInitialized] = useState(Boolean(initialOverview));
   const [tableInitialized, setTableInitialized] = useState(Boolean(initialTable));
   const [explorerGroup, setExplorerGroup] = useState<ExplorerGroupKey>("department");
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
+  const [actionPending, setActionPending] = useState(false);
+  const pendingReason = useRef<"apply" | "reset" | "save" | "map" | "month" | null>(null);
+  const syncingUrl = useRef(true);
 
   const loadGeojson = () => {
     setMapState("loading");
@@ -294,6 +364,14 @@ export function ContractsView({
       .catch(() => {
         setMapState("error");
       });
+  };
+
+  const pushNotice = (tone: NoticeItem["tone"], message: string, title?: string) => {
+    const id = `${tone}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setNotices((current) => [...current, { id, tone, message, title }]);
+    window.setTimeout(() => {
+      setNotices((current) => current.filter((item) => item.id !== id));
+    }, tone === "error" ? 5000 : 3200);
   };
 
   useEffect(() => {
@@ -333,6 +411,80 @@ export function ContractsView({
   }, []);
 
   useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("veeduria:saved-contract-slices");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as SavedSearch[];
+      if (Array.isArray(parsed)) setSavedSearches(parsed);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (syncingUrl.current) {
+      syncingUrl.current = false;
+      return;
+    }
+    const query = buildFilterQuery(lang, filters);
+    const href = query ? `${pathname}?${query}` : pathname;
+    router.replace(href, { scroll: false });
+  }, [filters, lang, pathname, router]);
+
+  useEffect(() => {
+    if (!actionPending || loading || tableLoading) return;
+    const contracts = overview?.slice.totalContracts ?? table?.total ?? 0;
+    if (pendingReason.current === "save") {
+      pushNotice(
+        "success",
+        lang === "es" ? "La búsqueda quedó guardada en este navegador." : "The search was saved on this browser.",
+        lang === "es" ? "Búsqueda guardada" : "Search saved",
+      );
+    } else if (pendingReason.current === "reset") {
+      pushNotice(
+        "info",
+        lang === "es" ? "Volviste al corte general de Colombia." : "You returned to the national Colombia slice.",
+        lang === "es" ? "Filtros limpiados" : "Filters cleared",
+      );
+    } else {
+      pushNotice(
+        "success",
+        lang === "es"
+          ? `${contracts.toLocaleString("es-CO")} contratos quedaron visibles con el corte actual.`
+          : `${contracts.toLocaleString("en-US")} contracts remain visible under the current slice.`,
+        lang === "es" ? "Corte actualizado" : "Slice updated",
+      );
+    }
+    pendingReason.current = null;
+    setActionPending(false);
+  }, [actionPending, lang, loading, overview?.slice.totalContracts, table?.total, tableLoading]);
+
+  useGSAP(
+    () => {
+      const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduceMotion) return;
+      gsap.fromTo(
+        ".cv-hero-panel, .cv-control-panel, .cv-map-stage, .cv-block, .cv-dashboard-card, .explorer-card, .cv-case-chip",
+        { autoAlpha: 0, y: 24 },
+        { autoAlpha: 1, y: 0, duration: 0.58, stagger: 0.03, ease: "power3.out" },
+      );
+      gsap.fromTo(
+        ".cv-factor-row__bar span, .cv-case-chip__bar span, .cv-sandbox-group__bar span, .table-value__fill",
+        { width: 0 },
+        {
+          width: (_index, target) => target.getAttribute("data-width") || target.getAttribute("style")?.match(/width:\s*([^;]+)/)?.[1] || "100%",
+          duration: 1.1,
+          ease: "power3.out",
+          stagger: 0.03,
+          scrollTrigger: {
+            trigger: ".cv-page",
+            start: "top 75%",
+          },
+        },
+      );
+    },
+    { scope, dependencies: [table?.rows.length ?? 0, overview?.leadCases.length ?? 0, overview?.slice.totalContracts ?? 0] },
+  );
+
+  useEffect(() => {
     if (overviewInitialized) {
       setOverviewInitialized(false);
       return;
@@ -345,6 +497,14 @@ export function ContractsView({
         if (!alive) return;
         setOverview(data);
         setSelectedCase(data.leadCases[0] ?? null);
+      })
+      .catch(() => {
+        if (!alive) return;
+        pushNotice(
+          "error",
+          lang === "es" ? "No fue posible actualizar el panorama del corte." : "The slice overview could not be refreshed.",
+          lang === "es" ? "Error de carga" : "Loading error",
+        );
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -367,6 +527,14 @@ export function ContractsView({
       .then((data) => {
         if (!alive) return;
         setTable(data);
+      })
+      .catch(() => {
+        if (!alive) return;
+        pushNotice(
+          "error",
+          lang === "es" ? "No fue posible cargar la tabla del corte actual." : "The current slice table could not be loaded.",
+          lang === "es" ? "Error de carga" : "Loading error",
+        );
       })
       .finally(() => {
         if (alive) setTableLoading(false);
@@ -399,13 +567,17 @@ export function ContractsView({
     filters.query?.trim() ? `"${filters.query.trim()}"` : null,
   ].filter(Boolean) as string[];
 
-  const hasStrongFilters = Boolean(
-    filters.department ||
-      filters.modality ||
-      filters.query ||
-      filters.dateFrom ||
-      filters.dateTo ||
-      filters.risk !== "all",
+  const hasStrongFilters = isMeaningfulFilter(filters);
+  const searchSuggestions = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...(overview?.options.departments.map((item) => item.label) ?? []),
+          ...tableRows.map((row) => row.entity),
+          ...tableRows.map((row) => row.provider),
+        ]),
+      ].slice(0, 24),
+    [overview?.options.departments, tableRows],
   );
 
   const headlineContracts = useMemo(() => {
@@ -466,10 +638,96 @@ export function ContractsView({
             : "no visible official timestamp",
     },
   ];
+  const activeFilterChips = [
+    filters.department
+      ? { key: "department", label: lang === "es" ? `Departamento: ${filters.department}` : `Department: ${filters.department}` }
+      : null,
+    filters.risk !== "all"
+      ? {
+          key: "risk",
+          label:
+            lang === "es"
+              ? `Riesgo: ${filters.risk === "high" ? "alto" : filters.risk === "medium" ? "medio" : "bajo"}`
+              : `Risk: ${filters.risk}`,
+        }
+      : null,
+    filters.modality ? { key: "modality", label: `${lang === "es" ? "Modalidad" : "Modality"}: ${filters.modality}` } : null,
+    filters.query?.trim() ? { key: "query", label: `${lang === "es" ? "Búsqueda" : "Search"}: ${filters.query.trim()}` } : null,
+    filters.dateFrom ? { key: "dateFrom", label: `${lang === "es" ? "Desde" : "From"}: ${filters.dateFrom}` } : null,
+    filters.dateTo ? { key: "dateTo", label: `${lang === "es" ? "Hasta" : "To"}: ${filters.dateTo}` } : null,
+  ].filter(Boolean) as Array<{ key: keyof FilterState; label: string }>;
+  const mapTooltipData = useMemo(() => {
+    return Object.fromEntries(
+      (overview?.map.departments ?? []).map((department) => {
+        const alerts = leadCases
+          .filter((caseItem) => caseItem.department === department.label || caseItem.department === department.geoName)
+          .slice(0, 3)
+          .map((caseItem) => caseItem.signal || caseItem.pickReason);
+        return [
+          department.geoName,
+          {
+            label: department.label,
+            contractCount: department.contractCount,
+            intensity: Math.round(department.avgRisk * 100),
+            alerts: alerts.length
+              ? alerts
+              : lang === "es"
+                ? [
+                    "Concentración por encima del promedio del corte",
+                    "Mayor presencia de contratación directa",
+                    "Más casos para revisar primero",
+                  ]
+                : [
+                    "Concentration above the slice average",
+                    "Higher direct-award presence",
+                    "More cases worth opening first",
+                  ],
+            clickHint: lang === "es" ? "Haz clic para filtrar" : "Click to filter",
+          },
+        ];
+      }),
+    );
+  }, [leadCases, lang, overview?.map.departments]);
+
+  const runFilters = (next: FilterState, reason: "apply" | "reset" | "save" | "map" | "month") => {
+    pendingReason.current = reason;
+    setActionPending(true);
+    setPage(0);
+    setDraft(next);
+    setFilters(next);
+  };
+
+  const resetFilters = () => {
+    runFilters(INITIAL_FILTERS, "reset");
+  };
+
+  const saveCurrentSearch = () => {
+    const saved: SavedSearch = {
+      id: `${Date.now()}`,
+      label:
+        lang === "es"
+          ? `Corte ${new Date().toLocaleDateString("es-CO", { month: "short", day: "numeric" })}`
+          : `Slice ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+      filters,
+    };
+    const next = [saved, ...savedSearches].slice(0, 6);
+    setSavedSearches(next);
+    window.localStorage.setItem("veeduria:saved-contract-slices", JSON.stringify(next));
+    pendingReason.current = "save";
+    setActionPending(true);
+  };
+
+  const removeFilterChip = (key: keyof FilterState) => {
+    const next: FilterState = { ...filters };
+    if (key === "risk") next.risk = "all";
+    else if (key === "full") next.full = false;
+    else next[key] = undefined;
+    runFilters(next, "apply");
+  };
 
   if (isBooting) {
     return (
-      <div className="shell">
+      <div className="shell" ref={scope}>
         <SiteNav
           lang={lang}
           links={[
@@ -484,7 +742,7 @@ export function ContractsView({
   }
 
   return (
-    <div className="shell">
+    <div className="shell" ref={scope}>
       <SiteNav
         lang={lang}
         links={[
@@ -493,6 +751,7 @@ export function ContractsView({
           { href: `/sigue-el-dinero?lang=${lang}`, label: copy.navPhase3 },
         ]}
       />
+      <NoticeStack notices={notices} onDismiss={(id) => setNotices((current) => current.filter((item) => item.id !== id))} />
 
       <main className="page cv-page">
         <section className="cv-hero-panel surface stripe-flag">
@@ -588,10 +847,16 @@ export function ContractsView({
                     {copy.searchLabel}
                   </span>
                   <input
+                    list="contracts-search-suggestions"
                     value={draft.query ?? ""}
                     onChange={(event) => setDraft((prev) => ({ ...prev, query: event.target.value }))}
                     placeholder={copy.searchPlaceholder}
                   />
+                  <datalist id="contracts-search-suggestions">
+                    {searchSuggestions.map((item) => (
+                      <option key={item} value={item} />
+                    ))}
+                  </datalist>
                 </label>
 
                 <label className="filter-field">
@@ -661,12 +926,11 @@ export function ContractsView({
                   type="button"
                   className="btn-primary cv-filter-action"
                   onClick={() => {
-                    setPage(0);
-                    setFilters(draft);
+                    runFilters(draft, "apply");
                   }}
                 >
-                  <Filter size={15} />
-                  {copy.applyFilters}
+                  {actionPending || loading || tableLoading ? <LoaderCircle size={15} className="is-spinning" /> : <Filter size={15} />}
+                  {lang === "es" ? "Filtrar contratos →" : "Filter contracts →"}
                 </button>
 
                 <button
@@ -674,15 +938,65 @@ export function ContractsView({
                   className="btn-secondary cv-filter-action"
                   onClick={() => {
                     const next = { ...draft, full: !draft.full };
-                    setDraft(next);
-                    setPage(0);
-                    setFilters(next);
+                    runFilters(next, "apply");
                   }}
                 >
                   <Database size={15} />
                   {draft.full ? copy.togglePreview : copy.toggleFull}
                 </button>
+
+                <button type="button" className="btn-secondary cv-filter-action" onClick={resetFilters}>
+                  <RotateCcw size={15} />
+                  {lang === "es" ? "Limpiar filtros" : "Clear filters"}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-secondary cv-filter-action"
+                  onClick={saveCurrentSearch}
+                  disabled={!isMeaningfulFilter(filters)}
+                >
+                  <Bookmark size={15} />
+                  {lang === "es" ? "Guardar búsqueda" : "Save search"}
+                </button>
               </div>
+
+              <div className="cv-saved-search-row">
+                <label className="filter-field">
+                  <span className="label">{lang === "es" ? "Búsquedas guardadas" : "Saved searches"}</span>
+                  <select
+                    value=""
+                    onChange={(event) => {
+                      const selected = savedSearches.find((item) => item.id === event.target.value);
+                      if (!selected) return;
+                      runFilters(selected.filters, "apply");
+                    }}
+                  >
+                    <option value="">{lang === "es" ? "Elegir corte guardado" : "Choose a saved slice"}</option>
+                    {savedSearches.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {activeFilterChips.length ? (
+                <div className="cv-filter-chips">
+                  {activeFilterChips.map((chip) => (
+                    <button
+                      key={chip.key}
+                      type="button"
+                      className="cv-filter-chip"
+                      onClick={() => removeFilterChip(chip.key)}
+                    >
+                      <span>{chip.label}</span>
+                      <X size={14} />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
 
               <p className="cv-helper-copy cv-helper-copy--compact">
                 {draft.full
@@ -744,6 +1058,7 @@ export function ContractsView({
                     geojson={geojson}
                     departments={overview.map.departments}
                     activeDepartment={filters.department}
+                    tooltipData={mapTooltipData}
                     showCaption
                     captionTitle={lang === "es" ? "Lectura actual" : "Current readout"}
                     captionBody={
@@ -753,9 +1068,7 @@ export function ContractsView({
                     }
                     onSelect={(department) => {
                       const next = { ...filters, department: department === filters.department ? undefined : department };
-                      setDraft(next);
-                      setFilters(next);
-                      setPage(0);
+                      runFilters(next, "map");
                     }}
                   />
                 ) : mapState === "error" ? (
@@ -777,13 +1090,29 @@ export function ContractsView({
                 ) : (
                   <div className="cv-map-placeholder" aria-live="polite">
                     <span className="cv-spinner" aria-hidden="true" />
-                    <span className="label">{copy.loading}</span>
+                    <span className="label">{lang === "es" ? "Cargando el mapa territorial" : "Loading the territorial map"}</span>
                   </div>
                 )}
               </div>
             </section>
           </div>
         </section>
+
+        <ContractsDashboard
+          lang={lang}
+          departments={overview?.map.departments ?? []}
+          rows={tableRows}
+          onDepartmentPick={(department) => {
+            const next = { ...filters, department };
+            runFilters(next, "map");
+          }}
+          onMonthPick={(month) => {
+            const bounds = monthBounds(month);
+            if (!bounds) return;
+            const next = { ...filters, dateFrom: bounds.start, dateTo: bounds.end };
+            runFilters(next, "month");
+          }}
+        />
 
         <section className={`cv-block surface stripe-${selectedTone === "high" ? "red" : selectedTone === "medium" ? "yellow" : "green"}`}>
           <div className="cv-block__header">
@@ -874,7 +1203,10 @@ export function ContractsView({
                         <span>{lang === "es" ? "aporte estimado al puntaje de este caso" : "estimated contribution to this case score"}</span>
                       </div>
                       <div className="cv-factor-row__bar">
-                        <span style={{ width: `${Math.max(8, factor.severity * 100)}%` }} />
+                        <span
+                          data-width={`${Math.max(8, factor.severity * 100)}%`}
+                          style={{ width: `${Math.max(8, factor.severity * 100)}%` }}
+                        />
                       </div>
                       <strong>{Math.round(factor.severity * 100)}</strong>
                     </article>
@@ -922,7 +1254,10 @@ export function ContractsView({
                   <h3>{item.entity}</h3>
                   <p>{formatCompactCop(item.value, lang)}</p>
                   <div className="cv-case-chip__bar">
-                    <span style={{ width: `${Math.max(14, (item.score / leadCaseMax) * 100)}%` }} />
+                    <span
+                      data-width={`${Math.max(14, (item.score / leadCaseMax) * 100)}%`}
+                      style={{ width: `${Math.max(14, (item.score / leadCaseMax) * 100)}%` }}
+                    />
                   </div>
                 </button>
               ))}
@@ -1032,9 +1367,22 @@ export function ContractsView({
               </select>
             </label>
 
-            <button type="button" className="btn-secondary" onClick={() => downloadRows(tableRows, lang)}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                pushNotice(
+                  "info",
+                  lang === "es"
+                    ? `Descargando ${tableRows.length.toLocaleString("es-CO")} registros del corte visible.`
+                    : `Downloading ${tableRows.length.toLocaleString("en-US")} visible slice records.`,
+                  lang === "es" ? "Exportación iniciada" : "Export started",
+                );
+                downloadRows(tableRows, lang);
+              }}
+            >
               <Download size={15} />
-              {lang === "es" ? "Exportar CSV" : "Export CSV"}
+              {lang === "es" ? "Descargar datos ↓" : "Download data ↓"}
             </button>
           </div>
 
@@ -1051,7 +1399,7 @@ export function ContractsView({
                     </div>
                     <p>{group.count.toLocaleString("es-CO")} {lang === "es" ? "registros visibles" : "visible records"}</p>
                     <div className="cv-sandbox-group__bar">
-                      <span style={{ width: `${Math.max(14, group.peakScore)}%` }} />
+                      <span data-width={`${Math.max(14, group.peakScore)}%`} style={{ width: `${Math.max(14, group.peakScore)}%` }} />
                     </div>
                     <small>{formatMoney(group.totalValue, lang)}</small>
                   </article>
@@ -1068,11 +1416,11 @@ export function ContractsView({
                       <div className="explorer-card__top">
                         <div>
                           <div className="label" style={{ marginBottom: "0.3rem" }}>{row.department}</div>
-                          <div className="explorer-card__title">{row.entity}</div>
+                          <div className="explorer-card__title">{highlightText(row.entity, filters.query)}</div>
                         </div>
                         <div className={`score risk-${row.riskBand}`} style={{ fontSize: "1.5rem" }}>{row.score}</div>
                       </div>
-                      <div className="body-copy" style={{ fontSize: "0.82rem", marginBottom: "0.7rem" }}>{row.provider}</div>
+                      <div className="body-copy" style={{ fontSize: "0.82rem", marginBottom: "0.7rem" }}>{highlightText(row.provider, filters.query)}</div>
                       <div className="explorer-card__metrics">
                         <div>
                           <div className="label" style={{ marginBottom: "0.3rem" }}>{copy.tableValue}</div>
@@ -1080,6 +1428,7 @@ export function ContractsView({
                           <div className="table-value__track" style={{ marginTop: 6 }}>
                             <span
                               className="table-value__fill"
+                              data-width={`${tableValueMax > 0 ? Math.max(10, (row.value / tableValueMax) * 100) : 10}%`}
                               style={{ width: `${tableValueMax > 0 ? Math.max(10, (row.value / tableValueMax) * 100) : 10}%` }}
                             />
                           </div>

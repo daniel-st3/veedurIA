@@ -25,16 +25,42 @@ export async function generateMetadata({
 export default async function ContratoLimpioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ lang?: string }>;
+  searchParams: Promise<{
+    lang?: string;
+    dept?: string;
+    risk?: string;
+    modality?: string;
+    q?: string;
+    from?: string;
+    to?: string;
+    full?: string;
+  }>;
 }) {
   const params = await searchParams;
   const lang = resolveLang(params.lang);
+  const initialFilters = {
+    department: params.dept || undefined,
+    risk: params.risk === "high" || params.risk === "medium" || params.risk === "low" ? params.risk : "all",
+    modality: params.modality || undefined,
+    query: params.q || "",
+    dateFrom: params.from || "",
+    dateTo: params.to || "",
+    full: params.full === "1" || params.full === "true",
+  } as const;
   
   const [overview, table, geojson] = await Promise.all([
-    fetchOverview({ lang, full: false }).catch(() => null),
-    fetchContractsTable({ lang, full: false, offset: 0, limit: 24 }).catch(() => null),
+    fetchOverview({ lang, ...initialFilters }).catch(() => null),
+    fetchContractsTable({ lang, ...initialFilters, offset: 0, limit: 24 }).catch(() => null),
     fetchGeoJson().catch(() => null),
   ]);
 
-  return <ContractsView lang={lang} initialOverview={overview} initialTable={table} initialGeojson={geojson} />;
+  return (
+    <ContractsView
+      lang={lang}
+      initialOverview={overview}
+      initialTable={table}
+      initialGeojson={geojson}
+      initialFilters={{ ...initialFilters }}
+    />
+  );
 }

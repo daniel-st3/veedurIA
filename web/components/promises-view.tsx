@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 
 import {
   ArrowUpRight,
@@ -12,6 +15,8 @@ import {
   Users,
 } from "lucide-react";
 
+import { NoticeStack, type NoticeItem } from "@/components/notice-stack";
+import { PromisesAnalytics } from "@/components/promises-analytics";
 import { PromisePivotSandbox } from "@/components/promise-pivot-sandbox";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -457,16 +462,16 @@ const RADAR_2026: ReferenceCard[] = [
 
 const SOURCE_MATRIX = {
   es: [
-    { label: "Promesas", detail: "Programas de gobierno, perfiles legislativos, discursos, páginas públicas y documentos de campaña descargables." },
-    { label: "Acción pública", detail: "Senado, Cámara, gacetas, ministerios, leyes, decretos, proyectos, votaciones y registros oficiales consultables." },
-    { label: "Extracción NLP", detail: "Cada documento se parte en frases-promesa, verbos de acción, tema principal y subcompromisos para ampliar cobertura visible." },
-    { label: "Radar 2026", detail: "Perfiles públicos, lanzamientos, entrevistas, portales oficiales y fuentes abiertas en etapa preelectoral." },
+    { label: "Promesas", detail: "Programas de gobierno, planes públicos, discursos, entrevistas, perfiles legislativos y documentos de campaña descargables." },
+    { label: "Congreso y gobierno", detail: "Senado, Cámara, gacetas, ministerios, leyes, decretos, proyectos, votaciones y registros oficiales consultables." },
+    { label: "Cobertura electoral", detail: "Registraduría, resultados públicos, perfiles oficiales, portales de campaña y referencias abiertas del ciclo 2026." },
+    { label: "Extracción NLP", detail: "Cada documento se parte en frases-promesa, verbos, metas y subcompromisos para ampliar la cobertura visible por actor y tema." },
   ],
   en: [
     { label: "Promises", detail: "Government plans, legislative profiles, speeches, public pages, and downloadable campaign documents." },
-    { label: "Public action", detail: "Senate, House, gazettes, ministries, laws, decrees, bills, votes, and official registries." },
-    { label: "NLP extraction", detail: "Each document is split into promise sentences, action verbs, main topic, and sub-commitments to expand visible coverage." },
-    { label: "2026 radar", detail: "Public profiles, launches, official portals, interviews, and open sources in the pre-electoral phase." },
+    { label: "Congress and government", detail: "Senate, House, gazettes, ministries, laws, decrees, bills, votes, and official registries." },
+    { label: "Electoral coverage", detail: "Election authority references, public results, campaign portals, and open profiles for the 2026 cycle." },
+    { label: "NLP extraction", detail: "Each document is split into promise sentences, verbs, goals, and sub-commitments to broaden visible coverage by actor and theme." },
   ],
 };
 
@@ -602,6 +607,7 @@ export function PromisesView({
   lang: Lang;
   initialPayload: PromisesPayload | null;
 }) {
+  const scope = useRef<HTMLDivElement | null>(null);
   const copy = promisesCopy[lang];
   const defaultId = initialPayload?.scorecard.politicianId ?? initialPayload?.options.politicians[0]?.value;
   const [selectedId, setSelectedId] = useState<string | undefined>(defaultId);
@@ -616,6 +622,15 @@ export function PromisesView({
   const [initialized, setInitialized] = useState(Boolean(initialPayload));
   const [activeHistoricalId, setActiveHistoricalId] = useState<string | null>(HISTORICAL_REFERENCES[0]?.id ?? null);
   const [activeRadarId, setActiveRadarId] = useState<string | null>(RADAR_2026[0]?.id ?? null);
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
+
+  const pushNotice = (tone: NoticeItem["tone"], message: string, title?: string) => {
+    const id = `${tone}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setNotices((current) => [...current, { id, tone, title, message }]);
+    window.setTimeout(() => {
+      setNotices((current) => current.filter((item) => item.id !== id));
+    }, tone === "error" ? 5000 : 3200);
+  };
 
   useEffect(() => {
     if (initialized) {
@@ -642,6 +657,14 @@ export function PromisesView({
         setPayload(data);
         setOpenCardId(data.cards[0]?.id ?? null);
       })
+      .catch(() => {
+        if (!alive) return;
+        pushNotice(
+          "error",
+          lang === "es" ? "No fue posible actualizar el seguimiento del actor." : "The actor tracking view could not be refreshed.",
+          lang === "es" ? "Error de carga" : "Loading error",
+        );
+      })
       .finally(() => {
         if (alive) setLoading(false);
       });
@@ -650,6 +673,34 @@ export function PromisesView({
       alive = false;
     };
   }, [selectedId, domainFilter, statusFilter, lang, initialized, activePeriod, activeChamber]);
+
+  useGSAP(
+    () => {
+      const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduceMotion) return;
+      gsap.fromTo(
+        ".pmr-hero, .pmr-cycle-bar, .pmr-board, .pmr-reference-stage, .pmr-reference-section, .pmr-politician-card, .pmr-promise-card, .pmr-analytics-card, .pmr-source-band__card",
+        { autoAlpha: 0, y: 26 },
+        { autoAlpha: 1, y: 0, duration: 0.64, stagger: 0.03, ease: "power3.out" },
+      );
+      gsap.fromTo(
+        ".pmr-domain-bars__track span",
+        { width: 0 },
+        {
+          width: (_index, target) => target.getAttribute("data-width") || "100%",
+          duration: 1.05,
+          ease: "power3.out",
+          stagger: 0.05,
+        },
+      );
+      gsap.fromTo(
+        ".pmr-progress-ring__meter",
+        { strokeDashoffset: 320 },
+        { strokeDashoffset: (_index, target) => Number(target.getAttribute("data-offset") ?? 0), duration: 1.4, ease: "power3.inOut" },
+      );
+    },
+    { scope, dependencies: [activePeriod, activeChamber, payload?.cards.length ?? 0, payload?.scorecard.overallScore ?? 0] },
+  );
 
   const politicians = payload?.options.politicians ?? [];
   const chamberOptions = useMemo(() => {
@@ -814,9 +865,18 @@ export function PromisesView({
             .filter((value) => value && value !== "#"),
         ).size
       : (activePeriod === 2018 ? visibleHistorical.length : visibleRadar.length) * 2;
+  const visibleCountsByPolitician = useMemo(() => {
+    const buckets = new Map<string, number>();
+    sandboxCards.forEach((card) => {
+      buckets.set(card.politicianId, (buckets.get(card.politicianId) ?? 0) + 1);
+    });
+    return buckets;
+  }, [sandboxCards]);
+  const ringCircumference = 2 * Math.PI * 46;
+  const ringOffset = scorecard ? ringCircumference * (1 - scorecard.overallScore / 100) : ringCircumference;
 
   return (
-    <div className="shell">
+    <div className="shell" ref={scope}>
       <SiteNav
         lang={lang}
         links={[
@@ -825,6 +885,7 @@ export function PromisesView({
           { href: `/sigue-el-dinero?lang=${lang}`, label: copy.navPhase3 },
         ]}
       />
+      <NoticeStack notices={notices} onDismiss={(id) => setNotices((current) => current.filter((item) => item.id !== id))} />
 
       <main className="page pmr-page">
         <section className="pmr-hero">
@@ -942,7 +1003,16 @@ export function PromisesView({
                     key={politician.value}
                     type="button"
                     className={`pmr-politician-card ${isActive ? "pmr-politician-card--active" : ""}`}
-                    onClick={() => setSelectedId(politician.value)}
+                    onClick={() => {
+                      setSelectedId(politician.value);
+                      pushNotice(
+                        "info",
+                        lang === "es"
+                          ? `${visibleCountsByPolitician.get(politician.value) ?? 0} registros visibles para ${name}.`
+                          : `${visibleCountsByPolitician.get(politician.value) ?? 0} visible records for ${name}.`,
+                        name,
+                      );
+                    }}
                     style={isActive ? { borderColor: getColor(politician.value) } : undefined}
                     >
                       <div className="pmr-politician-card__media">
@@ -958,6 +1028,7 @@ export function PromisesView({
                     <div>
                       <strong>{name}</strong>
                       <span>{role}</span>
+                      <small>{(visibleCountsByPolitician.get(politician.value) ?? 0).toLocaleString("es-CO")} {lang === "es" ? "registros" : "records"}</small>
                     </div>
                   </button>
                 );
@@ -987,8 +1058,21 @@ export function PromisesView({
                     </div>
 
                     <div className="pmr-spotlight__score">
-                      <div className="pmr-spotlight__score-ring" style={{ borderColor: partyColor, color: partyColor }}>
-                        {scorecard.overallScore}
+                      <div className="pmr-spotlight__score-ring" style={{ color: partyColor }}>
+                        <svg viewBox="0 0 120 120" className="pmr-progress-ring" aria-hidden="true">
+                          <circle className="pmr-progress-ring__track" cx="60" cy="60" r="46" />
+                          <circle
+                            className="pmr-progress-ring__meter"
+                            cx="60"
+                            cy="60"
+                            r="46"
+                            stroke={partyColor}
+                            strokeDasharray={ringCircumference}
+                            strokeDashoffset={ringOffset}
+                            data-offset={ringOffset}
+                          />
+                        </svg>
+                        <div className="pmr-progress-ring__value">{scorecard.overallScore}%</div>
                       </div>
                       <div>
                         <span>{lang === "es" ? "lectura de coherencia" : "coherence read"}</span>
@@ -1020,7 +1104,10 @@ export function PromisesView({
                           <strong>{Math.round(domain.score * 100)}%</strong>
                         </div>
                         <div className="pmr-domain-bars__track">
-                          <span style={{ width: `${Math.max(8, domain.score * 100)}%`, background: partyColor }} />
+                          <span
+                            data-width={`${Math.max(8, domain.score * 100)}%`}
+                            style={{ width: `${Math.max(8, domain.score * 100)}%`, background: partyColor }}
+                          />
                         </div>
                       </article>
                     ))}
@@ -1028,6 +1115,8 @@ export function PromisesView({
                 </div>
               </section>
             ) : null}
+
+            {scorecard ? <PromisesAnalytics lang={lang} scorecard={scorecard} cards={cards} /> : null}
 
             <section className="pmr-promise-wall">
               <div className="pmr-promise-wall__header">
@@ -1039,7 +1128,16 @@ export function PromisesView({
               </div>
 
               {loading ? (
-                <div className="surface-soft" style={{ padding: "2rem", textAlign: "center" }}>{copy.cardsEmpty}</div>
+                <div className="pmr-loading-grid" aria-live="polite">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <article key={`promise-skeleton-${index}`} className="pmr-loading-card">
+                      <div className="skeleton skeleton--pill" style={{ width: 120, marginBottom: 12 }} />
+                      <div className="skeleton skeleton--title" style={{ width: "86%", marginBottom: 12, height: 28 }} />
+                      <div className="skeleton skeleton--line" style={{ width: "100%", marginBottom: 8 }} />
+                      <div className="skeleton skeleton--line" style={{ width: "72%" }} />
+                    </article>
+                  ))}
+                </div>
               ) : cards.length === 0 ? (
                 <div className="surface-soft" style={{ padding: "2rem", textAlign: "center" }}>{copy.cardsEmpty}</div>
               ) : (

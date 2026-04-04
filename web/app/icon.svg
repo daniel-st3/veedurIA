@@ -1,24 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="surface" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fff4c5" />
-      <stop offset="55%" stop-color="#fef8ea" />
-      <stop offset="100%" stop-color="#eef5ff" />
-    </linearGradient>
-    <linearGradient id="flag" x1="18%" y1="10%" x2="86%" y2="92%">
-      <stop offset="0%" stop-color="#f3c322" />
-      <stop offset="52%" stop-color="#0d5bd7" />
-      <stop offset="100%" stop-color="#c62839" />
+    <linearGradient id="ring" x1="16%" y1="12%" x2="88%" y2="86%">
+      <stop offset="0%" stop-color="#F5C518" />
+      <stop offset="48%" stop-color="#2E5BFF" />
+      <stop offset="100%" stop-color="#E63946" />
     </linearGradient>
   </defs>
 
-  <rect width="128" height="128" rx="30" fill="url(#surface)" />
-  <rect x="16" y="16" width="96" height="96" rx="26" fill="#08111f" opacity="0.97" />
+  <rect width="128" height="128" rx="30" fill="#08111F" />
+  <rect x="10" y="10" width="108" height="108" rx="24" fill="none" stroke="rgba(255,255,255,0.08)" />
 
-  <circle cx="58" cy="58" r="23" fill="none" stroke="url(#flag)" stroke-width="10" />
-  <circle cx="58" cy="58" r="9" fill="#f7f2e6" />
-  <path d="M74 74l18 18" stroke="#f3c322" stroke-width="10" stroke-linecap="round" />
-  <path d="M37 28h43" stroke="#f3c322" stroke-width="6" stroke-linecap="round" opacity="0.95" />
-  <path d="M29 87h41" stroke="#c62839" stroke-width="6" stroke-linecap="round" opacity="0.92" />
-  <circle cx="58" cy="58" r="35" fill="none" stroke="#0d5bd7" stroke-opacity="0.18" stroke-width="2.8" />
+  <circle cx="56" cy="54" r="26" fill="none" stroke="url(#ring)" stroke-width="11" />
+  <circle cx="56" cy="54" r="15" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="2.6" />
+  <circle cx="56" cy="54" r="6.5" fill="#F8FAFC" />
+
+  <path
+    d="M57 38 L63 46 L60 56 L66 66 L60 79 L49 71 L47 59 L50 48 Z"
+    fill="#F8FAFC"
+    opacity="0.96"
+  />
+
+  <path d="M76 74 L96 94" stroke="#F5C518" stroke-width="10" stroke-linecap="round" />
+  <path d="M88 82 L100 94" stroke="#2E5BFF" stroke-width="3.5" stroke-linecap="round" opacity="0.55" />
+
+  <path d="M30 30 C40 22, 52 20, 66 24" fill="none" stroke="#F5C518" stroke-width="4" stroke-linecap="round" opacity="0.9" />
+  <path d="M28 86 C41 94, 56 96, 72 90" fill="none" stroke="#E63946" stroke-width="4" stroke-linecap="round" opacity="0.85" />
 </svg>
