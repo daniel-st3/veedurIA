@@ -93,6 +93,37 @@ const ENTRY_POINTS = (lang: Lang) => [
   },
 ];
 
+const MARQUEE_ITEMS = (lang: Lang, totalContracts: number, latestDate: string, redAlerts: number) => [
+  {
+    label:
+      lang === "es"
+        ? `${totalContracts.toLocaleString("es-CO")} contratos visibles`
+        : `${totalContracts.toLocaleString("en-US")} visible contracts`,
+    href: `/contrato-limpio?lang=${lang}`,
+  },
+  {
+    label: lang === "es" ? `fuente oficial al ${latestDate}` : `official source through ${latestDate}`,
+    href: `/contrato-limpio?lang=${lang}`,
+  },
+  {
+    label:
+      lang === "es"
+        ? `${redAlerts.toLocaleString("es-CO")} alertas listas para revisar`
+        : `${redAlerts.toLocaleString("en-US")} alerts ready to review`,
+    href: `/contrato-limpio?lang=${lang}`,
+  },
+  {
+    label:
+      lang === "es" ? "promesas con evidencia por periodo político" : "promises with evidence by political cycle",
+    href: `/promesmetro?lang=${lang}`,
+  },
+  {
+    label:
+      lang === "es" ? "rutas directas a contratación, promesas y redes" : "direct routes to contracts, promises, and networks",
+    href: `/sigue-el-dinero?lang=${lang}`,
+  },
+];
+
 export function LandingPage({
   lang,
   initialOverview,
@@ -162,6 +193,7 @@ export function LandingPage({
   const latestDate = overview.meta.sourceLatestContractDate ?? overview.meta.latestContractDate ?? "—";
   const features = FEATURES(lang, totalContracts, redAlerts);
   const entryPoints = ENTRY_POINTS(lang);
+  const marqueeItems = MARQUEE_ITEMS(lang, totalContracts, latestDate, redAlerts);
 
   return (
     <div className="shell">
@@ -180,6 +212,12 @@ export function LandingPage({
             <span className="lp-hero-orbit__line lp-hero-orbit__line--yellow" style={{ transform: `translate3d(0, ${scrollShift * 0.03}px, 0)` }} />
             <span className="lp-hero-orbit__line lp-hero-orbit__line--blue" style={{ transform: `translate3d(0, ${scrollShift * 0.05}px, 0)` }} />
             <span className="lp-hero-orbit__line lp-hero-orbit__line--red" style={{ transform: `translate3d(0, ${scrollShift * 0.07}px, 0)` }} />
+          </div>
+
+          <div className="lp-hero-ghost" aria-hidden="true" style={{ transform: `translate3d(${scrollShift * 0.03}px, ${scrollShift * -0.04}px, 0)` }}>
+            <span>{lang === "es" ? "CONTRATOS" : "CONTRACTS"}</span>
+            <span>{lang === "es" ? "PROMESAS" : "PROMISES"}</span>
+            <span>{lang === "es" ? "REDES" : "NETWORKS"}</span>
           </div>
 
           <div className="lp-hero-copy lp-hero-copy--single">
@@ -206,13 +244,6 @@ export function LandingPage({
               <span>{lang === "es" ? `fuente al ${latestDate}` : `source through ${latestDate}`}</span>
               <span>{lang === "es" ? `${redAlerts.toLocaleString("es-CO")} alertas altas` : `${redAlerts.toLocaleString("en-US")} high alerts`}</span>
             </div>
-          </div>
-
-          <div className="lp-start-flow" data-reveal>
-            <div className="lp-start-flow__copy">
-              <span>{lang === "es" ? "Empieza por aquí" : "Start here"}</span>
-              <strong>{lang === "es" ? "Tres entradas claras, una sola lectura" : "Three clear entries, one reading flow"}</strong>
-            </div>
 
             <div className="lp-start-grid lp-start-grid--open">
               {entryPoints.map((item) => (
@@ -222,6 +253,7 @@ export function LandingPage({
                   className={`lp-start-card lp-start-card--open lp-start-card--${item.tone}`}
                   style={{ transform: `translate3d(0, ${scrollShift * 0.01}px, 0)` }}
                 >
+                  <span className="lp-start-card__kicker">{lang === "es" ? "Empieza aquí" : "Start here"}</span>
                   <div>
                     <strong>{item.title}</strong>
                     <p>{item.body}</p>
@@ -230,6 +262,17 @@ export function LandingPage({
                 </Link>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="lp-marquee" data-reveal aria-label={lang === "es" ? "Accesos rápidos" : "Quick access"}>
+          <div className="lp-marquee__track">
+            {[...marqueeItems, ...marqueeItems].map((item, index) => (
+              <Link key={`${item.href}-${index}`} href={item.href} className="lp-marquee__item">
+                <span>{item.label}</span>
+                <ArrowRight size={14} />
+              </Link>
+            ))}
           </div>
         </section>
 
@@ -262,26 +305,11 @@ export function LandingPage({
             );
 
             return (
-              <Link key={feature.title} href={feature.href} className={`lp-module lp-module--${feature.tone} surface`}>
+              <Link key={feature.title} href={feature.href} className={`lp-module lp-module--${feature.tone}`}>
                 {content}
               </Link>
             );
           })}
-        </section>
-
-        <section className="lp-proof-strip surface-soft" data-reveal>
-          <article>
-            <span>{lang === "es" ? "Fuente verificable" : "Verifiable source"}</span>
-            <strong>{lang === "es" ? "SECOP II, Congreso, Cámara, Senado y programas públicos" : "SECOP II, Congress, House, Senate, and public programs"}</strong>
-          </article>
-          <article>
-            <span>{lang === "es" ? "Lectura corta" : "Short read"}</span>
-            <strong>{lang === "es" ? "Cada módulo arranca con el caso, el contexto y el siguiente paso claro" : "Each module starts with the case, the context, and the next clear step"}</strong>
-          </article>
-          <article>
-            <span>{lang === "es" ? "Escala nacional" : "National scale"}</span>
-            <strong>{lang === "es" ? "Cobertura territorial con filtros, contraste y retorno a la fuente" : "Territorial coverage with filters, contrast, and direct return to source"}</strong>
-          </article>
         </section>
       </main>
     </div>

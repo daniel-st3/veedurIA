@@ -70,3 +70,4 @@ logs/
 # Reference data IS committed (static, small, needed for validation)
 !data/reference/
 gsap-skills-main*/
+.vercel

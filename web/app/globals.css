@@ -5271,6 +5271,238 @@ input[type="date"] {
   }
 }
 
+/* Landing refresh */
+
+.lp-page {
+  gap: 2rem;
+}
+
+.lp-hero-shell {
+  min-height: 78vh;
+  display: grid;
+  align-content: space-between;
+  gap: 2rem;
+  padding: 3.25rem clamp(1.4rem, 4vw, 3.4rem);
+  border-radius: calc(var(--radius-xl) + 0.6rem);
+  background:
+    radial-gradient(circle at 82% 18%, rgba(13, 91, 215, 0.14), transparent 22%),
+    radial-gradient(circle at 14% 28%, rgba(243, 195, 34, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(255, 251, 243, 0.98), rgba(248, 242, 230, 0.9));
+}
+
+.lp-hero-copy--single {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 74rem);
+  display: grid;
+  gap: 1.2rem;
+}
+
+.lp-hero-ghost {
+  position: absolute;
+  top: 1.3rem;
+  right: clamp(1rem, 4vw, 3rem);
+  display: grid;
+  gap: 0.15rem;
+  justify-items: end;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.lp-hero-ghost span {
+  font-family: "Sora", sans-serif;
+  font-size: clamp(2.6rem, 7vw, 7rem);
+  line-height: 0.86;
+  letter-spacing: -0.09em;
+  color: rgba(8, 17, 31, 0.06);
+}
+
+.lp-hero-title {
+  width: min(100%, 58rem);
+  font-size: clamp(3.8rem, 8.8vw, 7.5rem);
+  line-height: 0.9;
+  letter-spacing: -0.08em;
+}
+
+.lp-hero-body {
+  max-width: 50rem;
+  font-size: 1.12rem;
+  line-height: 1.65;
+}
+
+.lp-hero-tags {
+  gap: 0.65rem;
+}
+
+.lp-hero-tags span {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.lp-start-grid--open {
+  position: relative;
+  z-index: 1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.lp-start-card--open {
+  display: grid;
+  gap: 1rem;
+  align-content: space-between;
+  min-height: 15rem;
+  padding: 1.35rem;
+  border-radius: 1.65rem;
+  border: 1px solid rgba(8, 17, 31, 0.08);
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 44px rgba(8, 17, 31, 0.08);
+}
+
+.lp-start-card__kicker {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-m);
+}
+
+.lp-start-card--open strong {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-size: 1.35rem;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  margin-bottom: 0.65rem;
+}
+
+.lp-start-card--open p {
+  margin: 0;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.lp-start-card--open.lp-start-card--yellow {
+  box-shadow:
+    inset 0 4px 0 #f3c322,
+    0 22px 36px rgba(161, 105, 0, 0.12);
+}
+
+.lp-start-card--open.lp-start-card--blue {
+  box-shadow:
+    inset 0 4px 0 #145fe0,
+    0 22px 36px rgba(13, 91, 215, 0.12);
+}
+
+.lp-start-card--open.lp-start-card--red {
+  box-shadow:
+    inset 0 4px 0 #d43a3a,
+    0 22px 36px rgba(212, 58, 58, 0.12);
+}
+
+.lp-marquee {
+  overflow: hidden;
+  border-top: 1px solid rgba(8, 17, 31, 0.08);
+  border-bottom: 1px solid rgba(8, 17, 31, 0.08);
+  padding: 0.9rem 0;
+}
+
+.lp-marquee__track {
+  display: flex;
+  width: max-content;
+  gap: 0.8rem;
+  animation: lp-marquee-move 26s linear infinite;
+}
+
+.lp-marquee__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(8, 17, 31, 0.08);
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.lp-modules {
+  gap: 1rem;
+}
+
+.lp-module {
+  padding: 1.4rem 0 1.5rem;
+  border-top: 1px solid rgba(8, 17, 31, 0.12);
+  border-radius: 0;
+  background: transparent;
+}
+
+.lp-module:last-child {
+  border-bottom: 1px solid rgba(8, 17, 31, 0.12);
+}
+
+.lp-module__head {
+  align-items: flex-end;
+}
+
+.lp-module__detailband {
+  max-width: fit-content;
+  border-radius: 999px;
+  background: rgba(8, 17, 31, 0.05);
+}
+
+.lp-module__cta {
+  padding-top: 0.3rem;
+}
+
+@keyframes lp-marquee-move {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (max-width: 1100px) {
+  .lp-hero-shell {
+    min-height: auto;
+  }
+
+  .lp-start-grid--open {
+    grid-template-columns: 1fr;
+  }
+
+  .lp-hero-ghost {
+    right: 1rem;
+    opacity: 0.25;
+  }
+}
+
+@media (max-width: 760px) {
+  .lp-hero-shell {
+    padding: 2rem 1.1rem;
+  }
+
+  .lp-hero-ghost {
+    display: none;
+  }
+
+  .lp-hero-title {
+    width: 100%;
+    font-size: clamp(2.9rem, 14vw, 4.8rem);
+  }
+
+  .lp-marquee__track {
+    animation-duration: 18s;
+  }
+}
+
 /* Final product refresh */
 
 .site-nav {
