@@ -1,101 +1,85 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ArrowRight, FileSearch, Radar, Waypoints } from "lucide-react";
 
-import { HeroField } from "@/components/hero-field";
 import { SiteNav } from "@/components/site-nav";
 import { fetchOverview } from "@/lib/api";
-import { landingCopy } from "@/lib/copy";
 import type { Lang, OverviewPayload } from "@/lib/types";
 
-gsap.registerPlugin(ScrollTrigger, useGSAP);
+type FeatureTone = "yellow" | "blue" | "red";
 
-function renderStatVisual(index: number, copy: (typeof landingCopy)[Lang]) {
-  if (index === 0) {
-    return (
-      <div className="metric-visual">
-        <div className="label metric-visual__title">{copy.statVisualCoverage}</div>
-        <div className="metric-rail">
-          <span className="metric-rail__track" />
-          <span className="metric-rail__fill metric-rail__fill--blue" data-meter style={{ width: "88%" }} />
-        </div>
-        <div className="metric-points">
-          <span>2023</span>
-          <span>2024</span>
-          <span>2025</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (index === 1) {
-    return (
-      <div className="metric-visual">
-        <div className="label metric-visual__title">{copy.statVisualSignals}</div>
-        <div className="metric-tags">
-          {["Monto", "Plazo", "Proveedor", "Oferentes", "Tiempo"].map((item, tagIndex) => (
-            <span key={item} className={`metric-tag metric-tag--${tagIndex % 2 === 0 ? "yellow" : "blue"}`}>
-              {item}
-            </span>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (index === 2) {
-    return (
-      <div className="metric-visual">
-        <div className="label metric-visual__title">{copy.statVisualThreshold}</div>
-        <div className="threshold-scale">
-          <span className="threshold-scale__band threshold-scale__band--low">0–39</span>
-          <span className="threshold-scale__band threshold-scale__band--mid">40–69</span>
-          <span className="threshold-scale__band threshold-scale__band--high">70–100</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="metric-visual">
-      <div className="label metric-visual__title">{copy.statVisualRoadmap}</div>
-      <div className="road-steps">
-        <span className="road-steps__dot road-steps__dot--active" />
-        <span className="road-steps__line" />
-        <span className="road-steps__dot road-steps__dot--mid" />
-        <span className="road-steps__line" />
-        <span className="road-steps__dot road-steps__dot--end" />
-      </div>
-    </div>
-  );
-}
+const FEATURES = (lang: Lang, totalContracts: number, redAlerts: number) => [
+  {
+    index: "01",
+    title: "ContratoLimpio",
+    tone: "yellow" as FeatureTone,
+    eyebrow: lang === "es" ? "Contratos públicos" : "Public contracts",
+    description:
+      lang === "es"
+        ? "Empieza por lo que sí vale la pena revisar: filtros claros, mapa territorial, casos guía y retorno directo a SECOP II."
+        : "Start with what is worth reviewing: clear filters, a territorial map, guided cases, and a direct jump back to SECOP II.",
+    detail:
+      lang === "es"
+        ? `${totalContracts.toLocaleString("es-CO")} contratos visibles en la capa nacional`
+        : `${totalContracts.toLocaleString("en-US")} contracts visible in the national layer`,
+    href: `/contrato-limpio?lang=${lang}`,
+    cta: lang === "es" ? "Abrir módulo" : "Open module",
+    icon: FileSearch,
+  },
+  {
+    index: "02",
+    title: "Promesómetro",
+    tone: "blue" as FeatureTone,
+    eyebrow: lang === "es" ? "Promesas y evidencia" : "Promises and evidence",
+    description:
+      lang === "es"
+        ? "Compara promesa original, acción pública y cercanía temática en una sola lectura. Cada tarjeta te muestra qué sí existe y qué todavía no aparece."
+        : "Compare the original promise, public action, and thematic closeness in one read. Each card shows what exists and what still does not.",
+    detail:
+      lang === "es"
+        ? "Promesas 2022 frente a acciones públicas observables"
+        : "2022 promises against observable public action",
+    href: `/promesmetro?lang=${lang}`,
+    cta: lang === "es" ? "Ver tablero" : "View board",
+    icon: Radar,
+  },
+  {
+    index: "03",
+    title: "SigueElDinero",
+    tone: "red" as FeatureTone,
+    eyebrow: lang === "es" ? "Redes y trazabilidad" : "Networks and traceability",
+    description:
+      lang === "es"
+        ? "La siguiente capa conectará contratistas, donantes y funcionarios para pasar de contratos aislados a relaciones persistentes."
+        : "The next layer will connect contractors, donors, and officials to move from isolated contracts to persistent relationships.",
+    detail:
+      lang === "es"
+        ? `${redAlerts.toLocaleString("es-CO")} señales altas ya sirven de base para esa red`
+        : `${redAlerts.toLocaleString("en-US")} high-signal cases already form that base`,
+    href: "#",
+    cta: lang === "es" ? "En preparación" : "In progress",
+    icon: Waypoints,
+    disabled: true,
+  },
+];
 
 export function LandingPage({
   lang,
-  initialMeta,
-  initialGeojson,
+  initialOverview,
 }: {
   lang: Lang;
-  initialMeta?: OverviewPayload["meta"] | null;
-  initialGeojson?: any | null;
+  initialOverview: OverviewPayload;
 }) {
-  const copy = landingCopy[lang];
-  const scope = useRef<HTMLDivElement | null>(null);
-  const [freshness, setFreshness] = useState<OverviewPayload["meta"] | null>(initialMeta ?? null);
-  const freshnessLabel = lang === "es" ? "Último corte visible" : "Latest visible contract";
-  const pipelineLabel = lang === "es" ? "Pipeline" : "Pipeline";
-  const loadingLabel = lang === "es" ? "cargando" : "loading";
+  const [overview, setOverview] = useState<OverviewPayload>(initialOverview);
 
   useEffect(() => {
     let alive = true;
     fetchOverview({ lang, full: false })
       .then((data) => {
-        if (alive) setFreshness(data.meta);
+        if (alive) setOverview(data);
       })
       .catch(() => {});
     return () => {
@@ -103,431 +87,123 @@ export function LandingPage({
     };
   }, [lang]);
 
-  useGSAP(
-    () => {
-      const mm = gsap.matchMedia();
-
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        const heroTl = gsap.timeline({ defaults: { ease: "power3.out" } });
-
-        heroTl
-          .fromTo(".hero-pill, .hero-line > span", { autoAlpha: 0, y: 36 }, { autoAlpha: 1, y: 0, stagger: 0.07, duration: 0.72 })
-          .fromTo(".hero-body, .hero-protocol__item, .hero-data-pill, .hero-cta, .scroll-cue", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, stagger: 0.08, duration: 0.6 }, "-=0.36");
-
-        gsap.to(".hero-field", {
-          yPercent: 6,
-          scrollTrigger: {
-            trigger: ".hero-stage",
-            start: "top top",
-            end: "bottom top",
-            scrub: 1.1,
-          },
-        });
-
-        gsap.fromTo(
-          ".hero-track__line",
-          { scaleX: 0.2, autoAlpha: 0.1 },
-          {
-            scaleX: 1,
-            autoAlpha: 1,
-            duration: 1.2,
-            stagger: 0.08,
-            ease: "power2.out",
-            transformOrigin: "left center",
-            delay: 0.25,
-          },
-        );
-
-        gsap.utils.toArray<HTMLElement>(".section-head").forEach((header) => {
-          gsap.fromTo(
-            header.children,
-            { autoAlpha: 0, y: 32 },
-            {
-              autoAlpha: 1,
-              y: 0,
-              duration: 0.76,
-              stagger: 0.1,
-              ease: "power3.out",
-              scrollTrigger: {
-                trigger: header,
-                start: "top 88%",
-                once: true,
-              },
-            },
-          );
-        });
-
-        ScrollTrigger.batch(".stat-card", {
-          start: "top 88%",
-          once: true,
-          onEnter: (batch) => {
-            gsap.fromTo(
-              batch,
-              { autoAlpha: 0, y: 46, scale: 0.96, rotateX: 10 },
-              { autoAlpha: 1, y: 0, scale: 1, rotateX: 0, duration: 0.75, stagger: 0.08, ease: "power3.out" },
-            );
-          },
-        });
-
-        ScrollTrigger.batch("[data-meter]", {
-          start: "top 90%",
-          once: true,
-          onEnter: (batch) => {
-            gsap.fromTo(
-              batch,
-              { scaleX: 0.24, autoAlpha: 0.45 },
-              { scaleX: 1, autoAlpha: 1, duration: 0.72, stagger: 0.06, ease: "power3.out", transformOrigin: "left center" },
-            );
-          },
-        });
-
-        ScrollTrigger.batch(".mini-card, .flow-card, .phase-card", {
-          start: "top 90%",
-          once: true,
-          onEnter: (batch) => {
-            gsap.fromTo(
-              batch,
-              { autoAlpha: 0, y: 52, scale: 0.97 },
-              { autoAlpha: 1, y: 0, scale: 1, duration: 0.78, stagger: 0.09, ease: "power3.out" },
-            );
-          },
-        });
-
-        ScrollTrigger.batch(".protocol-strip__item", {
-          start: "top 90%",
-          once: true,
-          onEnter: (batch) => {
-            gsap.fromTo(
-              batch,
-              { autoAlpha: 0, x: -28 },
-              { autoAlpha: 1, x: 0, duration: 0.68, stagger: 0.08, ease: "power3.out" },
-            );
-          },
-        });
-
-        ScrollTrigger.batch(".metric-tag, .threshold-scale__band", {
-          start: "top 92%",
-          once: true,
-          onEnter: (batch) => {
-            gsap.fromTo(
-              batch,
-              { autoAlpha: 0, y: 18, scale: 0.94 },
-              { autoAlpha: 1, y: 0, scale: 1, duration: 0.56, stagger: 0.05, ease: "power2.out" },
-            );
-          },
-        });
-
-        ScrollTrigger.batch(".road-steps__dot, .road-steps__line", {
-          start: "top 92%",
-          once: true,
-          onEnter: (batch) => {
-            gsap.fromTo(
-              batch,
-              { autoAlpha: 0, scaleX: 0.2, scaleY: 0.8 },
-              { autoAlpha: 1, scaleX: 1, scaleY: 1, duration: 0.66, stagger: 0.06, ease: "power3.out", transformOrigin: "left center" },
-            );
-          },
-        });
-
-        gsap.utils.toArray<HTMLElement>(".phase-grid").forEach((grid) => {
-          gsap.fromTo(
-            grid,
-            { y: 0 },
-            {
-              y: -14,
-              ease: "none",
-              scrollTrigger: {
-                trigger: grid,
-                start: "top bottom",
-                end: "bottom top",
-                scrub: 1.1,
-              },
-            },
-          );
-        });
-
-        gsap.fromTo(
-          ".landing-foot__card, .footer > div",
-          { autoAlpha: 0, y: 28 },
-          {
-            autoAlpha: 1,
-            y: 0,
-            duration: 0.72,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: ".landing-foot",
-              start: "top 90%",
-              once: true,
-            },
-          },
-        );
-
-        gsap.fromTo(
-          ".cta-surface",
-          { autoAlpha: 0, y: 40, scale: 0.97 },
-          {
-            autoAlpha: 1,
-            y: 0,
-            scale: 1,
-            duration: 0.9,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: ".cta-surface",
-              start: "top 88%",
-              once: true,
-            },
-          },
-        );
-      });
-
-      return () => mm.revert();
-    },
-    { scope },
-  );
+  const totalContracts = overview.meta.totalRows || overview.slice.totalContracts;
+  const redAlerts = overview.slice.redAlerts;
+  const latestDate = overview.meta.latestContractDate ?? "—";
+  const features = FEATURES(lang, totalContracts, redAlerts);
 
   return (
-    <div ref={scope} className="shell">
+    <div className="shell">
       <SiteNav
         lang={lang}
         links={[
-          { href: `/?lang=${lang}#modelo`, label: copy.navModel },
-          { href: `/?lang=${lang}#flujo`, label: copy.navFlow },
-          { href: `/?lang=${lang}#plataforma`, label: copy.navPlatform },
+          { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
+          { href: `/promesmetro?lang=${lang}`, label: "Promesómetro" },
+          { href: "#", label: "SigueElDinero" },
         ]}
-        ctaHref={`/contrato-limpio?lang=${lang}`}
-        ctaLabel={copy.navPhase}
       />
 
-      <main className="page">
-        <section className="landing-hero landing-hero--editorial hero-stage" style={{ padding: "1rem 0 1.1rem" }}>
-          <div className="hero-copy hero-copy--landing hero-copy--centered">
-            <div className="hero-pill eyebrow-pill">
-              {copy.heroEyebrow}
-            </div>
-            <h1 className="hero-title">
-              <span className="title-line hero-line">
-                <span>{copy.heroTitleA}</span>
-              </span>
-              <span className="title-line hero-line">
-                <span style={{ color: "var(--blue)" }}>{copy.heroTitleB}</span>
-              </span>
-              <span className="title-line hero-line">
-                <span style={{ color: "var(--yellow)" }}>{copy.heroTitleC}</span>
-              </span>
-            </h1>
-            <div className="hero-body">
-              <p>{copy.heroBody}</p>
-            </div>
-            <div className="hero-data-pill hero-data-pill--centered">
-              <span className="label">{copy.heroDataLabel}</span>
-              <strong>{freshness?.latestContractDate ?? loadingLabel}</strong>
-              {freshness?.sourceLatestContractDate ? (
-                <span className="body-copy" style={{ fontSize: "0.8rem" }}>
-                  {`SECOP ${freshness.sourceLatestContractDate}`}
-                </span>
-              ) : null}
-            </div>
-            <div className="hero-cta hero-cta--centered" style={{ display: "flex", gap: "0.8rem", flexWrap: "wrap" }}>
-              <Link href={`/contrato-limpio?lang=${lang}`} className="btn-primary btn-primary--hero">
-                {copy.heroPrimary}
-              </Link>
-              <Link href={`/promesmetro?lang=${lang}`} className="btn-secondary btn-secondary--hero">
-                {copy.heroSecondary}
-              </Link>
-            </div>
-            <div className="hero-protocol">
-              <div className="hero-protocol__item">
-                <span className="hero-protocol__index">01</span>
-                <span>{copy.heroProtocolA}</span>
-              </div>
-              <div className="hero-protocol__item">
-                <span className="hero-protocol__index">02</span>
-                <span>{copy.heroProtocolB}</span>
-              </div>
-              <div className="hero-protocol__item">
-                <span className="hero-protocol__index">03</span>
-                <span>{copy.heroProtocolC}</span>
-              </div>
-            </div>
-            <div className="hero-track">
-              <div className="hero-track__line hero-track__line--yellow" />
-              <div className="hero-track__line hero-track__line--blue" />
-              <div className="hero-track__line hero-track__line--red" />
-            </div>
-            <div className="scroll-cue" style={{ marginTop: "0.8rem" }}>
-              {copy.heroMapCaption}
-            </div>
+      <main className="page lp-page">
+        <section className="lp-stack surface stripe-flag">
+          <div className="lp-stack__eyebrow eyebrow">
+            {lang === "es"
+              ? "VeedurIA · lectura pública para contratación, promesas y poder"
+              : "VeedurIA · public reading layer for contracts, promises, and power"}
           </div>
-          <HeroField
-            lang={lang}
-            status={copy.heroPlay}
-            title={copy.heroPlay}
-            body={copy.heroPlayBody}
-            legend={[copy.heroLegendFocus, copy.heroLegendModel, copy.heroLegendAlert]}
-            graphLabel={copy.heroGraphLabel}
-            geojson={initialGeojson ?? null}
-            notes={[
-              {
-                label: copy.heroCardSourceLabel,
-                title: copy.heroCardSourceTitle,
-                body: copy.heroCardSourceBody,
-              },
-              {
-                label: copy.heroCardModelLabel,
-                title: copy.heroCardModelTitle,
-                body: copy.heroCardModelBody,
-              },
-              {
-                label: copy.heroCardReviewLabel,
-                title: copy.heroCardReviewTitle,
-                body: copy.heroCardReviewBody,
-              },
-            ]}
-          />
+
+          <h1 className="lp-stack__title">
+            <span className="flag-yellow">{lang === "es" ? "Vigila" : "Watch"}</span>{" "}
+            <span className="flag-blue">{lang === "es" ? "el poder" : "power"}</span>{" "}
+            <span className="flag-red">{lang === "es" ? "sin perderte" : "without getting lost"}</span>
+          </h1>
+
+          <p className="lp-stack__body">
+            {lang === "es"
+              ? "La landing ahora entra directo al punto: qué puedes auditar hoy, por dónde empezar y cómo llegar a cada módulo sin ruido ni relleno."
+              : "The landing now goes straight to the point: what you can audit today, where to start, and how to reach each module without noise or filler."}
+          </p>
+
+          <div className="lp-quickline">
+            <span>{lang === "es" ? "Base nacional visible" : "Visible national base"}: {totalContracts.toLocaleString("es-CO")}</span>
+            <span>{lang === "es" ? "Señales prioritarias" : "Priority signals"}: {redAlerts.toLocaleString("es-CO")}</span>
+            <span>{lang === "es" ? "Último corte puntuado" : "Latest scored cut"}: {latestDate}</span>
+          </div>
         </section>
 
-        <section className="stat-grid" style={{ marginBottom: "1rem" }}>
-          {copy.stats.map(([value, label, body], index) => (
-            <article
-              key={label}
-              className={`stat-card reveal stripe-${index === 0 ? "blue" : index === 1 ? "yellow" : index === 2 ? "red" : "green"}`}
-            >
-              <div className="value" style={{ fontSize: "2.6rem", marginBottom: "0.3rem" }}>
-                {value}
-              </div>
-              <div className="label" style={{ marginBottom: "0.45rem" }}>
-                {label}
-              </div>
-              <div className="body-copy" style={{ fontSize: "0.84rem" }}>
-                {body}
-              </div>
-              {renderStatVisual(index, copy)}
+        <section className="lp-flow surface-soft">
+          <div className="lp-flow__header">
+            <p className="eyebrow">{lang === "es" ? "Cómo se usa" : "How to use it"}</p>
+            <h2>{lang === "es" ? "Una sola ruta de entrada" : "One clear entry route"}</h2>
+          </div>
+
+          <div className="lp-flow__steps">
+            <article className="lp-flow__step">
+              <span>01</span>
+              <strong>{lang === "es" ? "Elige una pregunta" : "Pick a question"}</strong>
+              <p>{lang === "es" ? "¿Quieres revisar contratos, promesas o relaciones?" : "Do you want to review contracts, promises, or relationships?"}</p>
             </article>
-          ))}
+            <article className="lp-flow__step">
+              <span>02</span>
+              <strong>{lang === "es" ? "Entra al módulo" : "Open the module"}</strong>
+              <p>{lang === "es" ? "Cada módulo arranca con un contexto corto y una lectura útil desde el primer scroll." : "Each module starts with short context and a useful reading from the first scroll."}</p>
+            </article>
+            <article className="lp-flow__step">
+              <span>03</span>
+              <strong>{lang === "es" ? "Verifica la fuente" : "Verify the source"}</strong>
+              <p>{lang === "es" ? "Todo termina en SECOP, programas oficiales o acciones públicas verificables." : "Everything ends in SECOP, official programs, or verifiable public actions."}</p>
+            </article>
+          </div>
         </section>
 
-        <section className="section" id="modelo" style={{ padding: "2rem 0 4rem" }}>
-          <div className="two-col section-head" style={{ marginBottom: "1.6rem" }}>
-            <div>
-              <p className="eyebrow">{copy.modelEyebrow}</p>
-              <h2 className="section-title">{copy.modelTitle}</h2>
-            </div>
-            <p className="section-copy">{copy.modelBody}</p>
-          </div>
-          <div className="mini-grid">
-            {copy.modelCards.map(([mark, title, body], index) => (
-              <article
-                key={title}
-                className={`mini-card stripe-${index === 0 ? "blue" : index === 1 ? "yellow" : index === 2 ? "blue" : "red"}`}
-              >
-                <div className="label" style={{ marginBottom: "0.55rem" }}>
-                  {mark}
+        <section className="lp-modules">
+          {features.map((feature) => {
+            const Icon = feature.icon;
+
+            const content = (
+              <>
+                <div className="lp-module__head">
+                  <span className={`lp-module__index lp-module__index--${feature.tone}`}>{feature.index}</span>
+                  <div>
+                    <p className="lp-module__eyebrow">{feature.eyebrow}</p>
+                    <h2>{feature.title}</h2>
+                  </div>
                 </div>
-                <h3 style={{ fontFamily: "Syne", margin: "0 0 0.4rem" }}>{title}</h3>
-                <p className="body-copy" style={{ margin: 0, fontSize: "0.86rem" }}>
-                  {body}
-                </p>
+                <p className="lp-module__description">{feature.description}</p>
+                <div className="lp-module__foot">
+                  <span className="lp-module__detail">{feature.detail}</span>
+                  <span className={`lp-module__cta lp-module__cta--${feature.tone}`}>
+                    <Icon size={16} />
+                    {feature.cta}
+                    {!feature.disabled ? <ArrowRight size={16} /> : null}
+                  </span>
+                </div>
+              </>
+            );
+
+            return feature.disabled ? (
+              <article key={feature.title} className={`lp-module lp-module--${feature.tone} lp-module--disabled surface`}>
+                {content}
               </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="section" id="flujo" style={{ padding: "0 0 4rem" }}>
-          <div className="two-col section-head" style={{ marginBottom: "1.6rem" }}>
-            <div>
-              <p className="eyebrow">{copy.flowEyebrow}</p>
-              <h2 className="section-title">{copy.flowTitle}</h2>
-            </div>
-            <p className="section-copy">{copy.flowBody}</p>
-          </div>
-          <div className="phase-grid">
-            {copy.flowCards.map(([mark, title, body], index) => (
-              <article
-                key={title}
-                className={`phase-card flow-card stripe-${index === 0 ? "red" : index === 1 ? "blue" : "green"}`}
-              >
-                <div className="label" style={{ marginBottom: "0.55rem" }}>
-                  {mark}
-                </div>
-                <h3 style={{ fontFamily: "Syne", margin: "0 0 0.4rem" }}>{title}</h3>
-                <p className="body-copy" style={{ margin: 0, fontSize: "0.86rem" }}>
-                  {body}
-                </p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="section" id="plataforma" style={{ padding: "0 0 4rem" }}>
-          <div className="two-col section-head" style={{ marginBottom: "1.6rem" }}>
-            <div>
-              <p className="eyebrow">{copy.platformEyebrow}</p>
-              <h2 className="section-title">{copy.platformTitle}</h2>
-            </div>
-            <p className="section-copy">{copy.platformBody}</p>
-          </div>
-          <div className="phase-grid">
-            {copy.phases.map(([state, name, body], index) => (
-              <Link
-                key={name}
-                href={index === 0 ? `/contrato-limpio?lang=${lang}` : index === 1 ? `/promesmetro?lang=${lang}` : `/sigue-el-dinero?lang=${lang}`}
-                className={`phase-card reveal stripe-${index === 0 ? "blue" : index === 1 ? "yellow" : "red"} ${index < 2 ? "phase-card--link" : ""}`}
-              >
-                <div className="label" style={{ marginBottom: "0.55rem" }}>
-                  {state}
-                </div>
-                <h3 style={{ fontFamily: "Syne", margin: "0 0 0.4rem" }}>{name}</h3>
-                <p className="body-copy" style={{ margin: 0, fontSize: "0.86rem" }}>
-                  {body}
-                </p>
+            ) : (
+              <Link key={feature.title} href={feature.href} className={`lp-module lp-module--${feature.tone} surface`}>
+                {content}
               </Link>
-            ))}
-          </div>
+            );
+          })}
         </section>
 
-        <section>
-          <div className="surface stripe-flag cta-surface" style={{ padding: "2rem", display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center" }}>
-            <div>
-              <h2 className="section-title" style={{ fontSize: "2.3rem", marginBottom: "0.5rem" }}>
-                {copy.ctaTitle}
-              </h2>
-              <p className="section-copy" style={{ maxWidth: 720 }}>
-                {copy.ctaBody}
-              </p>
-            </div>
-            <Link href={`/contrato-limpio?lang=${lang}`} className="btn-primary">
-              {copy.ctaButton}
-            </Link>
-            <Link href={`/promesmetro?lang=${lang}`} className="btn-secondary">
-              {copy.heroSecondary}
-            </Link>
+        <section className="lp-close surface">
+          <div>
+            <p className="eyebrow">{lang === "es" ? "Lo importante" : "What matters"}</p>
+            <h2>{lang === "es" ? "Menos marketing, más lectura accionable" : "Less marketing, more actionable reading"}</h2>
           </div>
-        </section>
-
-        <section className="landing-foot">
-          <div className="landing-foot__card surface-soft">
-            <div>
-              <div className="label" style={{ marginBottom: "0.45rem" }}>Autor</div>
-              <strong>Daniel Steven Rodríguez Sandoval</strong>
-            </div>
-            <div>
-              <div className="label" style={{ marginBottom: "0.45rem" }}>Repositorio</div>
-              <a href="https://github.com/daniel-st3/veedurIA" target="_blank" rel="noreferrer" className="landing-foot__link">
-                github.com/daniel-st3/veedurIA
-              </a>
-            </div>
-          </div>
+          <p>
+            {lang === "es"
+              ? "La landing queda condensada para empujar a la experiencia real. No vende humo: te deja entrar rápido, entender qué ofrece cada feature y empezar a auditar."
+              : "The landing stays condensed to push users into the real experience. It does not oversell anything: it gets you in fast, explains what each feature does, and starts the audit."}
+          </p>
         </section>
       </main>
-
-      <footer className="footer">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-          <span>{copy.footer}</span>
-          <span>
-            {freshnessLabel}: {freshness?.latestContractDate ?? loadingLabel} · {pipelineLabel}: {freshness?.lastRunTs?.slice(0, 10) ?? loadingLabel}
-          </span>
-        </div>
-      </footer>
     </div>
   );
 }

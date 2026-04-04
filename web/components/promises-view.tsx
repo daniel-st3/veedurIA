@@ -1,27 +1,103 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { BookOpenText, Landmark, Radar, Search, Sparkles } from "lucide-react";
+import { ArrowUpRight, BookOpenText, Landmark, ScanSearch } from "lucide-react";
 
 import { SiteNav } from "@/components/site-nav";
 import { fetchPromisesOverview } from "@/lib/api";
 import { promisesCopy } from "@/lib/copy";
 import type { Lang, PromiseCard, PromisesPayload } from "@/lib/types";
 
-gsap.registerPlugin(ScrollTrigger, useGSAP);
-
-type PromiseFilters = {
-  politicianId?: string;
-  domain: string;
-  status: string;
-  electionYear: number;
-  query: string;
+const PARTY_COLORS: Record<string, string> = {
+  "gustavo-petro": "#a65a18",
+  "francia-marquez": "#0d5bd7",
+  "maria-jose-pizarro": "#c62839",
+  "paloma-valencia": "#d87a00",
+  "katherine-miranda": "#198754",
+  "inti-asprilla": "#8b3bb7",
+  "david-luna": "#0a4fb6",
+  "rodrigo-lara": "#c62839",
 };
+
+const WIKIPEDIA_PAGES: Record<string, string> = {
+  "gustavo-petro": "Gustavo_Petro",
+  "francia-marquez": "Francia_M%C3%A1rquez",
+  "maria-jose-pizarro": "Mar%C3%ADa_Jos%C3%A9_Pizarro",
+  "paloma-valencia": "Paloma_Valencia",
+  "katherine-miranda": "Katherine_Miranda",
+  "inti-asprilla": "Inti_Asprilla",
+  "david-luna": "David_Luna_S%C3%A1nchez",
+  "rodrigo-lara": "Rodrigo_Lara_Restrepo",
+};
+
+function getColor(id: string) {
+  return PARTY_COLORS[id] ?? "#0d5bd7";
+}
+
+function fallbackPortrait(name: string, color: string) {
+  const hex = color.replace("#", "");
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${hex}&color=ffffff&size=256&bold=true`;
+}
+
+function getStatusMeta(card: PromiseCard, lang: Lang) {
+  if (card.status === "con_accion_registrada") {
+    return {
+      tone: "green",
+      label: card.statusLabel,
+      summary:
+        lang === "es"
+          ? "El sistema encontró una acción pública claramente conectada con la promesa."
+          : "The system found a public action clearly connected to the promise.",
+    };
+  }
+  if (card.status === "en_seguimiento") {
+    return {
+      tone: "yellow",
+      label: card.statusLabel,
+      summary:
+        lang === "es"
+          ? "Existe movimiento relacionado, pero todavía parcial o insuficiente."
+          : "There is related movement, but it is still partial or insufficient.",
+    };
+  }
+  return {
+    tone: "muted",
+    label: card.statusLabel,
+    summary:
+      lang === "es"
+        ? "No aparece evidencia suficientemente cercana dentro de la cobertura evaluada."
+        : "No sufficiently close evidence appears in the evaluated coverage.",
+  };
+}
+
+function getSemanticReadout(card: PromiseCard, lang: Lang) {
+  if (card.status === "con_accion_registrada") {
+    return {
+      title: lang === "es" ? "Coincidencia alta y trazable" : "High and traceable match",
+      body:
+        lang === "es"
+          ? "La promesa y la acción comparten tema, verbo y objetivo público. Por eso el sistema la marca como evidencia fuerte, sin afirmar cumplimiento jurídico total."
+          : "The promise and the action share topic, verb, and public objective. That is why the system marks it as strong evidence without claiming full legal fulfillment.",
+    };
+  }
+  if (card.status === "en_seguimiento") {
+    return {
+      title: lang === "es" ? "Relación parcial" : "Partial relationship",
+      body:
+        lang === "es"
+          ? "Sí hay una acción relacionada, pero el vínculo sigue siendo incompleto: puede cubrir solo una parte de la promesa o estar todavía en trámite."
+          : "There is a related action, but the link remains incomplete: it may cover only part of the promise or still be in progress.",
+    };
+  }
+  return {
+    title: lang === "es" ? "Sin evidencia cercana" : "No close evidence",
+    body:
+      lang === "es"
+        ? "La cobertura revisada no encontró una acción pública con suficiente cercanía semántica o documental para sostener el vínculo."
+        : "The reviewed coverage did not find a public action with enough semantic or documentary proximity to sustain the link.",
+  };
+}
 
 export function PromisesView({
   lang,
@@ -31,40 +107,29 @@ export function PromisesView({
   initialPayload: PromisesPayload | null;
 }) {
   const copy = promisesCopy[lang];
-  const scope = useRef<HTMLDivElement | null>(null);
-  const [draft, setDraft] = useState<PromiseFilters>({
-    politicianId: initialPayload?.scorecard.politicianId || initialPayload?.options.politicians[0]?.value,
-    domain: "all",
-    status: "all",
-    electionYear: initialPayload?.meta.electionYear ?? 2026,
-    query: "",
-  });
-  const [filters, setFilters] = useState<PromiseFilters>({
-    politicianId: initialPayload?.scorecard.politicianId || initialPayload?.options.politicians[0]?.value,
-    domain: "all",
-    status: "all",
-    electionYear: initialPayload?.meta.electionYear ?? 2026,
-    query: "",
-  });
+  const defaultId = initialPayload?.scorecard.politicianId ?? initialPayload?.options.politicians[0]?.value;
+  const [selectedId, setSelectedId] = useState<string | undefined>(defaultId);
+  const [domainFilter, setDomainFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [payload, setPayload] = useState<PromisesPayload | null>(initialPayload);
   const [loading, setLoading] = useState(!initialPayload);
   const [openCardId, setOpenCardId] = useState<string | null>(initialPayload?.cards[0]?.id ?? null);
-  const skipFirst = useRef(Boolean(initialPayload));
+  const [portraits, setPortraits] = useState<Record<string, string>>({});
+  const [initialized, setInitialized] = useState(Boolean(initialPayload));
 
   useEffect(() => {
-    if (skipFirst.current) {
-      skipFirst.current = false;
+    if (initialized) {
+      setInitialized(false);
       return;
     }
+
     let alive = true;
     setLoading(true);
     fetchPromisesOverview({
       lang,
-      politicianId: filters.politicianId,
-      domain: filters.domain,
-      status: filters.status,
-      electionYear: filters.electionYear,
-      query: filters.query,
+      politicianId: selectedId,
+      domain: domainFilter,
+      status: statusFilter,
       limit: 18,
     })
       .then((data) => {
@@ -75,71 +140,61 @@ export function PromisesView({
       .finally(() => {
         if (alive) setLoading(false);
       });
+
     return () => {
       alive = false;
     };
-  }, [filters, lang]);
+  }, [selectedId, domainFilter, statusFilter, lang, initialized]);
 
-  useGSAP(
-    () => {
-      const mm = gsap.matchMedia();
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.fromTo(
-          ".promise-hero, .promise-kpi, .promise-scorecard, .promise-card, .promise-method",
-          { autoAlpha: 0, y: 32, scale: 0.985 },
-          { autoAlpha: 1, y: 0, scale: 1, duration: 0.72, stagger: 0.06, ease: "power3.out" },
-        );
-        gsap.fromTo(
-          ".promise-scorebar__fill, .promise-card__meter",
-          { scaleX: 0.08, autoAlpha: 0.45 },
-          {
-            scaleX: 1,
-            autoAlpha: 1,
-            duration: 0.72,
-            stagger: 0.05,
-            ease: "power3.out",
-            transformOrigin: "left center",
-            delay: 0.18,
-          },
-        );
-        gsap.to(".promise-stage__orb", {
-          xPercent: 10,
-          yPercent: -8,
-          duration: 4.8,
-          repeat: -1,
-          yoyo: true,
-          ease: "sine.inOut",
+  const politicians = payload?.options.politicians ?? [];
+  const cards = payload?.cards ?? [];
+  const scorecard = payload?.scorecard;
+  const openCard = cards.find((card) => card.id === openCardId) ?? null;
+
+  useEffect(() => {
+    const relevant = politicians.filter((politician) => WIKIPEDIA_PAGES[politician.value]);
+    if (!relevant.length) return;
+
+    let cancelled = false;
+    Promise.all(
+      relevant.map(async (politician) => {
+        try {
+          const response = await fetch(
+            `https://es.wikipedia.org/api/rest_v1/page/summary/${WIKIPEDIA_PAGES[politician.value]}`,
+          );
+          if (!response.ok) return [politician.value, ""] as const;
+          const data = await response.json();
+          return [politician.value, data?.thumbnail?.source ?? ""] as const;
+        } catch {
+          return [politician.value, ""] as const;
+        }
+      }),
+    ).then((rows) => {
+      if (cancelled) return;
+      setPortraits((current) => {
+        const next = { ...current };
+        rows.forEach(([id, src]) => {
+          if (src) next[id] = src;
         });
-        ScrollTrigger.batch(".promise-card", {
-          start: "top 90%",
-          once: true,
-          onEnter: (batch) => {
-            gsap.fromTo(
-              batch,
-              { autoAlpha: 0, y: 40 },
-              { autoAlpha: 1, y: 0, duration: 0.68, stagger: 0.08, ease: "power3.out" },
-            );
-          },
-        });
+        return next;
       });
-      return () => mm.revert();
-    },
-    {
-      scope,
-      dependencies: [payload?.meta.shownRows ?? 0, openCardId, filters.domain, filters.status, filters.electionYear],
-      revertOnUpdate: true,
-    },
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [politicians]);
+
+  const selectedPoliticianLabel = useMemo(
+    () => politicians.find((item) => item.value === selectedId)?.label ?? "",
+    [politicians, selectedId],
   );
 
-  const cards = payload?.cards ?? [];
-  const coverageLabel = payload?.meta.coverageMode === "live" ? copy.activeLive : copy.activePilot;
-  const selectedCard =
-    cards.find((card) => card.id === openCardId) ??
-    cards[0] ??
-    null;
+  const selectedRole = selectedPoliticianLabel.split(" · ")[1] ?? scorecard?.chamber ?? "";
+  const partyColor = getColor(selectedId ?? "");
 
   return (
-    <div ref={scope} className="shell">
+    <div className="shell">
       <SiteNav
         lang={lang}
         links={[
@@ -147,256 +202,260 @@ export function PromisesView({
           { href: `/promesmetro?lang=${lang}`, label: copy.navPhase2 },
           { href: `/sigue-el-dinero?lang=${lang}`, label: copy.navPhase3 },
         ]}
-        ctaHref={`/promesmetro?lang=${lang}`}
-        ctaLabel={copy.navPhase2}
       />
 
-      <main className="page">
-        <section className="overview-card stripe-flag promise-hero promise-hero--clean">
-          <div className="promise-hero__intro">
-            <p className="eyebrow">{copy.pageEyebrow}</p>
-            <h1 className="phase-title promise-stage__title">{copy.pageTitle}</h1>
-            <p className="section-copy promise-stage__body">{copy.pageBody}</p>
-            <div className="promise-stage__pills">
-              <span className="tiny-pill slice-chip slice-chip--active">{coverageLabel}</span>
-              <span className="tiny-pill slice-chip">{copy.activeRealNames}</span>
-              <span className="tiny-pill slice-chip">{payload?.highlights.focusDomain ?? "—"}</span>
-              <span className="tiny-pill slice-chip">{payload?.highlights.focusStatus ?? "—"}</span>
-            </div>
+      <main className="page pmr-page">
+        <section className="pmr-hero">
+          <div>
+            <p className="eyebrow">{lang === "es" ? "Promesas 2022 vs acción pública observable" : "2022 promises vs observable public action"}</p>
+            <h1>{lang === "es" ? "Promesómetro con criterio, no con humo" : "A promise tracker with judgment, not hype"}</h1>
+            <p className="pmr-hero__body">
+              {lang === "es"
+                ? "El módulo ahora prioriza lectura útil: personas reales, evidencia concreta, fotografía visible y una explicación de NLP que cualquier persona puede entender."
+                : "The module now prioritizes useful reading: real people, concrete evidence, visible portraits, and an NLP explanation anyone can understand."}
+            </p>
           </div>
 
-          <div className="promise-hero__top">
-            <article className="promise-hero__stat surface-soft stripe-blue">
-              <span className="label">{copy.highlightsPolitician}</span>
-              <strong>{payload?.highlights.focusPolitician ?? "—"}</strong>
+          <div className="pmr-hero__stats">
+            <article>
+              <span>{copy.kpiPoliticians}</span>
+              <strong>{payload?.kpis.politiciansTracked ?? 0}</strong>
             </article>
-            <article className="promise-hero__stat surface-soft stripe-yellow">
-              <span className="label">{copy.highlightsDomain}</span>
-              <strong>{payload?.highlights.focusDomain ?? "—"}</strong>
+            <article>
+              <span>{copy.kpiPromises}</span>
+              <strong>{payload?.kpis.promisesTracked ?? 0}</strong>
             </article>
-            <article className="promise-hero__stat surface-soft stripe-red">
-              <span className="label">{copy.highlightsStatus}</span>
-              <strong>{payload?.highlights.focusStatus ?? "—"}</strong>
-            </article>
-            <article className="promise-hero__stat promise-hero__stat--note surface-soft stripe-green">
-              <span className="label">{payload?.meta.lastScoredAt?.slice(0, 10) ?? "—"}</span>
-              <p className="body-copy">{payload?.meta.pilotNote}</p>
-            </article>
-          </div>
-
-          <div className="filter-bar page-controls promise-filters">
-            <label className="filter-field">
-              <span className="label">{copy.filterPolitician}</span>
-              <select
-                value={draft.politicianId ?? ""}
-                onChange={(event) => setDraft((prev) => ({ ...prev, politicianId: event.target.value || undefined }))}
-              >
-                {(payload?.options.politicians ?? []).map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="filter-field">
-              <span className="label">{copy.filterDomain}</span>
-              <select value={draft.domain} onChange={(event) => setDraft((prev) => ({ ...prev, domain: event.target.value }))}>
-                {(payload?.options.domains ?? []).map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="filter-field">
-              <span className="label">{copy.filterStatus}</span>
-              <select value={draft.status} onChange={(event) => setDraft((prev) => ({ ...prev, status: event.target.value }))}>
-                {(payload?.options.statuses ?? []).map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="filter-field">
-              <span className="label">{copy.filterYear}</span>
-              <select
-                value={draft.electionYear}
-                onChange={(event) => setDraft((prev) => ({ ...prev, electionYear: Number(event.target.value) }))}
-              >
-                {(payload?.options.years ?? [2026]).map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="filter-field">
-              <span className="label">
-                <Search size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />
-                {copy.searchLabel}
-              </span>
-              <input
-                value={draft.query}
-                onChange={(event) => setDraft((prev) => ({ ...prev, query: event.target.value }))}
-                placeholder={copy.searchPlaceholder}
-              />
-            </label>
-            <button
-              type="button"
-              className="btn-primary filter-apply"
-              style={{ border: "none", cursor: "pointer", justifyContent: "center" }}
-              onClick={() => setFilters(draft)}
-            >
-              {copy.applyFilters}
-            </button>
-          </div>
-        </section>
-
-        <section className="dashboard-strip promise-kpis">
-          <div className="dashboard-strip__grid">
-            <article className="metric-shell stripe-blue promise-kpi">
-              <div className="label">{copy.kpiPoliticians}</div>
-              <div className="summary-number">{payload?.kpis.politiciansTracked ?? 0}</div>
-            </article>
-            <article className="metric-shell stripe-yellow promise-kpi">
-              <div className="label">{copy.kpiPromises}</div>
-              <div className="summary-number">{payload?.kpis.promisesTracked ?? 0}</div>
-            </article>
-            <article className="metric-shell stripe-red promise-kpi">
-              <div className="label">{copy.kpiCoherence}</div>
-              <div className="summary-number">{payload?.kpis.coherenceRate ?? 0}%</div>
-            </article>
-            <article className="metric-shell stripe-green promise-kpi">
-              <div className="label">{copy.kpiDomains}</div>
-              <div className="summary-number">{payload?.kpis.activeDomains ?? 0}</div>
+            <article>
+              <span>{copy.kpiCoherence}</span>
+              <strong>{payload?.kpis.coherenceRate ?? 0}%</strong>
             </article>
           </div>
         </section>
 
-        <section className="two-col promise-grid">
-          <aside className="surface stripe-blue promise-scorecard">
-            <div className="promise-scorecard__top">
-              <div>
-                <p className="eyebrow">{copy.scorecardEyebrow}</p>
-                <h2 className="section-title promise-scorecard__title">{copy.scorecardTitle}</h2>
-                <p className="section-copy promise-scorecard__body">{copy.scorecardBody}</p>
-              </div>
-              <div className="promise-scorecard__ring">
-                <span>{payload?.scorecard.overallScore ?? 0}</span>
-              </div>
+        <section className="pmr-board">
+          <div className="pmr-board__top">
+            <div className="pmr-board__note">
+              <span>{lang === "es" ? "Fuentes" : "Sources"}</span>
+              <strong>
+                {lang === "es"
+                  ? "Programas oficiales, Congreso, decretos y acciones públicas trazables"
+                  : "Official programs, Congress, decrees, and traceable public actions"}
+              </strong>
+              <p>{payload?.meta.pilotNote ?? ""}</p>
             </div>
 
-            <div className="promise-profile">
-              <strong>{payload?.scorecard.politicianName ?? "—"}</strong>
-              <span>{payload?.scorecard.chamber ?? "—"} · {payload?.scorecard.party ?? "—"}</span>
-            </div>
+            <div className="pmr-filter-row">
+              <label className="pmr-filter">
+                <span>{copy.filterDomain}</span>
+                <select value={domainFilter} onChange={(event) => setDomainFilter(event.target.value)}>
+                  {(payload?.options.domains ?? []).map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <div className="promise-scorecard__counts">
-              <div><span>{copy.scoreFulfilled}</span><strong>{payload?.scorecard.statusCounts.fulfilled ?? 0}</strong></div>
-              <div><span>{copy.scoreMonitoring}</span><strong>{payload?.scorecard.statusCounts.monitoring ?? 0}</strong></div>
-              <div><span>{copy.scoreNoAction}</span><strong>{payload?.scorecard.statusCounts.noAction ?? 0}</strong></div>
+              <label className="pmr-filter">
+                <span>{copy.filterStatus}</span>
+                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                  {(payload?.options.statuses ?? []).map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
+          </div>
 
-            <div className="promise-domain-list">
-              <div className="label" style={{ marginBottom: "0.6rem" }}>{copy.domainBreakdown}</div>
-              {(payload?.scorecard.domains ?? []).map((domain) => (
-                <div key={domain.key} className="promise-scorebar">
-                  <div className="promise-scorebar__meta">
-                    <span>{domain.label}</span>
-                    <strong>{Math.round(domain.score * 100)}%</strong>
+          <div className="pmr-politician-strip">
+            {politicians.map((politician) => {
+              const isActive = politician.value === selectedId;
+              const name = politician.label.split(" · ")[0] ?? politician.label;
+              const portrait = portraits[politician.value] || fallbackPortrait(name, getColor(politician.value));
+
+              return (
+                <button
+                  key={politician.value}
+                  type="button"
+                  className={`pmr-politician-card ${isActive ? "pmr-politician-card--active" : ""}`}
+                  onClick={() => setSelectedId(politician.value)}
+                  style={isActive ? { borderColor: getColor(politician.value) } : undefined}
+                >
+                  <img src={portrait} alt={name} className="pmr-politician-card__img" />
+                  <div>
+                    <strong>{name}</strong>
+                    <span>{politician.label.split(" · ")[1] ?? ""}</span>
                   </div>
-                  <div className="promise-scorebar__track">
-                    <span className="promise-scorebar__fill" style={{ width: `${Math.max(10, Math.round(domain.score * 100))}%` }} />
-                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {scorecard ? (
+            <section className="pmr-spotlight">
+              <div className="pmr-spotlight__person">
+                <img
+                  src={portraits[scorecard.politicianId] || fallbackPortrait(scorecard.politicianName, partyColor)}
+                  alt={scorecard.politicianName}
+                  className="pmr-spotlight__img"
+                />
+                <div>
+                  <span className="pmr-spotlight__role">{selectedRole || scorecard.chamber}</span>
+                  <h2>{scorecard.politicianName}</h2>
+                  <p>{scorecard.party}</p>
                 </div>
-              ))}
-            </div>
-          </aside>
-
-          <div className="promise-cards-shell">
-            <div className="section-head promise-cards-head">
-              <div>
-                <p className="eyebrow">{copy.cardsEyebrow}</p>
-                <h2 className="section-title">{copy.cardsTitle}</h2>
               </div>
-              <p className="section-copy">{copy.cardsBody}</p>
-            </div>
 
-            {loading && !payload ? <div className="surface promise-method">{copy.cardsEmpty}</div> : null}
+              <div className="pmr-spotlight__score">
+                <div className="pmr-spotlight__score-ring" style={{ borderColor: partyColor, color: partyColor }}>
+                  {scorecard.overallScore}
+                </div>
+                <div>
+                  <span>{lang === "es" ? "lectura de coherencia" : "coherence read"}</span>
+                  <strong>{lang === "es" ? "promesa vs acción observable" : "promise vs observable action"}</strong>
+                </div>
+              </div>
 
-            <div className="promise-cards">
-              {cards.length ? (
-                cards.map((card) => {
-                  const isOpen = openCardId === card.id;
-                  return (
-                    <article
-                      key={card.id}
-                      className={`surface promise-card promise-card--${card.status === "con_accion_registrada" ? "good" : card.status === "en_seguimiento" ? "watch" : "low"}`}
-                    >
-                      <button type="button" className="promise-card__header" onClick={() => setOpenCardId(isOpen ? null : card.id)}>
-                        <div className="promise-card__eyebrow">
-                          <span className="tiny-pill">{card.domainLabel}</span>
-                          <span className="tiny-pill">{card.statusLabel}</span>
-                        </div>
-                        <h3>{card.promiseText}</h3>
-                        <div className="promise-card__metrics">
-                          <span>{copy.similarity}: <strong>{card.similarityScore}%</strong></span>
-                          <span>{copy.extraction}: <strong>{card.extractionConfidence}%</strong></span>
-                        </div>
-                        <div className="promise-card__meter-track">
-                          <span className="promise-card__meter" style={{ width: `${Math.max(10, card.similarityScore)}%` }} />
-                        </div>
-                      </button>
-
-                      {isOpen ? (
-                        <div className="promise-card__body">
-                          <div className="promise-card__block">
-                            <div className="label">{copy.evidence}</div>
-                            <strong>{card.actionTitle}</strong>
-                            <p className="body-copy">{card.actionSummary || copy.noEvidence}</p>
-                          </div>
-                          <div className="promise-card__sources">
-                            <a href={card.promiseSourceUrl} target="_blank" rel="noreferrer" className="btn-secondary">
-                              <BookOpenText size={16} /> {copy.verifyPromise}
-                            </a>
-                            <a href={card.actionSourceUrl} target="_blank" rel="noreferrer" className="btn-secondary">
-                              <Landmark size={16} /> {copy.verifyAction}
-                            </a>
-                          </div>
-                          <div className="promise-card__foot">
-                            <span>{copy.promiseSource}: {card.promiseSourceLabel}</span>
-                            <span>{copy.actionSource}: {card.actionSourceSystem || "—"}</span>
-                            <span>{copy.confidence}: {card.statusConfidence}%</span>
-                          </div>
-                        </div>
-                      ) : null}
-                    </article>
-                  );
-                })
-              ) : (
-                <article className="surface promise-card promise-card--empty">
-                  <h3>{copy.cardsEmpty}</h3>
+              <div className="pmr-spotlight__counts">
+                <article>
+                  <span>{copy.scoreFulfilled}</span>
+                  <strong>{scorecard.statusCounts.fulfilled}</strong>
                 </article>
-              )}
-            </div>
-          </div>
-        </section>
+                <article>
+                  <span>{copy.scoreMonitoring}</span>
+                  <strong>{scorecard.statusCounts.monitoring}</strong>
+                </article>
+                <article>
+                  <span>{copy.scoreNoAction}</span>
+                  <strong>{scorecard.statusCounts.noAction}</strong>
+                </article>
+              </div>
 
-        <section className="surface promise-method stripe-flag">
-          <div className="two-col" style={{ alignItems: "start" }}>
-            <div>
-              <p className="eyebrow">{copy.methodologyEyebrow}</p>
-              <h2 className="section-title">{copy.methodologyTitle}</h2>
-              <p className="section-copy">{copy.methodologyBody}</p>
+              <div className="pmr-domain-bars">
+                {scorecard.domains.map((domain) => (
+                  <article key={domain.key} className="pmr-domain-bars__item">
+                    <div className="pmr-domain-bars__head">
+                      <span>{domain.label}</span>
+                      <strong>{Math.round(domain.score * 100)}%</strong>
+                    </div>
+                    <div className="pmr-domain-bars__track">
+                      <span style={{ width: `${Math.max(8, domain.score * 100)}%`, background: partyColor }} />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <section className="pmr-promise-wall">
+            <div className="pmr-promise-wall__header">
+              <div>
+                <p className="eyebrow">{lang === "es" ? "Promesas rastreadas" : "Tracked promises"}</p>
+                <h2>{lang === "es" ? "Haz clic y la lectura de abajo cambia" : "Click a card and the readout below changes"}</h2>
+              </div>
+              <span>{cards.length} {lang === "es" ? "registros visibles" : "visible records"}</span>
             </div>
-            <div className="promise-method__rules">
-              <div className="promise-method__rule"><Sparkles size={16} color="var(--green)" /><span>{copy.methodologyRuleA}</span></div>
-              <div className="promise-method__rule"><Radar size={16} color="var(--yellow)" /><span>{copy.methodologyRuleB}</span></div>
-              <div className="promise-method__rule"><Landmark size={16} color="var(--red)" /><span>{copy.methodologyRuleC}</span></div>
-            </div>
-          </div>
-          <div className="promise-method__note">{payload?.meta.coverageMode === "pilot" ? copy.footerPilot : copy.methodologyNote}</div>
+
+            {loading ? (
+              <div className="surface-soft" style={{ padding: "2rem", textAlign: "center" }}>{copy.cardsEmpty}</div>
+            ) : cards.length === 0 ? (
+              <div className="surface-soft" style={{ padding: "2rem", textAlign: "center" }}>{copy.cardsEmpty}</div>
+            ) : (
+              <div className="pmr-card-grid">
+                {cards.map((card) => {
+                  const meta = getStatusMeta(card, lang);
+                  const isActive = openCardId === card.id;
+
+                  return (
+                    <button
+                      key={card.id}
+                      type="button"
+                      className={`pmr-promise-card ${isActive ? "pmr-promise-card--active" : ""}`}
+                      onClick={() => setOpenCardId(card.id)}
+                    >
+                      <div className="pmr-promise-card__top">
+                        <span className={`pmr-status-dot pmr-status-dot--${meta.tone}`} />
+                        <span className={`pmr-status-pill pmr-status-pill--${meta.tone}`}>{meta.label}</span>
+                        <strong>{card.similarityScore}%</strong>
+                      </div>
+                      <h3>{card.promiseText}</h3>
+                      <p>{meta.summary}</p>
+                      <div className="pmr-promise-card__meta">
+                        <span>{card.domainLabel}</span>
+                        <span>{card.actionDate || "—"}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {openCard ? (
+            <section className="pmr-detail">
+              <div className="pmr-detail__header">
+                <div>
+                  <p className="eyebrow">{lang === "es" ? "Lectura detallada" : "Detailed readout"}</p>
+                  <h2>{openCard.promiseText}</h2>
+                </div>
+                <div className="pmr-detail__scorebox">
+                  <span>{lang === "es" ? "similitud" : "similarity"}</span>
+                  <strong>{openCard.similarityScore}%</strong>
+                </div>
+              </div>
+
+              <div className="pmr-detail__grid">
+                <article className="pmr-detail-card">
+                  <div className="pmr-detail-card__label">
+                    <BookOpenText size={15} />
+                    {lang === "es" ? "Promesa original" : "Original promise"}
+                  </div>
+                  <strong>{openCard.promiseSourceLabel}</strong>
+                  <p>{openCard.promiseText}</p>
+                  <a href={openCard.promiseSourceUrl} target="_blank" rel="noreferrer" className="btn-secondary">
+                    {copy.verifyPromise} <ArrowUpRight size={14} />
+                  </a>
+                </article>
+
+                <article className="pmr-detail-card">
+                  <div className="pmr-detail-card__label">
+                    <Landmark size={15} />
+                    {lang === "es" ? "Evidencia encontrada" : "Evidence found"}
+                  </div>
+                  <strong>{openCard.actionTitle}</strong>
+                  <p>{openCard.actionSummary || copy.noEvidence}</p>
+                  <a href={openCard.actionSourceUrl} target="_blank" rel="noreferrer" className="btn-secondary">
+                    {copy.verifyAction} <ArrowUpRight size={14} />
+                  </a>
+                </article>
+
+                <article className="pmr-detail-card pmr-detail-card--analysis">
+                  <div className="pmr-detail-card__label">
+                    <ScanSearch size={15} />
+                    {lang === "es" ? "Qué está diciendo el NLP" : "What the NLP is saying"}
+                  </div>
+                  <strong>{getSemanticReadout(openCard, lang).title}</strong>
+                  <p>{getSemanticReadout(openCard, lang).body}</p>
+                  <div className="pmr-metric-list">
+                    <div>
+                      <span>{copy.extraction}</span>
+                      <strong>{openCard.extractionConfidence}%</strong>
+                    </div>
+                    <div>
+                      <span>{copy.confidence}</span>
+                      <strong>{openCard.statusConfidence}%</strong>
+                    </div>
+                    <div>
+                      <span>{lang === "es" ? "fuente de acción" : "action source"}</span>
+                      <strong>{openCard.actionSourceSystem || "—"}</strong>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </section>
+          ) : null}
         </section>
       </main>
     </div>

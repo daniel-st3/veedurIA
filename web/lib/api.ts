@@ -5,6 +5,7 @@ import type {
   PromisesPayload,
   TablePayload,
 } from "@/lib/types";
+import { getMockFreshness, getMockOverview, getMockPromises, getMockTable } from "@/lib/mock-data";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
@@ -29,65 +30,73 @@ function buildQuery(params: Record<string, string | number | boolean | undefined
 }
 
 export async function fetchOverview(filters: ContractsFilters): Promise<OverviewPayload> {
-  const query = buildQuery({
-    lang: filters.lang,
-    full: filters.full ?? false,
-    department: filters.department,
-    risk: filters.risk ?? "all",
-    modality: filters.modality,
-    query: filters.query,
-    date_from: filters.dateFrom,
-    date_to: filters.dateTo,
-  });
-  const response = await fetch(`${API_BASE}/contracts/overview?${query}`, {
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to fetch overview");
+  try {
+    const query = buildQuery({
+      lang: filters.lang,
+      full: filters.full ?? false,
+      department: filters.department,
+      risk: filters.risk ?? "all",
+      modality: filters.modality,
+      query: filters.query,
+      date_from: filters.dateFrom,
+      date_to: filters.dateTo,
+    });
+    const response = await fetch(`${API_BASE}/contracts/overview?${query}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error("Failed to fetch overview");
+    return await response.json();
+  } catch {
+    return getMockOverview(filters);
   }
-  return response.json();
 }
 
 export async function fetchContractsTable(
   filters: ContractsFilters & { offset?: number; limit?: number },
 ): Promise<TablePayload> {
-  const query = buildQuery({
-    lang: filters.lang,
-    full: filters.full ?? false,
-    department: filters.department,
-    risk: filters.risk ?? "all",
-    modality: filters.modality,
-    query: filters.query,
-    date_from: filters.dateFrom,
-    date_to: filters.dateTo,
-    offset: filters.offset ?? 0,
-    limit: filters.limit ?? 24,
-  });
-  const response = await fetch(`${API_BASE}/contracts/table?${query}`, {
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to fetch table");
+  try {
+    const query = buildQuery({
+      lang: filters.lang,
+      full: filters.full ?? false,
+      department: filters.department,
+      risk: filters.risk ?? "all",
+      modality: filters.modality,
+      query: filters.query,
+      date_from: filters.dateFrom,
+      date_to: filters.dateTo,
+      offset: filters.offset ?? 0,
+      limit: filters.limit ?? 24,
+    });
+    const response = await fetch(`${API_BASE}/contracts/table?${query}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error("Failed to fetch table");
+    return await response.json();
+  } catch {
+    return getMockTable(filters);
   }
-  return response.json();
 }
 
 export async function fetchContractsFreshness(): Promise<ContractsFreshnessPayload> {
-  const response = await fetch(`${API_BASE}/contracts/freshness`, {
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to fetch contracts freshness");
+  try {
+    const response = await fetch(`${API_BASE}/contracts/freshness`, {
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error("Failed to fetch contracts freshness");
+    return await response.json();
+  } catch {
+    return getMockFreshness();
   }
-  return response.json();
 }
 
-export async function fetchGeoJson(): Promise<GeoJSON.GeoJSON> {
-  const response = await fetch(`${API_BASE}/contracts/geojson`, { cache: "force-cache" });
-  if (!response.ok) {
-    throw new Error("Failed to fetch geojson");
+export async function fetchGeoJson(): Promise<GeoJSON.GeoJSON | null> {
+  try {
+    const response = await fetch(`${API_BASE}/contracts/geojson`, { cache: "force-cache" });
+    if (!response.ok) throw new Error("Failed to fetch geojson");
+    return await response.json();
+  } catch {
+    return null;
   }
-  return response.json();
 }
 
 export type PromiseFilters = {
@@ -101,20 +110,22 @@ export type PromiseFilters = {
 };
 
 export async function fetchPromisesOverview(filters: PromiseFilters): Promise<PromisesPayload> {
-  const query = buildQuery({
-    lang: filters.lang,
-    politician_id: filters.politicianId,
-    domain: filters.domain ?? "all",
-    status: filters.status ?? "all",
-    election_year: filters.electionYear ?? 2026,
-    query: filters.query,
-    limit: filters.limit ?? 18,
-  });
-  const response = await fetch(`${API_BASE}/promises/overview?${query}`, {
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to fetch promises overview");
+  try {
+    const query = buildQuery({
+      lang: filters.lang,
+      politician_id: filters.politicianId,
+      domain: filters.domain ?? "all",
+      status: filters.status ?? "all",
+      election_year: filters.electionYear ?? 2022,
+      query: filters.query,
+      limit: filters.limit ?? 18,
+    });
+    const response = await fetch(`${API_BASE}/promises/overview?${query}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error("Failed to fetch promises overview");
+    return await response.json();
+  } catch {
+    return getMockPromises(filters);
   }
-  return response.json();
 }

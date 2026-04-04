@@ -106,7 +106,7 @@ def promises_overview(
     politician_id: str | None = None,
     domain: str = "all",
     status: str = "all",
-    election_year: int = Query(2026, ge=2024, le=2030),
+    election_year: int = Query(2022, ge=2022, le=2030),
     query: str | None = None,
     limit: int = Query(18, ge=1, le=40),
 ) -> dict:

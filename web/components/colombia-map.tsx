@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 
 import type { DepartmentDatum } from "@/lib/types";
 
@@ -33,7 +33,7 @@ type ProjectedFeature = {
 
 const VIEWBOX_WIDTH = 540;
 const VIEWBOX_HEIGHT = 640;
-const PAD = 22;
+const PAD = 2;
 
 function readPoints(value: any, bucket: [number, number][]) {
   if (!Array.isArray(value) || !value.length) return;
@@ -109,10 +109,29 @@ function buildProjectedFeatures(geojson: Props["geojson"]): ProjectedFeature[] {
   });
 }
 
-function toneForRisk(value: number) {
-  if (value >= 0.7) return "var(--red)";
-  if (value >= 0.42) return "var(--yellow)";
-  return "rgba(13, 91, 215, 0.18)";
+function buildRiskStops(values: number[]) {
+  const sorted = [...values].sort((left, right) => left - right);
+  if (!sorted.length) {
+    return { medium: 0.44, high: 0.62, peak: 0.75 };
+  }
+
+  const pick = (ratio: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * ratio)))];
+  const medium = pick(0.35);
+  const high = pick(0.65);
+  const peak = pick(0.85);
+
+  return {
+    medium,
+    high: Math.max(high, medium + 0.02),
+    peak: Math.max(peak, high + 0.02),
+  };
+}
+
+function toneForRisk(value: number, stops: { medium: number; high: number; peak: number }) {
+  if (value >= stops.peak) return "rgba(198, 40, 57, 0.92)";
+  if (value >= stops.high) return "rgba(198, 40, 57, 0.62)";
+  if (value >= stops.medium) return "rgba(211, 162, 26, 0.86)";
+  return "rgba(13, 91, 215, 0.22)";
 }
 
 export function ColombiaMap({
@@ -133,16 +152,38 @@ export function ColombiaMap({
     () => new Map(departments.map((item) => [item.geoName, item])),
     [departments],
   );
+  const stops = useMemo(
+    () => buildRiskStops(departments.map((item) => item.avgRisk).filter((value) => Number.isFinite(value))),
+    [departments],
+  );
 
   const currentDepartment = hovered || activeDepartment || departments[0]?.geoName || null;
   const currentDatum = currentDepartment ? summary.get(currentDepartment) : undefined;
+
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   if (!features.length) {
     return <div className={`colombia-map ${className ?? ""}`} />;
   }
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (mapRef.current) {
+      const rect = mapRef.current.getBoundingClientRect();
+      setMousePos({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+  };
+
   return (
-    <div className={`colombia-map colombia-map--${mode} ${className ?? ""}`}>
+    <div 
+      className={`colombia-map colombia-map--${mode} ${className ?? ""}`}
+      ref={mapRef}
+      onMouseMove={handleMouseMove}
+      style={{ position: "relative" }}
+    >
       <svg viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`} className="colombia-map__svg" aria-label="Mapa de Colombia">
         <defs>
           <linearGradient id={`flag-gradient-${mode}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -179,7 +220,7 @@ export function ColombiaMap({
                 : isActive
                   ? `url(#flag-gradient-${mode})`
                   : datum
-                    ? toneForRisk(datum.avgRisk)
+                    ? toneForRisk(datum.avgRisk, stops)
                     : "rgba(23,32,51,0.08)";
 
             return (
@@ -224,11 +265,45 @@ export function ColombiaMap({
           <strong>{currentDatum?.label ?? currentDepartment ?? "Colombia"}</strong>
           <div className="body-copy" style={{ marginTop: "0.2rem", fontSize: "0.8rem" }}>
             {currentDatum
-              ? captionBody ?? `${currentDatum.contractCount.toLocaleString()} contratos · ${(currentDatum.avgRisk * 100).toFixed(0)} de señal media`
+              ? captionBody ?? `${currentDatum.contractCount.toLocaleString()} contratos · ${(currentDatum.avgRisk * 100).toFixed(0)}/100 de intensidad`
               : emptyCaptionBody ?? "Selecciona un departamento para reorganizar la lectura."}
           </div>
         </div>
       ) : null}
+
+      {hovered && (
+        <div
+          className="map-tooltip"
+          style={{
+            position: "absolute",
+            left: mousePos.x + 15,
+            top: mousePos.y + 15,
+            pointerEvents: "none",
+            background: "rgba(10, 15, 25, 0.85)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            padding: "0.6rem 0.8rem",
+            borderRadius: "12px",
+            color: "white",
+            zIndex: 100,
+            transform: "translate(-50%, -100%)",
+            marginTop: "-25px",
+            whiteSpace: "nowrap",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+            transition: "opacity 0.2s ease, transform 0.1s ease-out",
+          }}
+        >
+          <div style={{ fontSize: "0.95rem", fontWeight: 600, letterSpacing: "-0.02em" }}>
+            {summary.get(hovered)?.label ?? hovered}
+          </div>
+          {summary.get(hovered) && (
+            <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.7)", marginTop: "0.2rem" }}>
+              {(summary.get(hovered)!.avgRisk * 100).toFixed(0)} señal
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
