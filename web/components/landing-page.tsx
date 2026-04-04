@@ -236,8 +236,8 @@ export function LandingPage({
           <div className="lp-hero-top">
             <p className="eyebrow">
               {lang === "es"
-                ? "VeedurIA · una sola entrada para contratos, promesas y relaciones públicas"
-                : "VeedurIA · one entry point for public contracts, promises, and networks"}
+                ? "VeedurIA · contratos, promesas y redes públicas"
+                : "VeedurIA · contracts, promises, and public networks"}
             </p>
 
             <h1 className="lp-hero-title lp-hero-title--stacked">
@@ -267,7 +267,7 @@ export function LandingPage({
             </p>
           </div>
 
-          <div className="lp-kpi-row">
+          <div className="lp-kpi-row stats-grid">
             <article className="lp-kpi-card lp-kpi-card--yellow">
               <span>{lang === "es" ? "Registros oficiales hoy" : "Official records today"}</span>
               <strong className="lp-counter" data-value={totalContracts}>0</strong>

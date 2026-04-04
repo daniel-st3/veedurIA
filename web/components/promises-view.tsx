@@ -890,12 +890,12 @@ export function PromisesView({
       <main className="page pmr-page">
         <section className="pmr-hero">
           <div className="pmr-hero__copy">
-            <p className="eyebrow">{lang === "es" ? "Promesas, evidencia y comparación por ciclo político" : "Promises, evidence, and comparison by political cycle"}</p>
+            <p className="eyebrow">{lang === "es" ? "Promesas, evidencia y comparación" : "Promises, evidence, and comparison"}</p>
             <h1>{periodTitle}</h1>
             <p className="pmr-hero__body">{periodBody}</p>
           </div>
 
-          <div className="pmr-hero__stats">
+          <div className="pmr-hero__stats stats-grid">
             <article>
               <span>{lang === "es" ? "Perfiles visibles" : "Visible profiles"}</span>
               <strong>{periodProfiles}</strong>
@@ -990,7 +990,7 @@ export function PromisesView({
               </div>
             </div>
 
-            <div className="pmr-politician-strip">
+            <div className="pmr-politician-strip profiles-grid">
               {visiblePoliticians.map((politician) => {
                 const isActive = politician.value === selectedId;
                 const name = politician.label.split(" · ")[0] ?? politician.label;
@@ -1081,18 +1081,18 @@ export function PromisesView({
                     </div>
                   </div>
 
-                  <div className="pmr-spotlight__counts">
-                    <article>
-                      <span>{copy.scoreFulfilled}</span>
-                      <strong>{scorecard.statusCounts.fulfilled}</strong>
+                  <div className="pmr-spotlight__counts coherence-boxes">
+                    <article className="coherence-box">
+                      <span className="coherence-label">{copy.scoreFulfilled}</span>
+                      <strong className="coherence-number">{scorecard.statusCounts.fulfilled}</strong>
                     </article>
-                    <article>
-                      <span>{copy.scoreMonitoring}</span>
-                      <strong>{scorecard.statusCounts.monitoring}</strong>
+                    <article className="coherence-box">
+                      <span className="coherence-label">{copy.scoreMonitoring}</span>
+                      <strong className="coherence-number">{scorecard.statusCounts.monitoring}</strong>
                     </article>
-                    <article>
-                      <span>{copy.scoreNoAction}</span>
-                      <strong>{scorecard.statusCounts.noAction}</strong>
+                    <article className="coherence-box">
+                      <span className="coherence-label">{copy.scoreNoAction}</span>
+                      <strong className="coherence-number">{scorecard.statusCounts.noAction}</strong>
                     </article>
                   </div>
 
