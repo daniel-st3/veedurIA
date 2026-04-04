@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { PromisePivotSandbox } from "@/components/promise-pivot-sandbox";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { fetchPromisesOverview } from "@/lib/api";
 import { promisesCopy } from "@/lib/copy";
@@ -1254,12 +1255,12 @@ export function PromisesView({
           <div className="pmr-section-header">
             <div>
               <p className="eyebrow">{lang === "es" ? "Fuentes del módulo" : "Module sources"}</p>
-              <h2>{lang === "es" ? "Fuentes visibles del tablero" : "Visible board sources"}</h2>
+              <h2>{lang === "es" ? "De dónde sale la información" : "Where the information comes from"}</h2>
             </div>
             <p>
               {lang === "es"
-                ? "Aquí se mezclan fuentes de promesa, acción pública y seguimiento electoral para que cada tarjeta tenga rastro verificable."
-                : "This view mixes promise sources, public action, and electoral tracking so each card keeps a verifiable trace."}
+                ? "Cada tarjeta conserva su fuente de promesa, su fuente de acción y la ruta mínima para contrastar lo que sí aparece en el periodo."
+                : "Each card keeps its promise source, action source, and the minimum trail needed to contrast what actually appears in the cycle."}
             </p>
           </div>
 
@@ -1276,7 +1277,7 @@ export function PromisesView({
         <section className="pmr-reference-section surface">
           <div className="pmr-section-header">
             <div>
-              <p className="eyebrow">{lang === "es" ? "Cómo leer la coincidencia" : "How to read the match"}</p>
+              <p className="eyebrow">{lang === "es" ? "Cómo leer el cruce" : "How to read the match"}</p>
               <h2>{lang === "es" ? "Qué compara este tablero" : "What this board compares"}</h2>
             </div>
             <p>
@@ -1305,6 +1306,8 @@ export function PromisesView({
           </div>
         </section>
       </main>
+
+      <SiteFooter lang={lang} />
     </div>
   );
 }

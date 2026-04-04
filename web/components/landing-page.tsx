@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { ArrowRight, FileSearch, Radar, Waypoints } from "lucide-react";
+import { ArrowRight, ChevronDown, FileSearch, Radar, Waypoints } from "lucide-react";
 
+import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { fetchOverview } from "@/lib/api";
 import type { Lang, OverviewPayload } from "@/lib/types";
@@ -26,7 +27,8 @@ const FEATURES = (lang: Lang, totalContracts: number, redAlerts: number) => [
         ? `${totalContracts.toLocaleString("es-CO")} contratos en el universo cargado`
         : `${totalContracts.toLocaleString("en-US")} contracts in the loaded universe`,
     href: `/contrato-limpio?lang=${lang}`,
-    cta: lang === "es" ? "Abrir módulo" : "Open module",
+    kicker: lang === "es" ? "EXPLORAR CONTRATOS" : "EXPLORE CONTRACTS",
+    cta: lang === "es" ? "Entrar a ContratoLimpio" : "Open ContratoLimpio",
     icon: FileSearch,
   },
   {
@@ -41,7 +43,8 @@ const FEATURES = (lang: Lang, totalContracts: number, redAlerts: number) => [
     detail:
       lang === "es" ? "Seguimiento ejecutivo, Senado, Cámara y radar presidencial" : "Executive, Senate, House, and presidential watch",
     href: `/promesmetro?lang=${lang}`,
-    cta: lang === "es" ? "Ver seguimiento" : "View tracker",
+    kicker: lang === "es" ? "VER PROMESAS" : "VIEW PROMISES",
+    cta: lang === "es" ? "Abrir Promesómetro" : "Open Promesómetro",
     icon: Radar,
   },
   {
@@ -58,7 +61,9 @@ const FEATURES = (lang: Lang, totalContracts: number, redAlerts: number) => [
         ? `${redAlerts.toLocaleString("es-CO")} alertas altas ya sirven de semilla`
         : `${redAlerts.toLocaleString("en-US")} high-signal alerts already seed the graph`,
     href: `/sigue-el-dinero?lang=${lang}`,
-    cta: lang === "es" ? "Entrar al mapa relacional" : "Open relationship map",
+    kicker: lang === "es" ? "MAPA RELACIONAL" : "RELATIONSHIP MAP",
+    cta: lang === "es" ? "Próximamente — ver avance" : "Coming soon — view progress",
+    soon: true,
     icon: Waypoints,
   },
 ];
@@ -235,14 +240,28 @@ export function LandingPage({
 
             <p className="lp-hero-body">
               {lang === "es"
-                ? "Entra por contratación, promesas o redes. Cada ruta arranca con un caso, una lectura corta y un clic directo a la fuente que importa."
-                : "Start from procurement, promises, or networks. Each route begins with a useful case, a short read, and a direct click to the source that matters."}
+                ? "Entra por "
+                : "Start from "}
+              <Link href={`/contrato-limpio?lang=${lang}`} className="lp-inline-link">
+                ContratoLimpio
+              </Link>
+              {lang === "es" ? ", " : ", "}
+              <Link href={`/promesmetro?lang=${lang}`} className="lp-inline-link">
+                Promesómetro
+              </Link>
+              {lang === "es" ? " o " : ", or "}
+              <Link href={`/sigue-el-dinero?lang=${lang}`} className="lp-inline-link">
+                SigueElDinero
+              </Link>
+              {lang === "es"
+                ? ". Cada ruta empieza con una pista clara, una lectura corta y un clic directo a la fuente que importa."
+                : ". Each route starts with a clear lead, a short read, and a direct click into the source that matters."}
             </p>
 
             <div className="lp-hero-tags">
-              <span>{lang === "es" ? `${totalContracts.toLocaleString("es-CO")} registros visibles` : `${totalContracts.toLocaleString("en-US")} visible records`}</span>
-              <span>{lang === "es" ? `fuente al ${latestDate}` : `source through ${latestDate}`}</span>
-              <span>{lang === "es" ? `${redAlerts.toLocaleString("es-CO")} alertas altas` : `${redAlerts.toLocaleString("en-US")} high alerts`}</span>
+              <Link href={`/contrato-limpio?lang=${lang}`}>{lang === "es" ? `${totalContracts.toLocaleString("es-CO")} registros visibles` : `${totalContracts.toLocaleString("en-US")} visible records`}</Link>
+              <Link href={`/contrato-limpio?lang=${lang}`}>{lang === "es" ? `fuente al ${latestDate}` : `source through ${latestDate}`}</Link>
+              <Link href={`/promesmetro?lang=${lang}`}>{lang === "es" ? `${redAlerts.toLocaleString("es-CO")} alertas altas` : `${redAlerts.toLocaleString("en-US")} high alerts`}</Link>
             </div>
 
             <div className="lp-start-grid lp-start-grid--open">
@@ -253,7 +272,19 @@ export function LandingPage({
                   className={`lp-start-card lp-start-card--open lp-start-card--${item.tone}`}
                   style={{ transform: `translate3d(0, ${scrollShift * 0.01}px, 0)` }}
                 >
-                  <span className="lp-start-card__kicker">{lang === "es" ? "Empieza aquí" : "Start here"}</span>
+                  <span className="lp-start-card__kicker">
+                    {item.tone === "yellow"
+                      ? lang === "es"
+                        ? "EXPLORAR CONTRATOS"
+                        : "EXPLORE CONTRACTS"
+                      : item.tone === "blue"
+                        ? lang === "es"
+                          ? "VER PROMESAS"
+                          : "VIEW PROMISES"
+                        : lang === "es"
+                          ? "MAPA RELACIONAL"
+                          : "RELATIONSHIP MAP"}
+                  </span>
                   <div>
                     <strong>{item.title}</strong>
                     <p>{item.body}</p>
@@ -262,6 +293,11 @@ export function LandingPage({
                 </Link>
               ))}
             </div>
+
+            <a href="#modulos" className="lp-scroll-hint" aria-label={lang === "es" ? "Desplázate hacia los módulos" : "Scroll down to the modules"}>
+              <span>{lang === "es" ? "Desplázate" : "Scroll"}</span>
+              <ChevronDown size={18} />
+            </a>
           </div>
         </section>
 
@@ -276,7 +312,7 @@ export function LandingPage({
           </div>
         </section>
 
-        <section className="lp-modules" data-reveal>
+        <section className="lp-modules" id="modulos" data-reveal>
           {features.map((feature) => {
             const Icon = feature.icon;
 
@@ -285,7 +321,7 @@ export function LandingPage({
                 <div className="lp-module__head">
                   <div className={`lp-module__index lp-module__index--${feature.tone}`}>{feature.index}</div>
                   <div>
-                    <p className="lp-module__eyebrow">{feature.eyebrow}</p>
+                    <p className="lp-module__eyebrow">{feature.kicker}</p>
                     <h2>{feature.title}</h2>
                   </div>
                 </div>
@@ -294,6 +330,7 @@ export function LandingPage({
 
                 <div className="lp-module__detailband">
                   <span>{feature.detail}</span>
+                  {"soon" in feature && feature.soon ? <em>{lang === "es" ? "PRONTO" : "SOON"}</em> : null}
                 </div>
 
                 <div className={`lp-module__cta lp-module__cta--${feature.tone}`}>
@@ -312,6 +349,8 @@ export function LandingPage({
           })}
         </section>
       </main>
+
+      <SiteFooter lang={lang} />
     </div>
   );
 }

@@ -10,6 +10,38 @@ import type {
   TablePayload,
 } from "./types";
 import type { ContractsFilters, PromiseFilters } from "./api";
+import { formatCompactCop } from "./format";
+
+const MOCK_DEPARTMENT_ALIASES: Record<string, string> = {
+  BOGOTA: "SANTAFE DE BOGOTA D.C",
+  "BOGOTA D.C.": "SANTAFE DE BOGOTA D.C",
+  BOLIVAR: "BOLIVAR",
+  ATLANTICO: "ATLANTICO",
+  CORDOBA: "CORDOBA",
+  CESAR: "CESAR",
+  NARINO: "NARIÑO",
+  CHOCO: "CHOCO",
+  GUAJIRA: "LA GUAJIRA",
+  CAQUETA: "CAQUETA",
+  SAN_ANDRES: "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+  "SAN ANDRES": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+  GUAINIA: "GUAINÍA",
+  VAUPES: "VAUPÉS",
+};
+
+function normalizeDepartmentKey(value: string | undefined) {
+  if (!value) return "";
+  return MOCK_DEPARTMENT_ALIASES[value] ?? value;
+}
+
+function formatMockDepartmentLabel(value: string) {
+  const normalized = normalizeDepartmentKey(value);
+  return MOCK_DEPARTMENTS.find((department) => department.value === normalized)?.label ?? value;
+}
+
+function formatMockCurrency(value: number, lang: "es" | "en" = "es") {
+  return formatCompactCop(value, lang);
+}
 
 // ─── DEPARTMENTS ─────────────────────────────────────────────────────────────
 
@@ -22,7 +54,7 @@ export const MOCK_DEPARTMENTS = [
   { value: "BOLIVAR", label: "Bolívar", geoName: "BOLIVAR", avgRisk: 0.67, contractCount: 68_420 },
   { value: "CUNDINAMARCA", label: "Cundinamarca", geoName: "CUNDINAMARCA", avgRisk: 0.49, contractCount: 63_210 },
   { value: "CORDOBA", label: "Córdoba", geoName: "CORDOBA", avgRisk: 0.71, contractCount: 58_340 },
-  { value: "NARINO", label: "Nariño", geoName: "NARINO", avgRisk: 0.52, contractCount: 52_180 },
+  { value: "NARIÑO", label: "Nariño", geoName: "NARIÑO", avgRisk: 0.52, contractCount: 52_180 },
   { value: "TOLIMA", label: "Tolima", geoName: "TOLIMA", avgRisk: 0.55, contractCount: 48_920 },
   { value: "META", label: "Meta", geoName: "META", avgRisk: 0.63, contractCount: 44_310 },
   { value: "HUILA", label: "Huila", geoName: "HUILA", avgRisk: 0.47, contractCount: 40_280 },
@@ -37,15 +69,15 @@ export const MOCK_DEPARTMENTS = [
   { value: "QUINDIO", label: "Quindío", geoName: "QUINDIO", avgRisk: 0.48, contractCount: 22_180 },
   { value: "CHOCO", label: "Chocó", geoName: "CHOCO", avgRisk: 0.78, contractCount: 21_420 },
   { value: "CASANARE", label: "Casanare", geoName: "CASANARE", avgRisk: 0.62, contractCount: 18_930 },
-  { value: "GUAJIRA", label: "La Guajira", geoName: "GUAJIRA", avgRisk: 0.81, contractCount: 17_640 },
+  { value: "LA GUAJIRA", label: "La Guajira", geoName: "LA GUAJIRA", avgRisk: 0.81, contractCount: 17_640 },
   { value: "ARAUCA", label: "Arauca", geoName: "ARAUCA", avgRisk: 0.69, contractCount: 14_280 },
   { value: "CAQUETA", label: "Caquetá", geoName: "CAQUETA", avgRisk: 0.57, contractCount: 12_340 },
   { value: "PUTUMAYO", label: "Putumayo", geoName: "PUTUMAYO", avgRisk: 0.64, contractCount: 10_890 },
-  { value: "SAN ANDRES", label: "San Andrés", geoName: "SAN ANDRES", avgRisk: 0.43, contractCount: 6_280 },
+  { value: "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA", label: "San Andrés", geoName: "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA", avgRisk: 0.43, contractCount: 6_280 },
   { value: "VICHADA", label: "Vichada", geoName: "VICHADA", avgRisk: 0.71, contractCount: 4_230 },
   { value: "AMAZONAS", label: "Amazonas", geoName: "AMAZONAS", avgRisk: 0.53, contractCount: 3_840 },
-  { value: "GUAINIA", label: "Guainía", geoName: "GUAINIA", avgRisk: 0.67, contractCount: 2_910 },
-  { value: "VAUPES", label: "Vaupés", geoName: "VAUPES", avgRisk: 0.61, contractCount: 2_140 },
+  { value: "GUAINÍA", label: "Guainía", geoName: "GUAINÍA", avgRisk: 0.67, contractCount: 2_910 },
+  { value: "VAUPÉS", label: "Vaupés", geoName: "VAUPÉS", avgRisk: 0.61, contractCount: 2_140 },
 ];
 
 const MODALITIES = [
@@ -632,7 +664,7 @@ function applyContractFilters(
 ): typeof ALL_ROWS {
   let result = [...rows];
   if (filters.department) {
-    result = result.filter((r) => r.department === filters.department);
+    result = result.filter((r) => normalizeDepartmentKey(r.department) === filters.department);
   }
   if (filters.risk && filters.risk !== "all") {
     result = result.filter((r) => r.riskBand === filters.risk);
@@ -699,10 +731,7 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
       totalContracts,
       redAlerts,
       prioritizedValue,
-      prioritizedValueLabel:
-        prioritizedValue >= 1_000_000_000
-          ? `$${(prioritizedValue / 1_000_000_000).toFixed(1)}B`
-          : `$${(prioritizedValue / 1_000_000).toFixed(0)}M`,
+      prioritizedValueLabel: formatMockCurrency(prioritizedValue, lang),
       dominantDepartment: topDept,
     },
     benchmarks: {
@@ -715,7 +744,11 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
         ? [...filtered].sort((left, right) => left.value - right.value)[Math.floor(filtered.length / 2)]?.value ?? 0
         : 3_240_000_000,
     },
-    leadCases: (filteredLeadCases.length ? filteredLeadCases : LEAD_CASES).slice(0, 5),
+    leadCases: (filteredLeadCases.length ? filteredLeadCases : LEAD_CASES).slice(0, 5).map((item) => ({
+      ...item,
+      department: formatMockDepartmentLabel(item.department),
+      valueLabel: formatMockCurrency(item.value, lang),
+    })),
     summaries: {
       entities: [
         { nombre_entidad: "UNIDAD NAL. GESTIÓN DEL RIESGO", contracts: 312, meanRisk: 0.76, maxRisk: 0.91 },
@@ -747,10 +780,10 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
       contracts: ALL_ROWS.slice(0, 5).map((r) => ({
         id: r.id,
         entity: r.entity,
-        department: r.department,
+        department: formatMockDepartmentLabel(r.department),
         date: r.date,
         value: r.value,
-        valueLabel: r.valueLabel,
+        valueLabel: formatMockCurrency(r.value, "es"),
         secopUrl: r.secopUrl,
       })),
     },
@@ -769,11 +802,11 @@ export function getMockTable(
     riskBand: r.riskBand,
     entity: r.entity,
     provider: r.provider,
-    department: r.department,
+    department: formatMockDepartmentLabel(r.department),
     modality: r.modality,
     date: r.date,
     value: r.value,
-    valueLabel: r.valueLabel,
+    valueLabel: formatMockCurrency(r.value, filters.lang ?? "es"),
     secopUrl: r.secopUrl,
   }));
   return { total: filtered.length, rows };
@@ -792,10 +825,10 @@ export function getMockFreshness(): ContractsFreshnessPayload {
       contracts: ALL_ROWS.slice(0, 5).map((r) => ({
         id: r.id,
         entity: r.entity,
-        department: r.department,
+        department: formatMockDepartmentLabel(r.department),
         date: r.date,
         value: r.value,
-        valueLabel: r.valueLabel,
+        valueLabel: formatMockCurrency(r.value, "es"),
         secopUrl: r.secopUrl,
       })),
     },

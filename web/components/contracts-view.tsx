@@ -13,9 +13,11 @@ import {
 } from "lucide-react";
 
 import { ColombiaMap } from "@/components/colombia-map";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { fetchContractsFreshness, fetchContractsTable, fetchGeoJson, fetchOverview } from "@/lib/api";
 import { contractsCopy } from "@/lib/copy";
+import { formatCompactCop } from "@/lib/format";
 import type { ContractsFreshnessPayload, Lang, LeadCase, OverviewPayload, TablePayload } from "@/lib/types";
 
 type FilterState = {
@@ -268,6 +270,7 @@ export function ContractsView({
   const [overview, setOverview] = useState<OverviewPayload | null>(initialOverview ?? null);
   const [table, setTable] = useState<TablePayload | null>(initialTable ?? null);
   const [geojson, setGeojson] = useState<any>(initialGeojson ?? null);
+  const [mapState, setMapState] = useState<"loading" | "ready" | "error">(initialGeojson ? "ready" : "loading");
   const [freshness, setFreshness] = useState<ContractsFreshnessPayload | null>(null);
   const [loading, setLoading] = useState(!initialOverview);
   const [tableLoading, setTableLoading] = useState(!initialTable);
@@ -277,13 +280,44 @@ export function ContractsView({
   const [tableInitialized, setTableInitialized] = useState(Boolean(initialTable));
   const [explorerGroup, setExplorerGroup] = useState<ExplorerGroupKey>("department");
 
-  useEffect(() => {
-    if (geojson) return;
-    fetchGeoJson()
+  const loadGeojson = () => {
+    setMapState("loading");
+    return fetchGeoJson()
       .then((data) => {
-        if (data) setGeojson(data);
+        if (data) {
+          setGeojson(data);
+          setMapState("ready");
+          return;
+        }
+        setMapState("error");
       })
-      .catch(() => {});
+      .catch(() => {
+        setMapState("error");
+      });
+  };
+
+  useEffect(() => {
+    if (geojson) {
+      setMapState("ready");
+      return;
+    }
+
+    let alive = true;
+    const timeout = window.setTimeout(() => {
+      if (alive && !geojson) {
+        setMapState("error");
+      }
+    }, 5000);
+
+    loadGeojson().finally(() => {
+      if (!alive) return;
+      window.clearTimeout(timeout);
+    });
+
+    return () => {
+      alive = false;
+      window.clearTimeout(timeout);
+    };
   }, [geojson]);
 
   useEffect(() => {
@@ -390,6 +424,8 @@ export function ContractsView({
     : null;
   const explorerGroups = useMemo(() => buildExplorerGroups(tableRows, explorerGroup), [tableRows, explorerGroup]);
   const selectedTone = selectedCase ? scoreTone(selectedCase.score) : "low";
+  const staleScore = freshnessGap !== null && freshnessGap > 0;
+  const lastModelRun = overview?.meta.lastRunTs ? formatPortalUpdated(lang, overview.meta.lastRunTs) : null;
   const sliceMeanRisk = overview?.benchmarks?.sliceMeanRisk ?? leadCases.reduce((sum, item) => sum + item.score / 100, 0) / Math.max(leadCases.length, 1);
   const nationalMeanRisk = overview?.benchmarks?.nationalMeanRisk ?? sliceMeanRisk;
   const departmentMeanRisk = overview?.benchmarks?.departmentMeanRisk ?? currentDepartment?.avgRisk ?? null;
@@ -463,11 +499,11 @@ export function ContractsView({
           <div className="cv-hero-panel__top">
             <div>
               <p className="eyebrow">{copy.pageEyebrow}</p>
-              <h1>{lang === "es" ? "Contratos que vale la pena abrir primero" : "Contracts worth opening first"}</h1>
+              <h1>{lang === "es" ? "Contratos prioritarios para revisar" : "Priority contracts to review"}</h1>
               <p className="cv-hero-panel__body">
                 {lang === "es"
-                  ? "Usa el filtro, mira el patrón territorial y baja al caso principal. Lo que cambia con tu corte queda separado de la información fija de la fuente para que no se mezcle."
-                  : "Use the filters, read the territorial pattern, and move down into the lead case. What changes with your slice is separated from the fixed source information so they do not get mixed."}
+                  ? "Filtra los datos, compara el mapa y baja al caso principal. La herramienta separa lo que cambia con tu búsqueda de lo que sigue fijo en la fuente oficial."
+                  : "Filter the data, compare the map, and move into the lead case. The tool separates what changes with your slice from what stays fixed in the official source."}
               </p>
             </div>
 
@@ -493,17 +529,32 @@ export function ContractsView({
             </div>
           </div>
 
+          {staleScore ? (
+            <div className="cv-status-banner cv-status-banner--warning" role="status">
+              <strong>
+                {lang === "es"
+                  ? `Datos oficiales al ${latestSourceDate}; scoring visible al ${latestScoredDate}.`
+                  : `Official data through ${latestSourceDate}; visible scoring through ${latestScoredDate}.`}
+              </strong>
+              <span>
+                {lang === "es"
+                  ? `La brecha actual es de ${freshnessGap} días. Última corrida visible: ${lastModelRun ?? "sin hora disponible"}.`
+                  : `The current gap is ${freshnessGap} days. Last visible scoring run: ${lastModelRun ?? "no visible timestamp"}.`}
+              </span>
+            </div>
+          ) : null}
+
           <div className="cv-workbench">
             <section className="cv-control-panel surface-soft">
               <div className="cv-control-panel__head">
                 <div>
-                  <p className="eyebrow">{lang === "es" ? "Arma tu corte" : "Set your slice"}</p>
+                  <p className="eyebrow">{lang === "es" ? "Filtra los datos" : "Filter the data"}</p>
                   <h2>{lang === "es" ? "Filtra primero, compara después" : "Filter first, compare next"}</h2>
                 </div>
                 <p>
                   {lang === "es"
-                    ? "1. Ajusta filtros. 2. Mira cómo cambia el mapa. 3. Baja al caso principal y al explorador para revisar evidencia."
-                    : "1. Adjust filters. 2. Watch the map change. 3. Move down into the lead case and explorer to inspect evidence."}
+                    ? "1. Ajusta filtros. 2. Mira el cambio territorial. 3. Baja al caso principal y al explorador para abrir evidencia."
+                    : "1. Adjust filters. 2. Read the territorial shift. 3. Move into the lead case and the explorer to open evidence."}
                 </p>
               </div>
 
@@ -652,8 +703,8 @@ export function ContractsView({
                 </div>
                 <p>
                   {lang === "es"
-                    ? "Haz clic en un departamento para cambiar el corte. Lo que ves abajo usa esa misma selección."
-                    : "Click a department to change the slice. What you see below uses that same selection."}
+                    ? "Haz clic en un departamento para ver sus contratos. Lo que aparece abajo usa esa misma selección."
+                    : "Click a department to view its contracts. Everything below uses that same selection."}
                 </p>
               </div>
 
@@ -688,7 +739,7 @@ export function ContractsView({
               </div>
 
               <div className="cv-map-frame cv-map-frame--compact cv-map-frame--workbench">
-                {geojson && overview ? (
+                {geojson && overview && mapState === "ready" ? (
                   <ColombiaMap
                     geojson={geojson}
                     departments={overview.map.departments}
@@ -707,8 +758,25 @@ export function ContractsView({
                       setPage(0);
                     }}
                   />
+                ) : mapState === "error" ? (
+                  <div className="cv-map-placeholder cv-map-placeholder--error">
+                    <strong>
+                      {lang === "es"
+                        ? "El mapa no está disponible en este momento."
+                        : "The map is not available right now."}
+                    </strong>
+                    <p>
+                      {lang === "es"
+                        ? "Por favor, recarga la página o vuelve a intentarlo en unos minutos."
+                        : "Please reload the page or try again in a few minutes."}
+                    </p>
+                    <button type="button" className="btn-secondary" onClick={() => void loadGeojson()}>
+                      {lang === "es" ? "Reintentar" : "Retry"}
+                    </button>
+                  </div>
                 ) : (
-                  <div className="surface" style={{ height: 360, display: "grid", placeItems: "center" }}>
+                  <div className="cv-map-placeholder" aria-live="polite">
+                    <span className="cv-spinner" aria-hidden="true" />
                     <span className="label">{copy.loading}</span>
                   </div>
                 )}
@@ -779,7 +847,7 @@ export function ContractsView({
                 </div>
                 <div>
                   <span>{lang === "es" ? "Valor" : "Value"}</span>
-                  <strong>{selectedCase.valueLabel}</strong>
+                  <strong>{formatCompactCop(selectedCase.value, lang)}</strong>
                 </div>
               </div>
 
@@ -852,7 +920,7 @@ export function ContractsView({
                     <strong>{item.score}</strong>
                   </div>
                   <h3>{item.entity}</h3>
-                  <p>{item.valueLabel}</p>
+                  <p>{formatCompactCop(item.value, lang)}</p>
                   <div className="cv-case-chip__bar">
                     <span style={{ width: `${Math.max(14, (item.score / leadCaseMax) * 100)}%` }} />
                   </div>
@@ -926,7 +994,7 @@ export function ContractsView({
                   </div>
                   <div className="contract-freshness__item-meta">
                     <span>{row.date}</span>
-                    <span>{row.valueLabel}</span>
+                    <span>{formatCompactCop(row.value, lang)}</span>
                   </div>
                 </Link>
               ))}
@@ -990,45 +1058,53 @@ export function ContractsView({
                 ))}
               </div>
 
-              <div className="cv-explorer-grid">
-                {tableRows.map((row) => (
-                  <article
-                    key={row.id}
-                    className={`explorer-card explorer-card--${row.riskBand}`}
-                  >
-                    <div className="explorer-card__top">
-                      <div>
-                        <div className="label" style={{ marginBottom: "0.3rem" }}>{row.department}</div>
-                        <div className="explorer-card__title">{row.entity}</div>
+              {tableRows.length ? (
+                <div className="cv-explorer-grid">
+                  {tableRows.map((row) => (
+                    <article
+                      key={row.id}
+                      className={`explorer-card explorer-card--${row.riskBand}`}
+                    >
+                      <div className="explorer-card__top">
+                        <div>
+                          <div className="label" style={{ marginBottom: "0.3rem" }}>{row.department}</div>
+                          <div className="explorer-card__title">{row.entity}</div>
+                        </div>
+                        <div className={`score risk-${row.riskBand}`} style={{ fontSize: "1.5rem" }}>{row.score}</div>
                       </div>
-                      <div className={`score risk-${row.riskBand}`} style={{ fontSize: "1.5rem" }}>{row.score}</div>
-                    </div>
-                    <div className="body-copy" style={{ fontSize: "0.82rem", marginBottom: "0.7rem" }}>{row.provider}</div>
-                    <div className="explorer-card__metrics">
-                      <div>
-                        <div className="label" style={{ marginBottom: "0.3rem" }}>{copy.tableValue}</div>
-                        <strong>{row.valueLabel}</strong>
-                        <div className="table-value__track" style={{ marginTop: 6 }}>
-                          <span
-                            className="table-value__fill"
-                            style={{ width: `${tableValueMax > 0 ? Math.max(10, (row.value / tableValueMax) * 100) : 10}%` }}
-                          />
+                      <div className="body-copy" style={{ fontSize: "0.82rem", marginBottom: "0.7rem" }}>{row.provider}</div>
+                      <div className="explorer-card__metrics">
+                        <div>
+                          <div className="label" style={{ marginBottom: "0.3rem" }}>{copy.tableValue}</div>
+                          <strong>{formatCompactCop(row.value, lang)}</strong>
+                          <div className="table-value__track" style={{ marginTop: 6 }}>
+                            <span
+                              className="table-value__fill"
+                              style={{ width: `${tableValueMax > 0 ? Math.max(10, (row.value / tableValueMax) * 100) : 10}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="label" style={{ marginBottom: "0.3rem" }}>{lang === "es" ? "Fecha" : "Date"}</div>
+                          <strong>{row.date}</strong>
                         </div>
                       </div>
-                      <div>
-                        <div className="label" style={{ marginBottom: "0.3rem" }}>{lang === "es" ? "Fecha" : "Date"}</div>
-                        <strong>{row.date}</strong>
+                      <div className="explorer-card__footer">
+                        <span>{row.modality}</span>
+                        <Link href={row.secopUrl || "#"} target="_blank" className="btn-secondary">
+                          {copy.verify} <ArrowUpRight size={14} />
+                        </Link>
                       </div>
-                    </div>
-                    <div className="explorer-card__footer">
-                      <span>{row.modality}</span>
-                      <Link href={row.secopUrl || "#"} target="_blank" className="btn-secondary">
-                        {copy.verify} <ArrowUpRight size={14} />
-                      </Link>
-                    </div>
-                  </article>
-                ))}
-              </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="cv-empty-state surface-soft">
+                  {lang === "es"
+                    ? "No se encontraron contratos con estos filtros. Intenta ampliar tu búsqueda."
+                    : "No contracts were found for these filters. Try broadening your search."}
+                </div>
+              )}
 
               <div className="cv-pagination">
                 <button
@@ -1098,6 +1174,8 @@ export function ContractsView({
           </div>
         </section>
       </main>
+
+      <SiteFooter lang={lang} />
     </div>
   );
 }

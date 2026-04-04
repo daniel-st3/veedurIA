@@ -8,6 +8,12 @@ import type {
 import { getMockFreshness, getMockOverview, getMockPromises, getMockTable } from "@/lib/mock-data";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+const OFFICIAL_CONTRACTS_SUMMARY =
+  "https://www.datos.gov.co/resource/jbjy-vk9h.json?$select=max(fecha_de_firma)%20as%20max_fecha,%20count(*)%20as%20total&$limit=1";
+const OFFICIAL_CONTRACTS_LATEST =
+  "https://www.datos.gov.co/resource/jbjy-vk9h.json?$select=fecha_de_firma,id_contrato,nombre_entidad,valor_del_contrato,departamento,urlproceso&$order=fecha_de_firma%20DESC,id_contrato%20ASC&$limit=5";
+const OFFICIAL_CONTRACTS_METADATA = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h";
+const LOCAL_GEOJSON_PATH = "/data/colombia_departments.geojson";
 
 export type ContractsFilters = {
   lang: Lang;
@@ -72,6 +78,80 @@ function buildQuery(params: Record<string, string | number | boolean | undefined
   return search.toString();
 }
 
+function formatOfficialCurrency(value: number, lang: Lang) {
+  if (!Number.isFinite(value) || value <= 0) return lang === "es" ? "Sin dato" : "No data";
+  if (value >= 1_000_000_000_000) {
+    return lang === "es" ? `$${(value / 1_000_000_000_000).toFixed(1)} billones COP` : `$${(value / 1_000_000_000_000).toFixed(1)}T COP`;
+  }
+  if (value >= 1_000_000_000) {
+    return lang === "es" ? `$${(value / 1_000_000_000).toFixed(1)} mil millones COP` : `$${(value / 1_000_000_000).toFixed(1)}B COP`;
+  }
+  if (value >= 1_000_000) {
+    return lang === "es" ? `$${(value / 1_000_000).toFixed(1)} millones COP` : `$${(value / 1_000_000).toFixed(1)}M COP`;
+  }
+  return new Intl.NumberFormat(lang === "es" ? "es-CO" : "en-US", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function parseOfficialCurrency(raw: unknown) {
+  if (typeof raw === "number") return raw;
+  if (typeof raw !== "string") return 0;
+  const cleaned = raw.replace(/[^\d.-]/g, "");
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function fetchOfficialContractsFallback(lang: Lang) {
+  const [summaryResponse, latestResponse, metadataResponse] = await Promise.all([
+    fetch(OFFICIAL_CONTRACTS_SUMMARY, { cache: "no-store" }),
+    fetch(OFFICIAL_CONTRACTS_LATEST, { cache: "no-store" }),
+    fetch(OFFICIAL_CONTRACTS_METADATA, { cache: "no-store" }),
+  ]);
+
+  if (!summaryResponse.ok || !latestResponse.ok || !metadataResponse.ok) {
+    throw new Error("Official contracts source unavailable");
+  }
+
+  const [summary, latest, metadata] = await Promise.all([
+    summaryResponse.json(),
+    latestResponse.json(),
+    metadataResponse.json(),
+  ]);
+
+  const latestDate = summary?.[0]?.max_fecha?.slice(0, 10) ?? null;
+  const sourceRows = Number(summary?.[0]?.total ?? 0) || null;
+  const sourceUpdatedAt = metadata?.dataUpdatedAt ?? null;
+  const contracts = Array.isArray(latest)
+    ? latest.map((row: Record<string, unknown>) => {
+        const value = parseOfficialCurrency(row.valor_del_contrato);
+        return {
+          id: String(row.id_contrato ?? ""),
+          entity: String(row.nombre_entidad ?? ""),
+          department: String(row.departamento ?? ""),
+          date: String(row.fecha_de_firma ?? "").slice(0, 10),
+          value,
+          valueLabel: formatOfficialCurrency(value, lang),
+          secopUrl:
+            typeof row.urlproceso === "string"
+              ? row.urlproceso
+              : typeof row.urlproceso === "object" && row.urlproceso && "url" in row.urlproceso
+                ? String((row.urlproceso as { url?: unknown }).url ?? "")
+                : "",
+        };
+      })
+    : [];
+
+  return {
+    latestDate,
+    sourceRows,
+    sourceUpdatedAt,
+    contracts,
+  };
+}
+
 export async function fetchOverview(filters: ContractsFilters): Promise<OverviewPayload> {
   try {
     const query = buildQuery({
@@ -92,7 +172,39 @@ export async function fetchOverview(filters: ContractsFilters): Promise<Overview
     if (!isValidOverviewPayload(payload)) throw new Error("Incomplete overview payload");
     return payload;
   } catch {
-    return getMockOverview(filters);
+    const mock = getMockOverview(filters);
+    try {
+      const live = await fetchOfficialContractsFallback(filters.lang);
+      const scoredDate = mock.meta.latestContractDate;
+      const gap =
+        scoredDate && live.latestDate
+          ? Math.max(
+              0,
+              Math.round(
+                (new Date(`${live.latestDate}T00:00:00Z`).getTime() - new Date(`${scoredDate}T00:00:00Z`).getTime()) /
+                  86_400_000,
+              ),
+            )
+          : mock.meta.sourceFreshnessGapDays ?? null;
+
+      return {
+        ...mock,
+        meta: {
+          ...mock.meta,
+          sourceLatestContractDate: live.latestDate,
+          sourceRows: live.sourceRows,
+          sourceUpdatedAt: live.sourceUpdatedAt,
+          sourceFreshnessGapDays: gap,
+        },
+        liveFeed: {
+          latestDate: live.latestDate,
+          rowsAtSource: live.sourceRows,
+          contracts: live.contracts,
+        },
+      };
+    } catch {
+      return mock;
+    }
   }
 }
 
@@ -132,7 +244,36 @@ export async function fetchContractsFreshness(): Promise<ContractsFreshnessPaylo
     if (!isValidFreshnessPayload(payload)) throw new Error("Incomplete freshness payload");
     return payload;
   } catch {
-    return getMockFreshness();
+    const mock = getMockFreshness();
+    try {
+      const live = await fetchOfficialContractsFallback("es");
+      const scoredDate = mock.latestContractDate;
+      const gap =
+        scoredDate && live.latestDate
+          ? Math.max(
+              0,
+              Math.round(
+                (new Date(`${live.latestDate}T00:00:00Z`).getTime() - new Date(`${scoredDate}T00:00:00Z`).getTime()) /
+                  86_400_000,
+              ),
+            )
+          : mock.sourceFreshnessGapDays ?? null;
+
+      return {
+        ...mock,
+        sourceLatestContractDate: live.latestDate,
+        sourceRows: live.sourceRows,
+        sourceUpdatedAt: live.sourceUpdatedAt,
+        sourceFreshnessGapDays: gap,
+        liveFeed: {
+          latestDate: live.latestDate,
+          rowsAtSource: live.sourceRows,
+          contracts: live.contracts,
+        },
+      };
+    } catch {
+      return mock;
+    }
   }
 }
 
@@ -142,7 +283,14 @@ export async function fetchGeoJson(): Promise<GeoJSON.GeoJSON | null> {
     if (!response.ok) throw new Error("Failed to fetch geojson");
     return await response.json();
   } catch {
-    return null;
+    if (typeof window === "undefined") return null;
+    try {
+      const localResponse = await fetch(LOCAL_GEOJSON_PATH, { cache: "force-cache" });
+      if (!localResponse.ok) throw new Error("Failed to fetch bundled geojson");
+      return await localResponse.json();
+    } catch {
+      return null;
+    }
   }
 }
 
