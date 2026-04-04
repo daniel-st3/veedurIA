@@ -1,4 +1,5 @@
 import { PromisesView } from "@/components/promises-view";
+import { fetchPromisesOverview } from "@/lib/api";
 import { resolveLang } from "@/lib/copy";
 
 export default async function PromesMetroPage({
@@ -8,5 +9,8 @@ export default async function PromesMetroPage({
 }) {
   const params = await searchParams;
   const lang = resolveLang(params.lang);
-  return <PromisesView lang={lang} initialPayload={null} />;
+  
+  const payload = await fetchPromisesOverview({ lang, limit: 18 });
+
+  return <PromisesView lang={lang} initialPayload={payload} />;
 }
