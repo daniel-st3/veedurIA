@@ -16,15 +16,15 @@ const FEATURES = (lang: Lang, totalContracts: number, redAlerts: number) => [
     index: "01",
     title: "ContratoLimpio",
     tone: "yellow" as FeatureTone,
-    eyebrow: lang === "es" ? "Contratos públicos" : "Public contracts",
+    eyebrow: lang === "es" ? "Contratación pública" : "Public procurement",
     description:
       lang === "es"
-        ? "Empieza por lo que sí vale la pena revisar: filtros claros, mapa territorial, casos guía y retorno directo a SECOP II."
-        : "Start with what is worth reviewing: clear filters, a territorial map, guided cases, and a direct jump back to SECOP II.",
+        ? "Busca por entidad, territorio, fechas y modalidad; abre casos guía y vuelve directo al expediente en SECOP II."
+        : "Search by entity, territory, date, and modality; open guide cases and jump back to the record in SECOP II.",
     detail:
       lang === "es"
-        ? `${totalContracts.toLocaleString("es-CO")} contratos visibles en la capa nacional`
-        : `${totalContracts.toLocaleString("en-US")} contracts visible in the national layer`,
+        ? `${totalContracts.toLocaleString("es-CO")} contratos en el universo cargado`
+        : `${totalContracts.toLocaleString("en-US")} contracts in the loaded universe`,
     href: `/contrato-limpio?lang=${lang}`,
     cta: lang === "es" ? "Abrir módulo" : "Open module",
     icon: FileSearch,
@@ -36,33 +36,55 @@ const FEATURES = (lang: Lang, totalContracts: number, redAlerts: number) => [
     eyebrow: lang === "es" ? "Promesas y evidencia" : "Promises and evidence",
     description:
       lang === "es"
-        ? "Compara promesa original, acción pública y cercanía temática en una sola lectura. Cada tarjeta te muestra qué sí existe y qué todavía no aparece."
-        : "Compare the original promise, public action, and thematic closeness in one read. Each card shows what exists and what still does not.",
+        ? "Compara lo prometido, la fuente original y la acción pública observada en una sola lectura, con cortes por periodo político."
+        : "Compare the original pledge, the source document, and the observed public action in one read, by political cycle.",
     detail:
-      lang === "es"
-        ? "Promesas 2022 frente a acciones públicas observables"
-        : "2022 promises against observable public action",
+      lang === "es" ? "Seguimiento ejecutivo, Senado, Cámara y radar presidencial" : "Executive, Senate, House, and presidential watch",
     href: `/promesmetro?lang=${lang}`,
-    cta: lang === "es" ? "Ver tablero" : "View board",
+    cta: lang === "es" ? "Ver seguimiento" : "View tracker",
     icon: Radar,
   },
   {
     index: "03",
     title: "SigueElDinero",
     tone: "red" as FeatureTone,
-    eyebrow: lang === "es" ? "Redes y trazabilidad" : "Networks and traceability",
+    eyebrow: lang === "es" ? "Relaciones y trazabilidad" : "Networks and traceability",
     description:
       lang === "es"
-        ? "La siguiente capa conectará contratistas, donantes y funcionarios para pasar de contratos aislados a relaciones persistentes."
-        : "The next layer will connect contractors, donors, and officials to move from isolated contracts to persistent relationships.",
+        ? "La siguiente capa unirá contratistas, donaciones y redes de poder para pasar del caso aislado al patrón persistente."
+        : "The next layer connects contractors, donations, and power networks to move from isolated cases to persistent patterns.",
     detail:
       lang === "es"
-        ? `${redAlerts.toLocaleString("es-CO")} señales altas ya sirven de base para esa red`
-        : `${redAlerts.toLocaleString("en-US")} high-signal cases already form that base`,
+        ? `${redAlerts.toLocaleString("es-CO")} alertas altas ya sirven de semilla`
+        : `${redAlerts.toLocaleString("en-US")} high-signal alerts already seed the graph`,
     href: "#",
-    cta: lang === "es" ? "En preparación" : "In progress",
+    cta: lang === "es" ? "Próximo módulo" : "Next module",
     icon: Waypoints,
     disabled: true,
+  },
+];
+
+const ENTRY_POINTS = (lang: Lang) => [
+  {
+    title: lang === "es" ? "Si quieres revisar contratos" : "If you want to review contracts",
+    body:
+      lang === "es"
+        ? "Empieza por territorio, identifica el caso principal y revisa los últimos contratos cargados desde la fuente oficial."
+        : "Start by territory, inspect the lead case, and review the most recent contracts loaded from the official source.",
+  },
+  {
+    title: lang === "es" ? "Si quieres seguir promesas" : "If you want to track promises",
+    body:
+      lang === "es"
+        ? "Abre el periodo político, compara la promesa original y salta a la acción pública o al programa que la respalda."
+        : "Open the political cycle, compare the original promise, and jump to the public action or source program behind it.",
+  },
+  {
+    title: lang === "es" ? "Si quieres entender redes" : "If you want to understand networks",
+    body:
+      lang === "es"
+        ? "Usa la capa de señales actuales para ubicar proveedores, entidades y territorios que merecen una revisión relacional."
+        : "Use the current signal layer to locate providers, entities, and territories worth relational review.",
   },
 ];
 
@@ -87,10 +109,11 @@ export function LandingPage({
     };
   }, [lang]);
 
-  const totalContracts = overview.meta.totalRows || overview.slice.totalContracts;
+  const totalContracts = overview.meta.sourceRows || overview.meta.totalRows || overview.slice.totalContracts;
   const redAlerts = overview.slice.redAlerts;
-  const latestDate = overview.meta.latestContractDate ?? "—";
+  const latestDate = overview.meta.sourceLatestContractDate ?? overview.meta.latestContractDate ?? "—";
   const features = FEATURES(lang, totalContracts, redAlerts);
+  const entryPoints = ENTRY_POINTS(lang);
 
   return (
     <div className="shell">
@@ -104,54 +127,52 @@ export function LandingPage({
       />
 
       <main className="page lp-page">
-        <section className="lp-stack surface stripe-flag">
-          <div className="lp-stack__eyebrow eyebrow">
-            {lang === "es"
-              ? "VeedurIA · lectura pública para contratación, promesas y poder"
-              : "VeedurIA · public reading layer for contracts, promises, and power"}
+        <section className="lp-hero-shell surface stripe-flag">
+          <div className="lp-hero-copy">
+            <p className="eyebrow">
+              {lang === "es"
+                ? "VeedurIA · contratos, promesas y señales de poder en una sola entrada"
+                : "VeedurIA · contracts, promises, and power signals in one entry point"}
+            </p>
+
+            <h1 className="lp-hero-title">
+              <span className="flag-yellow">{lang === "es" ? "Ver" : "See"}</span>{" "}
+              <span className="flag-blue">{lang === "es" ? "qué pasó" : "what happened"}</span>{" "}
+              <span className="flag-red">{lang === "es" ? "y dónde mirar" : "and where to look"}</span>
+            </h1>
+
+            <p className="lp-hero-body">
+              {lang === "es"
+                ? "VeedurIA organiza lo importante primero: contratación pública, promesas rastreables y los patrones que ameritan revisión humana."
+                : "VeedurIA puts the important signals first: public procurement, traceable promises, and the patterns worth human review."}
+            </p>
           </div>
 
-          <h1 className="lp-stack__title">
-            <span className="flag-yellow">{lang === "es" ? "Vigila" : "Watch"}</span>{" "}
-            <span className="flag-blue">{lang === "es" ? "el poder" : "power"}</span>{" "}
-            <span className="flag-red">{lang === "es" ? "sin perderte" : "without getting lost"}</span>
-          </h1>
-
-          <p className="lp-stack__body">
-            {lang === "es"
-              ? "La landing ahora entra directo al punto: qué puedes auditar hoy, por dónde empezar y cómo llegar a cada módulo sin ruido ni relleno."
-              : "The landing now goes straight to the point: what you can audit today, where to start, and how to reach each module without noise or filler."}
-          </p>
-
-          <div className="lp-quickline">
-            <span>{lang === "es" ? "Base nacional visible" : "Visible national base"}: {totalContracts.toLocaleString("es-CO")}</span>
-            <span>{lang === "es" ? "Señales prioritarias" : "Priority signals"}: {redAlerts.toLocaleString("es-CO")}</span>
-            <span>{lang === "es" ? "Último corte puntuado" : "Latest scored cut"}: {latestDate}</span>
-          </div>
-        </section>
-
-        <section className="lp-flow surface-soft">
-          <div className="lp-flow__header">
-            <p className="eyebrow">{lang === "es" ? "Cómo se usa" : "How to use it"}</p>
-            <h2>{lang === "es" ? "Una sola ruta de entrada" : "One clear entry route"}</h2>
+          <div className="lp-kpi-row">
+            <article className="lp-kpi-card lp-kpi-card--yellow">
+              <span>{lang === "es" ? "Universo visible" : "Visible universe"}</span>
+              <strong>{totalContracts.toLocaleString("es-CO")}</strong>
+              <p>{lang === "es" ? "filas oficiales cargadas" : "official rows loaded"}</p>
+            </article>
+            <article className="lp-kpi-card lp-kpi-card--blue">
+              <span>{lang === "es" ? "Último dato fuente" : "Latest source date"}</span>
+              <strong>{latestDate}</strong>
+              <p>{lang === "es" ? "desde SECOP II / datos.gov.co" : "from SECOP II / datos.gov.co"}</p>
+            </article>
+            <article className="lp-kpi-card lp-kpi-card--red">
+              <span>{lang === "es" ? "Alertas altas" : "High alerts"}</span>
+              <strong>{redAlerts.toLocaleString("es-CO")}</strong>
+              <p>{lang === "es" ? "casos que conviene abrir primero" : "cases worth opening first"}</p>
+            </article>
           </div>
 
-          <div className="lp-flow__steps">
-            <article className="lp-flow__step">
-              <span>01</span>
-              <strong>{lang === "es" ? "Elige una pregunta" : "Pick a question"}</strong>
-              <p>{lang === "es" ? "¿Quieres revisar contratos, promesas o relaciones?" : "Do you want to review contracts, promises, or relationships?"}</p>
-            </article>
-            <article className="lp-flow__step">
-              <span>02</span>
-              <strong>{lang === "es" ? "Entra al módulo" : "Open the module"}</strong>
-              <p>{lang === "es" ? "Cada módulo arranca con un contexto corto y una lectura útil desde el primer scroll." : "Each module starts with short context and a useful reading from the first scroll."}</p>
-            </article>
-            <article className="lp-flow__step">
-              <span>03</span>
-              <strong>{lang === "es" ? "Verifica la fuente" : "Verify the source"}</strong>
-              <p>{lang === "es" ? "Todo termina en SECOP, programas oficiales o acciones públicas verificables." : "Everything ends in SECOP, official programs, or verifiable public actions."}</p>
-            </article>
+          <div className="lp-entry-grid">
+            {entryPoints.map((item) => (
+              <article key={item.title} className="lp-entry-card">
+                <strong>{item.title}</strong>
+                <p>{item.body}</p>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -162,20 +183,23 @@ export function LandingPage({
             const content = (
               <>
                 <div className="lp-module__head">
-                  <span className={`lp-module__index lp-module__index--${feature.tone}`}>{feature.index}</span>
+                  <div className={`lp-module__index lp-module__index--${feature.tone}`}>{feature.index}</div>
                   <div>
                     <p className="lp-module__eyebrow">{feature.eyebrow}</p>
                     <h2>{feature.title}</h2>
                   </div>
                 </div>
+
                 <p className="lp-module__description">{feature.description}</p>
-                <div className="lp-module__foot">
-                  <span className="lp-module__detail">{feature.detail}</span>
-                  <span className={`lp-module__cta lp-module__cta--${feature.tone}`}>
-                    <Icon size={16} />
-                    {feature.cta}
-                    {!feature.disabled ? <ArrowRight size={16} /> : null}
-                  </span>
+
+                <div className="lp-module__detailband">
+                  <span>{feature.detail}</span>
+                </div>
+
+                <div className={`lp-module__cta lp-module__cta--${feature.tone}`}>
+                  <Icon size={16} />
+                  <span>{feature.cta}</span>
+                  {!feature.disabled ? <ArrowRight size={16} /> : null}
                 </div>
               </>
             );
@@ -192,16 +216,19 @@ export function LandingPage({
           })}
         </section>
 
-        <section className="lp-close surface">
-          <div>
-            <p className="eyebrow">{lang === "es" ? "Lo importante" : "What matters"}</p>
-            <h2>{lang === "es" ? "Menos marketing, más lectura accionable" : "Less marketing, more actionable reading"}</h2>
-          </div>
-          <p>
-            {lang === "es"
-              ? "La landing queda condensada para empujar a la experiencia real. No vende humo: te deja entrar rápido, entender qué ofrece cada feature y empezar a auditar."
-              : "The landing stays condensed to push users into the real experience. It does not oversell anything: it gets you in fast, explains what each feature does, and starts the audit."}
-          </p>
+        <section className="lp-proof-strip surface-soft">
+          <article>
+            <span>{lang === "es" ? "Fuente verificable" : "Verifiable source"}</span>
+            <strong>{lang === "es" ? "SECOP II, Congreso, Cámara, Senado y programas públicos" : "SECOP II, Congress, House, Senate, and public programs"}</strong>
+          </article>
+          <article>
+            <span>{lang === "es" ? "Lectura corta" : "Short read"}</span>
+            <strong>{lang === "es" ? "Cada módulo arranca con el caso, el contexto y el siguiente clic útil" : "Each module starts with the case, the context, and the next useful click"}</strong>
+          </article>
+          <article>
+            <span>{lang === "es" ? "Escala nacional" : "National scale"}</span>
+            <strong>{lang === "es" ? "Cobertura territorial con filtros, contraste y retorno a la fuente" : "Territorial coverage with filters, contrast, and direct return to source"}</strong>
+          </article>
         </section>
       </main>
     </div>

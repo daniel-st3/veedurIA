@@ -15,11 +15,16 @@ export function SiteNav({ lang, links }: Props) {
   return (
     <nav className="site-nav">
       <Link href={`/?lang=${lang}`} className="brand" aria-label="VeedurIA">
-        <span className="brand-word">Veedur</span>
-        <span className="brand-ia" aria-hidden>
-          <span className="brand-flag brand-flag--yellow">I</span>
-          <span className="brand-flag brand-flag--blue">A</span>
-          <span className="brand-flag brand-flag--red">.</span>
+        <span className="brand-mark">
+          <span className="brand-word">Veedur</span>
+          <span className="brand-ia" aria-hidden>
+            <span className="brand-flag brand-flag--yellow">I</span>
+            <span className="brand-flag brand-flag--blue">A</span>
+            <span className="brand-flag brand-flag--red">.</span>
+          </span>
+        </span>
+        <span className="brand-caption">
+          {lang === "es" ? "lectura pública del poder" : "public audit layer"}
         </span>
       </Link>
 

@@ -435,15 +435,16 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
     meta: {
       lang,
       fullDataset: filters.full ?? false,
-      totalRows: 1_234_890,
+      totalRows: 2_860_980,
       shownRows: totalContracts,
       previewRows: 50_000,
-      latestContractDate: "2025-03-28",
-      sourceLatestContractDate: "2025-04-01",
-      sourceFreshnessGapDays: 3,
-      sourceRows: 2_847_312,
-      lastRunTs: "2025-04-01T03:15:00.000Z",
-      dateRange: { from: "2023-01-01", to: "2025-03-28" },
+      latestContractDate: "2025-12-31",
+      sourceLatestContractDate: "2026-04-02",
+      sourceFreshnessGapDays: 92,
+      sourceRows: 5_194_838,
+      sourceUpdatedAt: "2026-04-03T17:47:26+0000",
+      lastRunTs: "2026-01-01T03:15:00.000Z",
+      dateRange: { from: "2023-01-01", to: "2025-12-31" },
     },
     options: {
       departments: MOCK_DEPARTMENTS.map((d) => ({ value: d.value, label: d.label })),
@@ -468,6 +469,16 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
           : `$${(prioritizedValue / 1_000_000).toFixed(0)}M`,
       dominantDepartment: topDept,
     },
+    benchmarks: {
+      nationalMeanRisk: 0.52,
+      sliceMeanRisk: filtered.length ? filtered.reduce((sum, row) => sum + row.score / 100, 0) / filtered.length : 0.52,
+      departmentMeanRisk: filters.department
+        ? (MOCK_DEPARTMENTS.find((d) => d.value === filters.department)?.avgRisk ?? null)
+        : null,
+      sliceMedianValue: filtered.length
+        ? [...filtered].sort((left, right) => left.value - right.value)[Math.floor(filtered.length / 2)]?.value ?? 0
+        : 3_240_000_000,
+    },
     leadCases: (filteredLeadCases.length ? filteredLeadCases : LEAD_CASES).slice(0, 5),
     summaries: {
       entities: [
@@ -489,14 +500,14 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
       modelType: "IsolationForest",
       nEstimators: 100,
       contamination: 0.05,
-      nFeatures: 25,
-      trainedAt: "2025-03-15",
+      nFeatures: 14,
+      trainedAt: "2025-12-31",
       redThreshold: 0.7,
       yellowThreshold: 0.4,
     },
     liveFeed: {
-      latestDate: "2025-04-01",
-      rowsAtSource: 2_847_312,
+      latestDate: "2026-04-02",
+      rowsAtSource: 5_194_838,
       contracts: ALL_ROWS.slice(0, 5).map((r) => ({
         id: r.id,
         entity: r.entity,
@@ -534,13 +545,14 @@ export function getMockTable(
 
 export function getMockFreshness(): ContractsFreshnessPayload {
   return {
-    latestContractDate: "2025-03-28",
-    sourceLatestContractDate: "2025-04-01",
-    sourceFreshnessGapDays: 3,
-    sourceRows: 2_847_312,
+    latestContractDate: "2025-12-31",
+    sourceLatestContractDate: "2026-04-02",
+    sourceFreshnessGapDays: 92,
+    sourceRows: 5_194_838,
+    sourceUpdatedAt: "2026-04-03T17:47:26+0000",
     liveFeed: {
-      latestDate: "2025-04-01",
-      rowsAtSource: 2_847_312,
+      latestDate: "2026-04-02",
+      rowsAtSource: 5_194_838,
       contracts: ALL_ROWS.slice(0, 5).map((r) => ({
         id: r.id,
         entity: r.entity,

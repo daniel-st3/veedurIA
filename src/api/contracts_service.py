@@ -14,6 +14,7 @@ import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from urllib.request import urlopen
 
 import pandas as pd
 import pyarrow as pa
@@ -34,6 +35,7 @@ MODEL_META_DIR = DATA_PROCESSED / "models"
 PREVIEW_SIZE = 50_000
 SOCRATA_DOMAIN = "www.datos.gov.co"
 SOCRATA_CONTRACTS_DATASET = "jbjy-vk9h"
+SOCRATA_METADATA_URL = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h"
 
 SECOP_TO_GEOJSON: dict[str, str] = {
     "BOGOTA": "SANTAFE DE BOGOTA D.C",
@@ -91,6 +93,15 @@ FEATURE_RULES: list[dict[str, Any]] = [
     {"col": "fiscal_year_end_rush", "mode": "bool", "feature": "fiscal_year_end_rush"},
     {"col": "value_vs_additions_ratio", "mode": "high", "feature": "value_vs_additions_ratio"},
 ]
+
+BOOL_FEATURE_BASES = {
+    "single_bidder": 0.9,
+    "is_direct_award": 0.82,
+    "repeat_provider_flag": 0.76,
+    "electoral_window": 0.88,
+    "ley_garantias_period": 0.96,
+    "fiscal_year_end_rush": 0.7,
+}
 
 
 def _strip_accents(value: str) -> str:
@@ -263,6 +274,20 @@ def load_live_source_snapshot() -> dict[str, Any]:
             client.close()
         except Exception:
             pass
+
+
+@lru_cache(maxsize=1)
+def load_live_source_metadata() -> dict[str, Any]:
+    try:
+        with urlopen(SOCRATA_METADATA_URL, timeout=40) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return {"sourceUpdatedAt": None, "sourceWebUri": None}
+
+    return {
+        "sourceUpdatedAt": payload.get("dataUpdatedAt"),
+        "sourceWebUri": payload.get("webUri"),
+    }
 
 
 def _resolve_columns(schema: set[str]) -> list[str]:
@@ -489,12 +514,12 @@ def _build_factors(row: pd.Series, stats: dict[str, tuple[float, float]], lang: 
         q10, q90 = stats.get(column, (math.nan, math.nan))
         severity = 0.0
         if rule["mode"] == "bool":
-            severity = 0.92 if value >= 1 else 0.0
+            severity = BOOL_FEATURE_BASES.get(rule["feature"], 0.78) if value >= 1 else 0.0
         elif rule["mode"] == "high" and not math.isnan(q90) and q90 > 0 and value >= q90:
-            severity = min(1.0, 0.55 + ((value - q90) / max(abs(q90), 1e-6)) * 0.35)
+            severity = min(1.0, 0.52 + ((value - q90) / max(abs(q90), 1e-6)) * 0.38)
         elif rule["mode"] == "low" and not math.isnan(q10) and value <= q10:
             baseline = max(abs(q10), 0.01)
-            severity = min(1.0, 0.55 + ((q10 - value) / baseline) * 0.35)
+            severity = min(1.0, 0.52 + ((q10 - value) / baseline) * 0.38)
         if severity <= 0:
             continue
         labels = FEATURE_LABELS.get(rule["feature"], {})
@@ -610,11 +635,29 @@ def _options(df: pd.DataFrame) -> dict[str, list[dict[str, str]]]:
 
 def _freshness() -> dict[str, Any]:
     data = load_last_run()
+    source_meta = load_live_source_metadata()
     last_run_ts = data.get("last_run_ts")
     return {
         "lastRunTs": last_run_ts,
-        "sourceLatestContractDate": None,
-        "sourceRows": None,
+        "sourceUpdatedAt": source_meta.get("sourceUpdatedAt"),
+    }
+
+
+def _benchmarks(df_all: pd.DataFrame, df_context: pd.DataFrame, df_slice: pd.DataFrame, department: str | None) -> dict[str, Any]:
+    national_mean = float(df_all["risk_score"].mean()) if not df_all.empty else 0.0
+    slice_mean = float(df_slice["risk_score"].mean()) if not df_slice.empty else national_mean
+    department_mean = None
+    if department:
+        dept_frame = df_context[df_context["departamento_geo"] == department]
+        if not dept_frame.empty:
+            department_mean = float(dept_frame["risk_score"].mean())
+
+    slice_median_value = float(df_slice["valor_num"].median()) if not df_slice.empty else 0.0
+    return {
+        "nationalMeanRisk": round(national_mean, 3),
+        "sliceMeanRisk": round(slice_mean, 3),
+        "departmentMeanRisk": round(department_mean, 3) if department_mean is not None else None,
+        "sliceMedianValue": slice_median_value,
     }
 
 
@@ -632,6 +675,7 @@ def get_overview_payload(
 ) -> dict[str, Any]:
     effective_full = full or bool(date_from or date_to)
     df_all = load_contracts(effective_full)
+    live_source = load_live_source_snapshot()
     df_context = _filter_frame(
         df_all,
         risk=risk,
@@ -650,6 +694,8 @@ def get_overview_payload(
             "shownRows": int(len(df_all)),
             "previewRows": PREVIEW_SIZE,
             "latestContractDate": get_scored_latest_contract_date(),
+            "sourceLatestContractDate": live_source.get("latestDate"),
+            "sourceRows": live_source.get("rowsAtSource"),
             "sourceFreshnessGapDays": None,
             "dateRange": {
                 "from": date_from,
@@ -662,6 +708,7 @@ def get_overview_payload(
             "departments": _build_department_summary(df_context),
         },
         "slice": _slice_stats(df_slice, lang),
+        "benchmarks": _benchmarks(df_all, df_context, df_slice, department),
         "leadCases": _lead_cases(df_slice, lang, limit),
         "summaries": {
             "entities": _entity_summary(df_slice),
@@ -676,17 +723,14 @@ def get_overview_payload(
             "redThreshold": meta.get("red_threshold", RED_THRESHOLD),
             "yellowThreshold": meta.get("yellow_threshold", YELLOW_THRESHOLD),
         },
-        "liveFeed": {
-            "latestDate": None,
-            "rowsAtSource": None,
-            "contracts": [],
-        },
+        "liveFeed": live_source,
     }
 
 
 def get_freshness_payload() -> dict[str, Any]:
     scored_latest = get_scored_latest_contract_date()
     live_source = load_live_source_snapshot()
+    source_meta = load_live_source_metadata()
     gap_days = None
     if scored_latest and live_source.get("latestDate"):
         scored_ts = pd.to_datetime(scored_latest, errors="coerce", utc=True)
@@ -698,6 +742,7 @@ def get_freshness_payload() -> dict[str, Any]:
         "sourceLatestContractDate": live_source.get("latestDate"),
         "sourceFreshnessGapDays": gap_days,
         "sourceRows": live_source.get("rowsAtSource"),
+        "sourceUpdatedAt": source_meta.get("sourceUpdatedAt"),
         "liveFeed": live_source,
     }
 

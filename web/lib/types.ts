@@ -42,6 +42,7 @@ export type OverviewPayload = {
     sourceLatestContractDate?: string | null;
     sourceFreshnessGapDays?: number | null;
     sourceRows?: number | null;
+    sourceUpdatedAt?: string | null;
     lastRunTs?: string | null;
     dateRange?: {
       from?: string | null;
@@ -61,6 +62,12 @@ export type OverviewPayload = {
     prioritizedValue: number;
     prioritizedValueLabel: string;
     dominantDepartment: string;
+  };
+  benchmarks: {
+    nationalMeanRisk: number;
+    sliceMeanRisk: number;
+    departmentMeanRisk?: number | null;
+    sliceMedianValue: number;
   };
   leadCases: LeadCase[];
   summaries: {
@@ -96,6 +103,7 @@ export type ContractsFreshnessPayload = {
   sourceLatestContractDate?: string | null;
   sourceFreshnessGapDays?: number | null;
   sourceRows?: number | null;
+  sourceUpdatedAt?: string | null;
   liveFeed: {
     latestDate?: string | null;
     rowsAtSource?: number | null;
