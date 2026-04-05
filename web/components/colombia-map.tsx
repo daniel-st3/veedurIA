@@ -26,6 +26,7 @@ type Props = {
   departments?: DepartmentDatum[];
   activeDepartment?: string;
   onSelect?: (department: string) => void;
+  onHoverChange?: (department: string | null) => void;
   mode?: "dashboard" | "hero";
   className?: string;
   captionTitle?: string;
@@ -33,6 +34,7 @@ type Props = {
   emptyCaptionBody?: string;
   showCaption?: boolean;
   tooltipData?: Record<string, TooltipDatum>;
+  showTooltip?: boolean;
 };
 
 type ProjectedFeature = {
@@ -170,6 +172,8 @@ export function ColombiaMap({
   emptyCaptionBody,
   showCaption = true,
   tooltipData,
+  showTooltip = true,
+  onHoverChange,
 }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -189,6 +193,9 @@ export function ColombiaMap({
   const currentDatum = currentDepartment ? summary.get(currentDepartment) : undefined;
   const currentFeature = currentDepartment ? features.find((feature) => feature.key === currentDepartment) : null;
   const currentTooltip = currentDepartment ? tooltipData?.[currentDepartment] : undefined;
+  const viewportScale = mode === "hero" ? 1.28 : 1;
+  const viewportTranslateX = ((1 - viewportScale) * VIEWBOX_WIDTH) / 2;
+  const viewportTranslateY = ((1 - viewportScale) * VIEWBOX_HEIGHT) / 2 - (mode === "hero" ? 26 : 0);
 
   useGSAP(
     () => {
@@ -228,7 +235,7 @@ export function ColombiaMap({
           scale: 1.12,
           x: 0,
           y: 0,
-          duration: 0.68,
+          duration: mode === "hero" ? 0.5 : 0.68,
           stagger: 0.02,
         },
         0,
@@ -239,22 +246,24 @@ export function ColombiaMap({
         {
           autoAlpha: 0,
           scale: 0.18,
-          duration: 0.42,
+          duration: mode === "hero" ? 0.28 : 0.42,
           stagger: 0.01,
         },
-        0.72,
+        mode === "hero" ? 0.4 : 0.72,
       );
       timeline.to(
         shapes,
         {
           autoAlpha: 1,
           scale: 1,
-          duration: 0.72,
-          stagger: 0.024,
+          duration: mode === "hero" ? 0.44 : 0.72,
+          stagger: mode === "hero" ? 0.015 : 0.024,
         },
-        0.48,
+        mode === "hero" ? 0.38 : 0.48,
       );
-      if (marker) timeline.to(marker, { autoAlpha: 1, scale: 1, duration: 0.5 }, 1.08);
+      if (marker) {
+        timeline.to(marker, { autoAlpha: 1, scale: 1, duration: mode === "hero" ? 0.24 : 0.5 }, mode === "hero" ? 0.58 : 1.08);
+      }
     },
     { scope, dependencies: [features.length, mode] },
   );
@@ -308,6 +317,10 @@ export function ColombiaMap({
         <rect x="0" y="0" width={VIEWBOX_WIDTH} height={VIEWBOX_HEIGHT} fill="rgba(255,255,255,0.02)" />
         <circle cx={VIEWBOX_WIDTH / 2} cy={VIEWBOX_HEIGHT / 2} r="180" fill={`url(#map-glow-${mode})`} />
 
+        <g
+          className={`colombia-map__viewport colombia-map__viewport--${mode}`}
+          transform={`translate(${viewportTranslateX} ${viewportTranslateY}) scale(${viewportScale})`}
+        >
         {!introReady ? (
           <g className="colombia-map__intro">
             {features.map((feature, index) => (
@@ -352,8 +365,14 @@ export function ColombiaMap({
                 className={`colombia-map__shape ${isActive ? "is-active" : ""} ${isHot ? "is-hot" : ""}`}
                 stroke={isActive ? "rgba(1, 95, 101, 0.7)" : undefined}
                 style={{ animationDelay: `${index * 18}ms` }}
-                onMouseEnter={() => setHovered(feature.key)}
-                onMouseLeave={() => setHovered(null)}
+                onMouseEnter={() => {
+                  setHovered(feature.key);
+                  onHoverChange?.(feature.key);
+                }}
+                onMouseLeave={() => {
+                  setHovered(null);
+                  onHoverChange?.(null);
+                }}
                 onClick={() => onSelect?.(feature.key)}
               />
             );
@@ -371,6 +390,7 @@ export function ColombiaMap({
             <circle cx={currentFeature.centerX} cy={currentFeature.centerY} r={mode === "hero" ? 7 : 5} fill={MAP_TONES.activeDot} />
           </g>
         ) : null}
+        </g>
       </svg>
 
       {showCaption ? (
@@ -388,7 +408,7 @@ export function ColombiaMap({
         </div>
       ) : null}
 
-      {hovered ? (
+      {hovered && showTooltip ? (
         <div
           className="map-tooltip"
           style={{
