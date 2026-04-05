@@ -1279,30 +1279,32 @@ a { color: inherit; }
           <div class="visual-topbar"></div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(23,32,51,.38);margin-bottom:.2rem;">Plataforma · 3 fases</div>
 
-          <a href="/ContratoLimpio" style="text-decoration:none;display:block;padding:1.1rem 1.2rem;border-radius:20px;background:rgba(255,255,255,.88);border:1px solid rgba(13,91,215,.14);box-shadow:0 6px 24px rgba(20,30,50,.07);transition:transform .2s,box-shadow .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 32px rgba(20,30,50,.12)'" onmouseout="this.style.transform='';this.style.boxShadow='0 6px 24px rgba(20,30,50,.07)'">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem;">
-              <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;background:rgba(13,91,215,.08);color:#0d5bd7;padding:3px 8px;border-radius:6px;">● Fase 1 · Activa</span>
-              <span style="font-size:.8rem;color:rgba(23,32,51,.35);">→</span>
-            </div>
-            <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;color:#172033;margin-bottom:.3rem;letter-spacing:-.03em;">ContratoLimpio</div>
-            <div style="font-size:.8rem;color:rgba(23,32,51,.6);line-height:1.5;">Semaforo de riesgo sobre contratos de SECOP II en tiempo real. Isolation Forest + SHAP.</div>
-          </a>
+          <a href="/ContratoLimpio" style="position:relative;text-decoration:none;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:2rem;border-radius:24px;background:rgba(255,255,255,0.85);border:1px solid rgba(13,91,215,0.2);box-shadow:0 12px 40px rgba(20,30,50,0.08);transition:transform 0.3s, box-shadow 0.3s;overflow:hidden;" target="_self" onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 20px 50px rgba(20,30,50,0.12)';" onmouseout="this.style.transform='';this.style.boxShadow='0 12px 40px rgba(20,30,50,0.08)';">
+            
+            <!-- Minimal Map SVG -->
+            <svg width="180" height="180" viewBox="0 0 100 120" style="margin-bottom:1.5rem;opacity:0.9;filter:drop-shadow(0 8px 16px rgba(13,91,215,0.2));">
+              <path d="M30,10 L45,5 L60,15 L70,10 L85,25 L90,45 L80,65 L75,90 L60,110 L45,115 L35,100 L25,85 L15,75 L10,50 L20,30 Z" fill="url(#mapGrad)" stroke="rgba(13,91,215,0.4)" stroke-width="1.5" stroke-linejoin="round"/>
+              <circle cx="45" cy="45" r="3" fill="#c62839" />
+              <circle cx="35" cy="35" r="2" fill="#d3a21a" />
+              <circle cx="65" cy="70" r="2.5" fill="#c62839" />
+              <defs>
+                <linearGradient id="mapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="rgba(13,91,215,0.15)" />
+                  <stop offset="100%" stop-color="rgba(13,91,215,0.02)" />
+                </linearGradient>
+              </defs>
+            </svg>
 
-          <div style="display:block;padding:1.1rem 1.2rem;border-radius:20px;background:rgba(255,255,255,.55);border:1px solid rgba(22,28,45,.07);opacity:.72;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem;">
-              <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;background:rgba(211,162,26,.08);color:#b8860b;padding:3px 8px;border-radius:6px;">◌ Fase 2 · En camino</span>
+            <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:#172033;margin-bottom:0.5rem;text-align:center;letter-spacing:-0.03em;">Radar Nacional</div>
+            <div style="font-size:0.9rem;color:rgba(23,32,51,0.65);line-height:1.6;text-align:center;max-width:280px;margin-bottom:1.5rem;">
+              Mapeo ciudadano de SECOP II. Conecta datos oficiales para encontrar contratos irregulares e identificar redes de financiación al instante.
             </div>
-            <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;color:#172033;margin-bottom:.3rem;letter-spacing:-.03em;">SigueElDinero</div>
-            <div style="font-size:.8rem;color:rgba(23,32,51,.5);line-height:1.5;">Red de donantes y contratistas. Grafos interactivos con datos de Cuentas Claras.</div>
-          </div>
 
-          <a href="/PromesometroNLP" style="text-decoration:none;display:block;padding:1.1rem 1.2rem;border-radius:20px;background:rgba(255,255,255,.88);border:1px solid rgba(198,40,57,.12);box-shadow:0 6px 24px rgba(20,30,50,.07);transition:transform .2s,box-shadow .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 32px rgba(20,30,50,.12)'" onmouseout="this.style.transform='';this.style.boxShadow='0 6px 24px rgba(20,30,50,.07)'">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem;">
-              <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;background:rgba(198,40,57,.07);color:#c62839;padding:3px 8px;border-radius:6px;">● Fase 3 · Activa</span>
-              <span style="font-size:.8rem;color:rgba(23,32,51,.35);">→</span>
+            <div style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.2rem;border-radius:999px;background:linear-gradient(135deg,rgba(13,91,215,0.1),rgba(13,91,215,0.05));color:#0d5bd7;font-weight:700;font-size:0.85rem;">
+              Entrar a ContratoLimpio <span style="font-size:1.1rem;line-height:0;">→</span>
             </div>
-            <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;color:#172033;margin-bottom:.3rem;letter-spacing:-.03em;">PromesóMetroNLP</div>
-            <div style="font-size:.8rem;color:rgba(23,32,51,.6);line-height:1.5;">Verificacion de promesas electorales con NLP. Coherencia entre programas y acciones reales.</div>
+            
+            <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#d3a21a 0 34%, #0d5bd7 34% 68%, #c62839 68% 100%);"></div>
           </a>
         </div>
       </div>

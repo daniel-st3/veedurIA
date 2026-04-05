@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -1511,39 +1513,84 @@ with st.expander(copy["adv_filters"], expanded=False):
         st.session_state["selected_contract_json"] = None
         st.rerun()
 
-# ── Summary Expander ──────────────────────────────────────────────────────────
-with st.expander(copy["summary_exp"], expanded=False):
-    st.caption(copy["summary_cap"])
-    sc1, sc2 = st.columns(2)
-    with sc1:
-        st.markdown(f"**{copy['summary_entities']}**")
-        if not entity_summary.empty:
-            st.dataframe(
-                entity_summary.rename(
-                    columns={
-                        "nombre_entidad": copy["table_col_entity"],
-                        "contratos": copy["summary_col_contracts"],
-                        "riesgo_promedio": copy["summary_col_mean"],
-                        "riesgo_maximo": copy["summary_col_max"],
-                    }
-                ),
-                use_container_width=True,
-                hide_index=True,
-            )
-    with sc2:
-        st.markdown(f"**{copy['summary_mods']}**")
-        if not mod_summary.empty:
-            st.dataframe(
-                mod_summary.rename(
-                    columns={
-                        "modalidad_de_contratacion": copy["table_col_mod"],
-                        "contratos": copy["summary_col_contracts"],
-                        "riesgo_promedio": copy["summary_col_mean"],
-                    }
-                ),
-                use_container_width=True,
-                hide_index=True,
-            )
+# ── Dashboard summary graphs ──────────────────────────────────────────────────
+st.markdown("<br><h4 style='font-family:\"Syne\", sans-serif;margin-bottom:1rem;'>" + copy["summary_exp"] + "</h4>", unsafe_allow_html=True)
+st.caption(copy["summary_cap"])
+
+c1, c2, c3 = st.columns(3)
+
+# 1. Entidades con Mayor Riesgo (Bar Chart)
+with c1:
+    st.markdown(f"**{copy['summary_entities']}**")
+    if not entity_summary.empty:
+        fig1 = px.bar(
+            entity_summary.head(10).sort_values("riesgo_promedio", ascending=True),
+            x="riesgo_promedio",
+            y="nombre_entidad",
+            orientation="h",
+            color="riesgo_promedio",
+            color_continuous_scale=["#f8f3ec", "#d3a21a", "#c62839"],
+            labels={"riesgo_promedio": copy["summary_col_mean"], "nombre_entidad": ""},
+        )
+        fig1.update_layout(
+            margin=dict(l=0, r=0, t=0, b=0),
+            height=300,
+            coloraxis_showscale=False,
+            font=dict(family="Inter", size=11, color="rgba(23,32,51,0.7)"),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            xaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.05)"),
+            yaxis=dict(showgrid=False),
+        )
+        st.plotly_chart(fig1, use_container_width=True, config={"displayModeBar": False})
+
+# 2. Distribución de Modalidades (Donut or Bar Chart)
+with c2:
+    st.markdown(f"**{copy['summary_mods']}**")
+    if not mod_summary.empty:
+        fig2 = px.bar(
+            mod_summary.head(8).sort_values("riesgo_promedio", ascending=True),
+            x="riesgo_promedio",
+            y="modalidad_de_contratacion",
+            orientation="h",
+            labels={"riesgo_promedio": copy["summary_col_mean"], "modalidad_de_contratacion": ""},
+            color="riesgo_promedio",
+            color_continuous_scale=["#0d5bd7", "#198754", "#d3a21a"],
+        )
+        fig2.update_layout(
+            margin=dict(l=0, r=0, t=0, b=0),
+            height=300,
+            coloraxis_showscale=False,
+            font=dict(family="Inter", size=11, color="rgba(23,32,51,0.7)"),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            xaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.05)"),
+            yaxis=dict(showgrid=False),
+        )
+        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+
+# 3. Evolución Temporal (Line Chart if available, else Risk Distribution)
+with c3:
+    st.markdown(f"**Distribución de Riesgo**")
+    if "risk_score" in df.columns:
+        fig3 = px.histogram(
+            df.head(2000), # Limit for performance
+            x="risk_score",
+            nbins=15,
+            color_discrete_sequence=["#0d5bd7"],
+            labels={"risk_score": "Puntaje de Riesgo", "count": "Contratos"},
+        )
+        fig3.update_layout(
+            margin=dict(l=0, r=0, t=0, b=0),
+            height=300,
+            font=dict(family="Inter", size=11, color="rgba(23,32,51,0.7)"),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            xaxis=dict(showgrid=False),
+            yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.05)"),
+            bargap=0.1
+        )
+        st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
 
 # ── Table Expander ────────────────────────────────────────────────────────────
 with st.expander(copy["table_exp"].format(n=f"{len(df):,}"), expanded=False):
