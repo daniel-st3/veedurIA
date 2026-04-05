@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useGSAP } from "@gsap/react";
@@ -93,7 +93,6 @@ export function LandingPage({
   const [geojson, setGeojson] = useState<any | null>(null);
   const [activeDepartment, setActiveDepartment] = useState(initialOverview.map.departments[0]?.geoName);
   const [hoveredDepartment, setHoveredDepartment] = useState<string | null>(null);
-  const [showStickyCta, setShowStickyCta] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -121,67 +120,55 @@ export function LandingPage({
     };
   }, []);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowStickyCta(window.scrollY > window.innerHeight * 0.5);
-    };
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   useGSAP(
     () => {
       const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (reduceMotion) return;
 
       gsap.fromTo(
-        ".lp-home-hero__eyebrow, .lp-home-hero__flagbar, .lp-home-hero__body, .lp-home-hero__links, .lp-home-hero__legend",
+        ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__actions, .lp-story__stats",
         { autoAlpha: 0, y: 18 },
-        { autoAlpha: 1, y: 0, duration: 0.72, stagger: 0.06, ease: "power3.out" },
+        { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.05, ease: "power3.out" },
       );
 
       gsap.fromTo(
-        ".lp-home-hero__title-line",
-        { autoAlpha: 0, y: 82, rotateX: -78, transformOrigin: "left bottom" },
-        { autoAlpha: 1, y: 0, rotateX: 0, duration: 1.04, stagger: 0.1, ease: "back.out(1.55)" },
+        ".lp-story__title-line",
+        { autoAlpha: 0, y: 68, rotateX: -70, transformOrigin: "left bottom" },
+        { autoAlpha: 1, y: 0, rotateX: 0, duration: 0.96, stagger: 0.08, ease: "back.out(1.45)" },
       );
 
       gsap.fromTo(
-        ".lp-kpi-card",
-        { autoAlpha: 0, y: 30, scale: 0.96 },
-        { autoAlpha: 1, y: 0, scale: 1, duration: 0.8, stagger: 0.08, ease: "power3.out" },
+        ".lp-story-stat",
+        { autoAlpha: 0, y: 20 },
+        { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.08, ease: "power3.out" },
       );
 
       gsap.fromTo(
-        ".lp-home-map",
-        { autoAlpha: 0, x: 42, scale: 0.97 },
-        { autoAlpha: 1, x: 0, scale: 1, duration: 0.94, ease: "power3.out" },
+        ".lp-story-map",
+        { autoAlpha: 0, y: 34, scale: 0.985 },
+        { autoAlpha: 1, y: 0, scale: 1, duration: 0.9, ease: "power3.out", delay: 0.12 },
       );
 
       gsap.fromTo(
-        ".lp-entry-card",
-        { autoAlpha: 0, y: 36 },
+        ".lp-module-link",
+        { autoAlpha: 0, y: 28 },
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.82,
-          stagger: 0.12,
+          duration: 0.78,
+          stagger: 0.1,
           ease: "power3.out",
-          scrollTrigger: {
-            trigger: ".lp-entry-grid",
-            start: "top 78%",
-          },
+          delay: 0.2,
         },
       );
 
       gsap.fromTo(
         ".lp-portfolio-card",
-        { autoAlpha: 0, y: 42 },
+        { autoAlpha: 0, y: 28 },
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.8,
+          duration: 0.74,
           ease: "power3.out",
           scrollTrigger: {
             trigger: ".lp-portfolio",
@@ -190,36 +177,36 @@ export function LandingPage({
         },
       );
 
-      gsap.to(".lp-hero-orbit__line--yellow", {
-        yPercent: -18,
+      gsap.to(".lp-story__glow--yellow", {
+        yPercent: -16,
         xPercent: 6,
         ease: "none",
         scrollTrigger: {
-          trigger: ".lp-home-hero",
+          trigger: ".lp-story",
           start: "top bottom",
           end: "bottom top",
           scrub: true,
         },
       });
 
-      gsap.to(".lp-hero-orbit__line--blue", {
-        yPercent: 14,
+      gsap.to(".lp-story__glow--blue", {
+        yPercent: 10,
         xPercent: -5,
         ease: "none",
         scrollTrigger: {
-          trigger: ".lp-home-hero",
+          trigger: ".lp-story",
           start: "top bottom",
           end: "bottom top",
           scrub: true,
         },
       });
 
-      gsap.to(".lp-hero-orbit__line--red", {
-        yPercent: -10,
+      gsap.to(".lp-story__glow--red", {
+        yPercent: -8,
         xPercent: 4,
         ease: "none",
         scrollTrigger: {
-          trigger: ".lp-home-hero",
+          trigger: ".lp-story",
           start: "top bottom",
           end: "bottom top",
           scrub: true,
@@ -238,32 +225,6 @@ export function LandingPage({
     overview.map.departments.find((item) => item.geoName === focusedDepartment) ?? currentDepartmentData;
   const featureSet = FEATURE_TEXT[lang];
   const features = [featureSet.contract, featureSet.promises, featureSet.money];
-
-  const mapTooltipData = useMemo(() => {
-    return Object.fromEntries(
-      overview.map.departments.map((department) => [
-        department.geoName,
-        {
-          label: department.label,
-          contractCount: department.contractCount,
-          intensity: Math.round(department.avgRisk * 100),
-          alerts:
-            lang === "es"
-              ? [
-                  "Contratación directa sobre el patrón del territorio",
-                  "Concentración proveedor–entidad por encima de la media",
-                  "Mayor presión de revisión en este corte",
-                ]
-              : [
-                  "Direct awards above the territory pattern",
-                  "Provider–entity concentration above the mean",
-                  "Higher review pressure in this slice",
-                ],
-          clickHint: lang === "es" ? "Haz clic para entrar al corte" : "Click to open the slice",
-        },
-      ]),
-    );
-  }, [lang, overview.map.departments]);
 
   const focusTone =
     (focusedDepartmentData?.avgRisk ?? 0) >= 0.7
@@ -284,74 +245,75 @@ export function LandingPage({
       />
 
       <main className="page lp-page">
-        <section className="lp-home-hero lp-hero-shell lp-hero-shell--cinematic surface stripe-flag">
-          <div className="lp-home-hero__backdrop" aria-hidden="true">
-            <span className="lp-hero-orbit__line lp-hero-orbit__line--yellow" />
-            <span className="lp-hero-orbit__line lp-hero-orbit__line--blue" />
-            <span className="lp-hero-orbit__line lp-hero-orbit__line--red" />
-            <span className="lp-home-hero__glow lp-home-hero__glow--yellow" />
-            <span className="lp-home-hero__glow lp-home-hero__glow--blue" />
-            <span className="lp-home-hero__glow lp-home-hero__glow--red" />
+        <section className="lp-story">
+          <div className="lp-story__backdrop" aria-hidden="true">
+            <span className="lp-story__glow lp-story__glow--yellow" />
+            <span className="lp-story__glow lp-story__glow--blue" />
+            <span className="lp-story__glow lp-story__glow--red" />
+            <span className="lp-story__gridline lp-story__gridline--left" />
+            <span className="lp-story__gridline lp-story__gridline--right" />
           </div>
 
-          <div className="lp-home-hero__grid">
-            <div className="lp-home-hero__copy">
-              <p className="eyebrow lp-home-hero__eyebrow">
-              {lang === "es"
-                ? "VeedurIA · contratos, promesas y redes públicas"
-                : "VeedurIA · contracts, promises, and public networks"}
+          <div className="lp-story__inner">
+            <header className="lp-story__intro">
+              <p className="eyebrow lp-story__eyebrow">
+                {lang === "es"
+                  ? "VeedurIA · contratos, promesas y redes públicas"
+                  : "VeedurIA · contracts, promises, and public networks"}
               </p>
 
-              <div className="lp-home-hero__flagbar" aria-hidden="true">
+              <div className="lp-story__flagbar" aria-hidden="true">
                 <span className="is-yellow" />
                 <span className="is-blue" />
                 <span className="is-red" />
               </div>
 
-              <h1 className="lp-home-hero__title lp-hero-title">
-                <span className="lp-home-hero__title-line">
-                  {lang === "es" ? "Detecta " : "Detect "}
-                  <span className="lp-home-hero__accent lp-home-hero__accent--tricolor">
+              <h1 className="lp-story__title">
+                <span className="lp-story__title-line">
+                  {lang === "es" ? "Detecta" : "Detect"}
+                </span>
+                <span className="lp-story__title-line">
+                  <span className="lp-story__title-accent lp-story__title-accent--tricolor">
                     {lang === "es" ? "la señal" : "the signal"}
                   </span>
                 </span>
-                <span className="lp-home-hero__title-line">{lang === "es" ? "antes de que" : "before it"}</span>
-                <span className="lp-home-hero__title-line">
-                  <span className="lp-home-hero__accent lp-home-hero__accent--primary">
+                <span className="lp-story__title-line">{lang === "es" ? "antes de que" : "before it"}</span>
+                <span className="lp-story__title-line">
+                  <span className="lp-story__title-accent lp-story__title-accent--primary">
                     {lang === "es" ? "se pierda" : "fades"}
                   </span>
                 </span>
               </h1>
 
-              <p className="lp-home-hero__body lp-hero-body">
-              {lang === "es" ? "Empieza por " : "Start with "}
-              <Link href={`/contrato-limpio?lang=${lang}`} className="lp-inline-link">
-                ContratoLimpio
-              </Link>
-              {lang === "es" ? " para abrir contratación, sigue con " : " to open procurement, move to "}
-              <Link href={`/votometro?lang=${lang}`} className="lp-inline-link">
-                VotóMeter
-              </Link>
-              {lang === "es" ? " para contrastar votos y programas, y entra a " : " to contrast votes and programmes, and enter "}
-              <Link href={`/sigue-el-dinero?lang=${lang}`} className="lp-inline-link">
-                SigueElDinero
-              </Link>
-              {lang === "es"
-                ? " para seguir la capa relacional. Cada módulo te deja llegar rápido a la fuente que importa."
-                : " to follow the relationship layer. Each module gets you quickly into the source that matters."}
+              <p className="lp-story__body">
+                {lang === "es" ? "Empieza por " : "Start with "}
+                <Link href={`/contrato-limpio?lang=${lang}`} className="lp-inline-link">
+                  ContratoLimpio
+                </Link>
+                {lang === "es" ? " para abrir contratación, sigue con " : " to open procurement, move to "}
+                <Link href={`/votometro?lang=${lang}`} className="lp-inline-link">
+                  VotóMeter
+                </Link>
+                {lang === "es" ? " para contrastar votos y programas, y entra a " : " to contrast votes and programmes, and enter "}
+                <Link href={`/sigue-el-dinero?lang=${lang}`} className="lp-inline-link">
+                  SigueElDinero
+                </Link>
+                {lang === "es"
+                  ? " para seguir la capa relacional. Cada módulo te deja llegar rápido a la fuente que importa."
+                  : " to follow the relationship layer. Each module gets you quickly into the source that matters."}
               </p>
 
-              <div className="lp-home-hero__links">
+              <div className="lp-story__actions">
                 {features.map((feature) => (
-                  <Link key={feature.title} href={feature.href} className={`lp-home-hero__chip lp-home-hero__chip--${feature.tone}`}>
+                  <Link key={feature.title} href={feature.href} className={`lp-story__chip lp-story__chip--${feature.tone}`}>
                     <span>{feature.title}</span>
                     <ArrowRight size={14} />
                   </Link>
                 ))}
               </div>
 
-              <div className="lp-kpi-row stats-grid">
-                <article className="lp-kpi-card lp-kpi-card--yellow">
+              <div className="lp-story__stats">
+                <article className="lp-story-stat lp-story-stat--yellow">
                   <span title={lang === "es" ? "Cantidad de registros visibles desde la fuente oficial" : "Visible records coming from the official source"}>
                     {lang === "es" ? "Registros oficiales hoy" : "Official records today"}
                   </span>
@@ -362,7 +324,7 @@ export function LandingPage({
                   )}
                   <p>{lang === "es" ? `fuente visible al ${latestDate}` : `source visible through ${latestDate}`}</p>
                 </article>
-                <article className="lp-kpi-card lp-kpi-card--blue">
+                <article className="lp-story-stat lp-story-stat--blue">
                   <span title={lang === "es" ? "Casos priorizados para abrir primero" : "Cases prioritized for first review"}>
                     {lang === "es" ? "Alertas listas" : "Alerts ready"}
                   </span>
@@ -373,7 +335,7 @@ export function LandingPage({
                   )}
                   <p>{lang === "es" ? "casos priorizados para abrir primero" : "cases prioritized for first review"}</p>
                 </article>
-                <article className="lp-kpi-card lp-kpi-card--red">
+                <article className="lp-story-stat lp-story-stat--red">
                   <span title={lang === "es" ? "Departamento con mayor intensidad visible" : "Department with the strongest visible intensity"}>
                     {lang === "es" ? "Territorio más encendido" : "Most active territory"}
                   </span>
@@ -382,27 +344,22 @@ export function LandingPage({
                 </article>
               </div>
 
-              <p className="lp-home-hero__legend lp-kpi-legend">
-                {lang === "es"
-                  ? "Fuente oficial, alertas listas y territorio más encendido en una sola lectura."
-                  : "Official source, ready alerts, and the most active territory in one readout."}
-              </p>
-            </div>
+            </header>
 
-            <aside className="lp-home-map">
-              <div className="lp-home-map__header">
+            <section className="lp-story-map">
+              <div className="lp-story-map__head">
                 <div>
                   <p className="eyebrow">{lang === "es" ? "Mapa de riesgo" : "Risk map"}</p>
                   <h2>{lang === "es" ? "Pulso territorial del corte" : "Territorial pulse of the slice"}</h2>
                 </div>
-                <p>
+                <p className="lp-story-map__description">
                   {lang === "es"
-                    ? "Haz clic en un departamento para abrir ContratoLimpio con ese corte."
-                    : "Click a department to open ContratoLimpio with that slice."}
+                    ? "Explora el territorio y abre ContratoLimpio desde el departamento que quieras revisar."
+                    : "Explore the territory and open ContratoLimpio from the department you want to review."}
                 </p>
               </div>
 
-              <div className="lp-home-map__frame lp-hero-signal__map">
+              <div className="lp-story-map__frame">
                 {geojson ? (
                   <ColombiaMap
                     geojson={geojson}
@@ -416,8 +373,7 @@ export function LandingPage({
                     mode="hero"
                     showCaption={false}
                     showTooltip={false}
-                    tooltipData={mapTooltipData}
-                    className="lp-home-map__visual"
+                    className="lp-story-map__visual"
                   />
                 ) : (
                   <div className="cv-map-placeholder">
@@ -427,9 +383,9 @@ export function LandingPage({
                 )}
               </div>
 
-              <div className="lp-home-map__footer">
-                <div className={`lp-home-map__focus lp-home-map__focus--${focusTone}`}>
-                  <span>{lang === "es" ? "Departamento activo" : "Active department"}</span>
+              <div className="lp-story-map__footer">
+                <div className={`lp-story-map__status lp-story-map__status--${focusTone}`}>
+                  <span>{hoveredDepartment ? (lang === "es" ? "En foco" : "In focus") : lang === "es" ? "Departamento activo" : "Active department"}</span>
                   <strong>{focusedDepartmentData?.label ?? "Colombia"}</strong>
                   <p>
                     {(focusedDepartmentData?.contractCount ?? 0).toLocaleString(lang === "es" ? "es-CO" : "en-US")}{" "}
@@ -438,7 +394,7 @@ export function LandingPage({
                   </p>
                 </div>
 
-                <div className="lp-home-map__meta">
+                <div className="lp-story-map__aside">
                   <div className="lp-map-legend" aria-label={lang === "es" ? "Leyenda del mapa" : "Map legend"}>
                     <span className="lp-map-legend__item">
                       <i className="is-high" />
@@ -453,37 +409,40 @@ export function LandingPage({
                       {lang === "es" ? "Riesgo bajo" : "Low risk"}
                     </span>
                   </div>
-
-                  <p className="lp-map-hint">
-                    <Link href={`/contrato-limpio?lang=${lang}`} className="lp-inline-link">
-                      {lang === "es" ? "Entrar al mapa completo de ContratoLimpio →" : "Open the full ContratoLimpio map →"}
-                    </Link>
+                  <p className="lp-story-map__hint">
+                    {lang === "es"
+                      ? "Haz clic en cualquier departamento para entrar directo al corte."
+                      : "Click any department to enter that slice directly."}
                   </p>
                 </div>
               </div>
-            </aside>
-          </div>
+            </section>
 
-          <div className="lp-entry-grid lp-entry-grid--landing-premium">
+            <p className="lp-story__legend lp-kpi-legend">
+                {lang === "es"
+                  ? "Fuente oficial, alertas listas y territorio más encendido en una sola lectura."
+                  : "Official source, ready alerts, and the most active territory in one readout."}
+              </p>
+
+            <div className="lp-module-list">
             {features.map((feature) => {
               const Icon = feature.icon;
               return (
-                <Link key={feature.title} href={feature.href} className={`lp-entry-card lp-entry-card--${feature.tone}`}>
-                  <span className="lp-entry-card__mesh" aria-hidden="true" />
-                  <div className="lp-entry-card__content">
-                    <div className="lp-entry-card__top">
-                      <span className="lp-entry-card__kicker">{feature.kicker}</span>
-                      <span className={`lp-entry-card__icon lp-entry-card__icon--${feature.tone}`}>
+                <Link key={feature.title} href={feature.href} className={`lp-module-link lp-module-link--${feature.tone}`}>
+                  <div className="lp-module-link__identity">
+                    <div className="lp-module-link__top">
+                      <span className={`lp-module-link__icon lp-module-link__icon--${feature.tone}`}>
                         <Icon size={18} />
                       </span>
+                      <span className="lp-module-link__kicker">{feature.kicker}</span>
                     </div>
-                    <div className="lp-entry-card__row">
-                      <strong>{feature.title}</strong>
-                    </div>
+                    <strong>{feature.title}</strong>
+                  </div>
+                  <div className="lp-module-link__body">
                     <p>{feature.body}</p>
                   </div>
-                  <div className="lp-entry-card__foot">
-                    <span className={`lp-entry-card__signal lp-entry-card__signal--${feature.tone}`}>
+                  <div className="lp-module-link__cta">
+                    <span className={`lp-module-link__signal lp-module-link__signal--${feature.tone}`}>
                       {feature.tone === "yellow"
                         ? lang === "es"
                           ? "Expediente, mapa y corte"
@@ -496,7 +455,7 @@ export function LandingPage({
                             ? "Red, rastro y avance"
                             : "Graph, trail, and progress"}
                     </span>
-                    <span className="lp-entry-card__cta">
+                    <span className="lp-module-link__arrow">
                       {feature.cta}
                       <ArrowRight size={16} />
                     </span>
@@ -504,6 +463,7 @@ export function LandingPage({
                 </Link>
               );
             })}
+            </div>
           </div>
         </section>
 
@@ -530,12 +490,6 @@ export function LandingPage({
           </div>
         </section>
       </main>
-
-      <div className={`lp-sticky-cta ${showStickyCta ? "is-visible" : ""}`}>
-        <Link href={`/contrato-limpio?lang=${lang}`} className="btn-primary">
-          {lang === "es" ? "Explorar contratos →" : "Explore contracts →"}
-        </Link>
-      </div>
 
       <SiteFooter lang={lang} />
     </div>

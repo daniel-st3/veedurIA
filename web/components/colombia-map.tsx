@@ -214,6 +214,33 @@ export function ColombiaMap({
         return;
       }
 
+      if (mode === "hero") {
+        gsap.set(dots, { autoAlpha: 0 });
+        gsap.set(shapes, { autoAlpha: 0, scale: 0.96, transformBox: "fill-box", transformOrigin: "50% 50%" });
+        if (marker) gsap.set(marker, { autoAlpha: 0, scale: 0.82, transformOrigin: "50% 50%" });
+
+        gsap.to(shapes, {
+          autoAlpha: 1,
+          scale: 1,
+          duration: 0.56,
+          stagger: 0.012,
+          ease: "power2.out",
+          onComplete: () => setIntroReady(true),
+        });
+
+        if (marker) {
+          gsap.to(marker, {
+            autoAlpha: 1,
+            scale: 1,
+            duration: 0.3,
+            delay: 0.18,
+            ease: "back.out(1.6)",
+          });
+        }
+
+        return;
+      }
+
       gsap.set(shapes, { autoAlpha: 0, scale: 0.88, transformBox: "fill-box", transformOrigin: "50% 50%" });
       if (marker) gsap.set(marker, { autoAlpha: 0, scale: 0.6, transformOrigin: "50% 50%" });
 
@@ -235,7 +262,7 @@ export function ColombiaMap({
           scale: 1.12,
           x: 0,
           y: 0,
-          duration: mode === "hero" ? 0.5 : 0.68,
+          duration: 0.68,
           stagger: 0.02,
         },
         0,
@@ -246,24 +273,22 @@ export function ColombiaMap({
         {
           autoAlpha: 0,
           scale: 0.18,
-          duration: mode === "hero" ? 0.28 : 0.42,
+          duration: 0.42,
           stagger: 0.01,
         },
-        mode === "hero" ? 0.4 : 0.72,
+        0.72,
       );
       timeline.to(
         shapes,
         {
           autoAlpha: 1,
           scale: 1,
-          duration: mode === "hero" ? 0.44 : 0.72,
-          stagger: mode === "hero" ? 0.015 : 0.024,
+          duration: 0.72,
+          stagger: 0.024,
         },
-        mode === "hero" ? 0.38 : 0.48,
+        0.48,
       );
-      if (marker) {
-        timeline.to(marker, { autoAlpha: 1, scale: 1, duration: mode === "hero" ? 0.24 : 0.5 }, mode === "hero" ? 0.58 : 1.08);
-      }
+      if (marker) timeline.to(marker, { autoAlpha: 1, scale: 1, duration: 0.5 }, 1.08);
     },
     { scope, dependencies: [features.length, mode] },
   );
