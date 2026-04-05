@@ -1059,13 +1059,7 @@ export function ContractsView({
                     departments={overview.map.departments}
                     activeDepartment={filters.department}
                     tooltipData={mapTooltipData}
-                    showCaption
-                    captionTitle={lang === "es" ? "Lectura actual" : "Current readout"}
-                    captionBody={
-                      currentDepartment
-                        ? `${currentDepartment.contractCount.toLocaleString("es-CO")} ${lang === "es" ? "contratos visibles" : "visible contracts"} · ${Math.round(currentDepartment.avgRisk * 100)}/100 ${lang === "es" ? "de intensidad" : "intensity"}`
-                        : `${(overview?.slice.totalContracts ?? 0).toLocaleString("es-CO")} ${lang === "es" ? "contratos visibles" : "visible contracts"} · ${sliceMeanScore}/100`
-                    }
+                    showCaption={false}
                     onSelect={(department) => {
                       const next = { ...filters, department: department === filters.department ? undefined : department };
                       runFilters(next, "map");

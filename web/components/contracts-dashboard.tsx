@@ -85,14 +85,15 @@ export function ContractsDashboard({
         ),
         line: { color: "rgba(40, 37, 29, 0.1)", width: 1.1 },
       },
-      texttemplate: "%{label}<br>%{value:,}",
+      texttemplate: "<b>%{label}</b>",
       hovertemplate:
         lang === "es"
           ? "<b>%{label}</b><br>%{value:,} contratos<br>Intensidad %{customdata[0]}/100<extra></extra>"
           : "<b>%{label}</b><br>%{value:,} contracts<br>Intensity %{customdata[0]}/100<extra></extra>",
       type: "treemap",
       pathbar: { visible: false },
-      tiling: { pad: 4 },
+      tiling: { pad: 5 },
+      textfont: { size: 13 },
     }),
     [departments, lang],
   );
@@ -127,7 +128,9 @@ export function ContractsDashboard({
         marker: {
           colors: CHART_PALETTE,
         },
-        textinfo: "label+percent",
+        textinfo: "percent",
+        textposition: "inside",
+        sort: false,
         hovertemplate:
           lang === "es"
             ? "<b>%{label}</b><br>%{value} contratos<extra></extra>"
@@ -168,7 +171,7 @@ export function ContractsDashboard({
     plot_bgcolor: "rgba(0,0,0,0)",
     font: { color: "#1e1c17", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
     hoverlabel: TOOLTIP_THEME,
-    margin: { l: 28, r: 16, t: 16, b: 38 },
+    margin: { l: 24, r: 16, t: 18, b: 36 },
   } as const;
 
   return (
@@ -194,8 +197,12 @@ export function ContractsDashboard({
           <div className="cv-dashboard-card__plot">
             <Plot
               data={[treemapData as any]}
-              layout={{ ...baseLayout, margin: { l: 10, r: 10, t: 10, b: 10 } }}
-              config={{ responsive: true, displaylogo: false }}
+              layout={{
+                ...baseLayout,
+                margin: { l: 8, r: 8, t: 8, b: 8 },
+                uniformtext: { minsize: 10, mode: "hide" },
+              }}
+              config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               onClick={(event: any) => {
                 const department = event.points?.[0]?.id;
                 if (department && typeof department === "string") onDepartmentPick?.(department);
@@ -217,8 +224,9 @@ export function ContractsDashboard({
                 ...baseLayout,
                 yaxis: { gridcolor: GRID_COLOR, zeroline: false },
                 xaxis: { tickangle: -35 },
+                hovermode: "x unified",
               }}
-              config={{ responsive: true, displaylogo: false }}
+              config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               onClick={(event: any) => {
                 const month = event.points?.[0]?.x;
                 if (month && typeof month === "string") onMonthPick?.(month);
@@ -236,8 +244,13 @@ export function ContractsDashboard({
           <div className="cv-dashboard-card__plot">
             <Plot
               data={donutData as any}
-              layout={{ ...baseLayout, margin: { l: 20, r: 20, t: 10, b: 10 }, showlegend: false }}
-              config={{ responsive: true, displaylogo: false }}
+              layout={{
+                ...baseLayout,
+                margin: { l: 18, r: 18, t: 8, b: 8 },
+                showlegend: true,
+                legend: { orientation: "h", y: -0.14, x: 0, font: { size: 11, color: "#6b6a65" } },
+              }}
+              config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               style={{ width: "100%", height: "100%" }}
             />
           </div>
@@ -253,10 +266,10 @@ export function ContractsDashboard({
               data={entityData as any}
               layout={{
                 ...baseLayout,
-                margin: { l: 170, r: 16, t: 12, b: 24 },
+                margin: { l: 190, r: 12, t: 12, b: 24 },
                 xaxis: { gridcolor: GRID_COLOR, zeroline: false },
               }}
-              config={{ responsive: true, displaylogo: false }}
+              config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               style={{ width: "100%", height: "100%" }}
             />
           </div>

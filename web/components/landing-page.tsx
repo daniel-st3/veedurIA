@@ -18,20 +18,9 @@ gsap.registerPlugin(ScrollTrigger);
 
 type FeatureTone = "yellow" | "blue" | "red";
 
-const HERO_WORDS = {
-  es: [
-    { text: "Detecta", tone: "yellow" },
-    { text: "la señal", tone: "blue" },
-    { text: "antes", tone: "red" },
-    { text: "de que", tone: "yellow" },
-    { text: "se pierda", tone: "blue" },
-  ],
-  en: [
-    { text: "Detect", tone: "yellow" },
-    { text: "the signal", tone: "blue" },
-    { text: "before", tone: "red" },
-    { text: "it fades", tone: "yellow" },
-  ],
+const HERO_LINES = {
+  es: ["Detecta la señal", "antes de que", "se pierda"],
+  en: ["Detect the signal", "before it fades"],
 } as const;
 
 const FEATURE_TEXT = {
@@ -139,13 +128,13 @@ export function LandingPage({
       if (reduceMotion) return;
 
       gsap.fromTo(
-        ".lp-hero-word",
+        ".lp-hero-line",
         { autoAlpha: 0, y: 100, rotateX: -90, transformOrigin: "center bottom" },
         { autoAlpha: 1, y: 0, rotateX: 0, duration: 1, stagger: 0.08, ease: "back.out(1.7)" },
       );
 
       gsap.fromTo(
-        ".lp-hero-copy > p, .lp-kpi-card, .lp-entry-card, .lp-module",
+        ".lp-hero-intro > *, .lp-kpi-card, .lp-entry-card, .lp-tool-card",
         { autoAlpha: 0, y: 28 },
         {
           autoAlpha: 1,
@@ -188,9 +177,8 @@ export function LandingPage({
 
   const totalContracts = overview.meta.sourceRows || overview.meta.totalRows || overview.slice.totalContracts;
   const latestDate = overview.meta.sourceLatestContractDate ?? overview.meta.latestContractDate ?? "—";
-  const departments = [...overview.map.departments].sort((left, right) => right.avgRisk - left.avgRisk).slice(0, 8);
   const currentDepartmentData =
-    overview.map.departments.find((item) => item.geoName === activeDepartment) ?? departments[0] ?? overview.map.departments[0];
+    overview.map.departments.find((item) => item.geoName === activeDepartment) ?? overview.map.departments[0];
   const featureSet = FEATURE_TEXT[lang];
   const features = [featureSet.contract, featureSet.promises, featureSet.money];
 
@@ -233,17 +221,17 @@ export function LandingPage({
 
       <main className="page lp-page">
         <section className="lp-hero-shell lp-hero-shell--cinematic surface stripe-flag">
-          <div className="lp-hero-top">
+          <div className="lp-hero-intro">
             <p className="eyebrow">
               {lang === "es"
                 ? "VeedurIA · contratos, promesas y redes públicas"
                 : "VeedurIA · contracts, promises, and public networks"}
             </p>
 
-            <h1 className="lp-hero-title lp-hero-title--stacked">
-              {HERO_WORDS[lang].map((word) => (
-                <span key={word.text} className={`lp-hero-word flag-${word.tone}`}>
-                  {word.text}
+            <h1 className="lp-hero-title lp-hero-title--centered">
+              {HERO_LINES[lang].map((line, index) => (
+                <span key={line} className={`lp-hero-line ${index === HERO_LINES[lang].length - 1 ? "lp-hero-line--accent" : ""}`}>
+                  {line}
                 </span>
               ))}
             </h1>
@@ -310,17 +298,11 @@ export function LandingPage({
               )}
 
               <div className="lp-hero-signal__chips">
-                {departments.map((department) => (
-                  <button
-                    key={department.geoName}
-                    type="button"
-                    className={`lp-territory-chip ${activeDepartment === department.geoName ? "lp-territory-chip--active" : ""}`}
-                    onClick={() => setActiveDepartment(department.geoName)}
-                  >
-                    <span>{department.label}</span>
-                    <span>{Math.round(department.avgRisk * 100)}/100</span>
-                  </button>
-                ))}
+                <p className="lp-hero-signal__note">
+                  {lang === "es"
+                    ? "Haz clic en el mapa para cambiar el foco territorial."
+                    : "Click the map to switch the territorial focus."}
+                </p>
               </div>
             </div>
           </div>
@@ -351,20 +333,20 @@ export function LandingPage({
           </a>
         </section>
 
-        <section className="lp-modules" id="modulos">
+        <section className="lp-tool-grid" id="modulos">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
-              <Link key={feature.title} href={feature.href} className={`lp-module lp-module--${feature.tone}`}>
-                <div className="lp-module__head">
-                  <div className={`lp-module__index lp-module__index--${feature.tone}`}>{String(index + 1).padStart(2, "0")}</div>
+              <Link key={feature.title} href={feature.href} className="lp-tool-card">
+                <div className="lp-tool-card__head">
+                  <div className="lp-tool-card__index">{String(index + 1).padStart(2, "0")}</div>
                   <div>
-                    <p className="lp-module__eyebrow">{feature.kicker}</p>
+                    <p className="lp-tool-card__eyebrow">{feature.kicker}</p>
                     <h2>{feature.title}</h2>
                   </div>
                 </div>
-                <p className="lp-module__description">{feature.body}</p>
-                <div className="lp-module__detailband">
+                <p className="lp-tool-card__description">{feature.body}</p>
+                <div className="lp-tool-card__detailband">
                   <span>
                     {feature.title === "ContratoLimpio"
                       ? lang === "es"
@@ -379,7 +361,7 @@ export function LandingPage({
                           : "Preview of the relationship layer"}
                   </span>
                 </div>
-                <div className={`lp-module__cta lp-module__cta--${feature.tone}`}>
+                <div className="lp-tool-card__cta">
                   <Icon size={16} />
                   <span>{feature.cta}</span>
                   <ArrowRight size={16} />
