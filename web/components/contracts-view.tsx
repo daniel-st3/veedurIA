@@ -732,7 +732,7 @@ export function ContractsView({
           lang={lang}
           links={[
             { href: `/contrato-limpio?lang=${lang}`, label: copy.navPhase1 },
-            { href: `/promesmetro?lang=${lang}`, label: copy.navPhase2 },
+            { href: `/votometro?lang=${lang}`, label: copy.navPhase2 },
             { href: `/sigue-el-dinero?lang=${lang}`, label: copy.navPhase3 },
           ]}
         />
@@ -747,7 +747,7 @@ export function ContractsView({
         lang={lang}
         links={[
           { href: `/contrato-limpio?lang=${lang}`, label: copy.navPhase1 },
-          { href: `/promesmetro?lang=${lang}`, label: copy.navPhase2 },
+          { href: `/votometro?lang=${lang}`, label: copy.navPhase2 },
           { href: `/sigue-el-dinero?lang=${lang}`, label: copy.navPhase3 },
         ]}
       />

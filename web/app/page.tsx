@@ -19,8 +19,8 @@ export async function generateMetadata({
         : "VeedurIA — Citizen radar for public contracts",
     description:
       lang === "es"
-        ? "Explora contratación pública, promesas políticas y redes de poder desde una sola plataforma cívica."
-        : "Explore public procurement, political promises, and power networks from one civic platform.",
+        ? "Explora contratación pública, votaciones legislativas y redes de poder desde una sola plataforma cívica."
+        : "Explore public procurement, legislative voting records, and power networks from one civic platform.",
     imagePath: "/opengraph-image",
   });
 }

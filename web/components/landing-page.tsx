@@ -35,11 +35,11 @@ const FEATURE_TEXT = {
       tone: "yellow" as FeatureTone,
     },
     promises: {
-      title: "Promesómetro",
-      kicker: "VER PROMESAS",
-      body: "Compara promesa, fuente y acción pública por periodo, cámara y actor. Baja al detalle y exporta tus propios cruces.",
-      cta: "Abrir Promesómetro",
-      href: "/promesmetro?lang=es",
+      title: "VotóMeter",
+      kicker: "VER VOTACIONES",
+      body: "Cruza votaciones nominales del Congreso con el perfil programático de cada legislador. Baja a la tabla, abre la gaceta y revisa coherencia real por tema.",
+      cta: "Abrir VotóMeter",
+      href: "/votometro?lang=es",
       icon: Radar,
       tone: "blue" as FeatureTone,
     },
@@ -64,11 +64,11 @@ const FEATURE_TEXT = {
       tone: "yellow" as FeatureTone,
     },
     promises: {
-      title: "Promesómetro",
-      kicker: "VIEW PROMISES",
-      body: "Compare promise, source, and public action by cycle, chamber, and actor. Drop into detail and export your own pivots.",
-      cta: "Open Promesómetro",
-      href: "/promesmetro?lang=en",
+      title: "VotóMeter",
+      kicker: "VIEW VOTES",
+      body: "Cross nominal congressional votes with each legislator's programmatic profile. Drop into the table, open the gazette, and review topic-by-topic coherence.",
+      cta: "Open VotóMeter",
+      href: "/votometro?lang=en",
       icon: Radar,
       tone: "blue" as FeatureTone,
     },
@@ -214,7 +214,7 @@ export function LandingPage({
         lang={lang}
         links={[
           { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
-          { href: `/promesmetro?lang=${lang}`, label: "Promesómetro" },
+          { href: `/votometro?lang=${lang}`, label: "VotóMeter" },
           { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
         ]}
       />
@@ -242,10 +242,10 @@ export function LandingPage({
                 ContratoLimpio
               </Link>
               {lang === "es" ? " para abrir contratación, sigue con " : " to open procurement, move to "}
-              <Link href={`/promesmetro?lang=${lang}`} className="lp-inline-link">
-                Promesómetro
+              <Link href={`/votometro?lang=${lang}`} className="lp-inline-link">
+                VotóMeter
               </Link>
-              {lang === "es" ? " para contrastar promesas y entra a " : " to contrast promises, and enter "}
+              {lang === "es" ? " para contrastar votos y programas, y entra a " : " to contrast votes and programmes, and enter "}
               <Link href={`/sigue-el-dinero?lang=${lang}`} className="lp-inline-link">
                 SigueElDinero
               </Link>
@@ -352,10 +352,10 @@ export function LandingPage({
                       ? lang === "es"
                         ? "Territorio, filtros, dashboard y expediente oficial"
                         : "Territory, filters, dashboard, and official record"
-                      : feature.title === "Promesómetro"
+                      : feature.title === "VotóMeter"
                         ? lang === "es"
-                          ? "Ciclos 2018-2022, 2022-2026 y radar 2026"
-                          : "2018-2022, 2022-2026, and 2026 radar"
+                          ? "Votaciones nominales, gacetas y coherencia por tema"
+                          : "Nominal votes, gazettes, and topic coherence"
                         : lang === "es"
                           ? "Vista previa del frente relacional"
                           : "Preview of the relationship layer"}

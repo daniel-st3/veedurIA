@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     default: "VeedurIA — Radar ciudadano de contratos públicos",
     template: "%s",
   },
-  description: "Radar ciudadano para revisar contratación pública, promesas políticas y redes de poder con fuentes verificables.",
+  description: "Radar ciudadano para revisar contratación pública, votaciones legislativas y redes de poder con fuentes verificables.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -25,20 +25,27 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "VeedurIA — Radar ciudadano de contratos públicos",
-    description: "Radar ciudadano para revisar contratación pública, promesas políticas y redes de poder con fuentes verificables.",
+    description: "Radar ciudadano para revisar contratación pública, votaciones legislativas y redes de poder con fuentes verificables.",
     images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "VeedurIA" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "VeedurIA — Radar ciudadano de contratos públicos",
-    description: "Radar ciudadano para revisar contratación pública, promesas políticas y redes de poder con fuentes verificables.",
+    description: "Radar ciudadano para revisar contratación pública, votaciones legislativas y redes de poder con fuentes verificables.",
     images: ["/opengraph-image"],
   },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700&f[]=satoshi@400,500,700&display=swap"
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

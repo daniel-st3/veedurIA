@@ -21,7 +21,7 @@ export function ModulePlaceholder({
         lang={lang}
         links={[
           { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
-          { href: `/promesmetro?lang=${lang}`, label: "Promesómetro" },
+          { href: `/votometro?lang=${lang}`, label: "VotóMeter" },
           { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
         ]}
       />
