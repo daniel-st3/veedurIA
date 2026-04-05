@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 
-import type { DepartmentDatum, Lang, TableRow } from "@/lib/types";
+import type { DepartmentDatum, Lang, OverviewPayload, TableRow } from "@/lib/types";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 const CHART_PALETTE = ["#015f65", "#5a9da3", "#b0d4d7", "#7a6a55", "#c8bfaf"];
@@ -55,47 +55,84 @@ export function ContractsDashboard({
   lang,
   departments,
   rows,
+  summaryEntities = [],
+  summaryModalities = [],
   onDepartmentPick,
   onMonthPick,
 }: {
   lang: Lang;
   departments: DepartmentDatum[];
   rows: TableRow[];
+  summaryEntities?: OverviewPayload["summaries"]["entities"];
+  summaryModalities?: OverviewPayload["summaries"]["modalities"];
   onDepartmentPick?: (department: string) => void;
   onMonthPick?: (month: string) => void;
 }) {
   const timeline = useMemo(() => groupByMonth(rows), [rows]);
-  const modalityMix = useMemo(() => groupByLabel(rows, "modality").slice(0, 6), [rows]);
-  const topEntities = useMemo(() => groupByLabel(rows, "entity").slice(0, 8), [rows]);
+  const topDepartments = useMemo(
+    () =>
+      [...departments]
+        .sort((left, right) => right.contractCount - left.contractCount || right.avgRisk - left.avgRisk)
+        .slice(0, 8),
+    [departments],
+  );
+  const modalityMix = useMemo(
+    () =>
+      summaryModalities.length
+        ? summaryModalities.slice(0, 6).map((item) => ({
+            label: item.modalidad_de_contratacion,
+            count: item.contracts,
+            meanRisk: item.meanRisk,
+          }))
+        : groupByLabel(rows, "modality").slice(0, 6).map((item) => ({
+            label: item.label,
+            count: item.count,
+            meanRisk: item.peakScore / 100,
+          })),
+    [rows, summaryModalities],
+  );
+  const topEntities = useMemo(
+    () =>
+      summaryEntities.length
+        ? summaryEntities.slice(0, 7).map((item) => ({
+            label: item.nombre_entidad,
+            count: item.contracts,
+            meanRisk: item.meanRisk,
+          }))
+        : groupByLabel(rows, "entity").slice(0, 7).map((item) => ({
+            label: item.label,
+            count: item.count,
+            meanRisk: item.peakScore / 100,
+          })),
+    [rows, summaryEntities],
+  );
 
-  const treemapData = useMemo(
-    () => ({
-      labels: departments.map((item) => item.label),
-      parents: departments.map(() => ""),
-      values: departments.map((item) => item.contractCount),
-      ids: departments.map((item) => item.geoName),
-      customdata: departments.map((item) => [Math.round(item.avgRisk * 100), item.contractCount]),
-      marker: {
-        colors: departments.map((item) =>
-          item.avgRisk >= 0.7
-            ? RISK_COLORS.high
-            : item.avgRisk >= 0.4
-              ? RISK_COLORS.medium
-              : RISK_COLORS.low,
-        ),
-        line: { color: "rgba(40, 37, 29, 0.1)", width: 1.1 },
+  const territoryData = useMemo(
+    () => [
+      {
+        x: topDepartments.map((item) => item.contractCount).reverse(),
+        y: topDepartments.map((item) => item.label).reverse(),
+        type: "bar",
+        orientation: "h",
+        customdata: topDepartments.map((item) => [Math.round(item.avgRisk * 100)]).reverse(),
+        marker: {
+          color: topDepartments
+            .map((item) =>
+              item.avgRisk >= 0.7 ? RISK_COLORS.high : item.avgRisk >= 0.4 ? RISK_COLORS.medium : RISK_COLORS.low,
+            )
+            .reverse(),
+          line: { color: "rgba(40, 37, 29, 0.1)", width: 1 },
+        },
+        text: topDepartments.map((item) => item.contractCount.toLocaleString(lang === "es" ? "es-CO" : "en-US")).reverse(),
+        textposition: "outside",
+        cliponaxis: false,
+        hovertemplate:
+          lang === "es"
+            ? "<b>%{y}</b><br>%{x:,} contratos<br>Intensidad %{customdata[0]}/100<extra></extra>"
+            : "<b>%{y}</b><br>%{x:,} contracts<br>Intensity %{customdata[0]}/100<extra></extra>",
       },
-      texttemplate: "<b>%{label}</b>",
-      hovertemplate:
-        lang === "es"
-          ? "<b>%{label}</b><br>%{value:,} contratos<br>Intensidad %{customdata[0]}/100<extra></extra>"
-          : "<b>%{label}</b><br>%{value:,} contracts<br>Intensity %{customdata[0]}/100<extra></extra>",
-      type: "treemap",
-      pathbar: { visible: false },
-      tiling: { pad: 5 },
-      textfont: { size: 13 },
-    }),
-    [departments, lang],
+    ],
+    [lang, topDepartments],
   );
 
   const timelineData = useMemo(
@@ -106,9 +143,9 @@ export function ContractsDashboard({
         type: "scatter",
         mode: "lines+markers",
         fill: "tozeroy",
-        fillcolor: "rgba(1, 95, 101, 0.12)",
-        line: { color: CHART_PALETTE[0], width: 3, shape: "spline" },
-        marker: { color: CHART_PALETTE[1], size: 8 },
+        fillcolor: "rgba(1, 95, 101, 0.16)",
+        line: { color: CHART_PALETTE[0], width: 3.2, shape: "spline" },
+        marker: { color: "#f9f8f5", size: 8, line: { color: CHART_PALETTE[0], width: 2 } },
         hovertemplate:
           lang === "es"
             ? "<b>%{x}</b><br>%{y} contratos visibles<extra></extra>"
@@ -118,19 +155,21 @@ export function ContractsDashboard({
     [lang, timeline],
   );
 
-  const donutData = useMemo(
+  const modalityData = useMemo(
     () => [
       {
-        labels: modalityMix.map((item) => item.label),
-        values: modalityMix.map((item) => item.count),
-        type: "pie",
-        hole: 0.62,
+        x: modalityMix.map((item) => item.label),
+        y: modalityMix.map((item) => item.count),
+        type: "bar",
         marker: {
-          colors: CHART_PALETTE,
+          color: modalityMix.map((item) =>
+            item.meanRisk >= 0.7 ? RISK_COLORS.high : item.meanRisk >= 0.4 ? RISK_COLORS.medium : CHART_PALETTE[0],
+          ),
+          line: { color: "rgba(40, 37, 29, 0.08)", width: 1 },
         },
-        textinfo: "percent",
-        textposition: "inside",
-        sort: false,
+        text: modalityMix.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")),
+        textposition: "outside",
+        cliponaxis: false,
         hovertemplate:
           lang === "es"
             ? "<b>%{label}</b><br>%{value} contratos<extra></extra>"
@@ -149,13 +188,17 @@ export function ContractsDashboard({
         orientation: "h",
         marker: {
           color: topEntities.map((item) =>
-            item.peakScore >= 80
+            item.meanRisk >= 0.7
               ? RISK_COLORS.high
-              : item.peakScore >= 55
+              : item.meanRisk >= 0.4
                 ? RISK_COLORS.medium
                 : CHART_PALETTE[0],
           ),
+          line: { color: "rgba(40, 37, 29, 0.08)", width: 1 },
         },
+        text: topEntities.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")).reverse(),
+        textposition: "outside",
+        cliponaxis: false,
         hovertemplate:
           lang === "es"
             ? "<b>%{y}</b><br>%{x} contratos<extra></extra>"
@@ -165,13 +208,15 @@ export function ContractsDashboard({
     [lang, topEntities],
   );
 
+  const visibleCount = rows.length;
+
   const baseLayout = {
     autosize: true,
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
     font: { color: "#1e1c17", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
     hoverlabel: TOOLTIP_THEME,
-    margin: { l: 24, r: 16, t: 18, b: 36 },
+    margin: { l: 24, r: 18, t: 18, b: 34 },
   } as const;
 
   return (
@@ -179,33 +224,40 @@ export function ContractsDashboard({
       <div className="cv-block__header">
         <div>
           <p className="eyebrow">{lang === "es" ? "Visualiza el corte" : "Visualize the slice"}</p>
-          <h2>{lang === "es" ? "Territorio, ritmo y concentración" : "Territory, pace, and concentration"}</h2>
+          <h2>{lang === "es" ? "Cuatro lecturas rápidas del corte" : "Four quick reads of the slice"}</h2>
         </div>
         <p>
           {lang === "es"
-            ? "Haz clic en un departamento del treemap o en un mes de la curva para reordenar el corte visible."
-            : "Click a department in the treemap or a month in the curve to reorganize the visible slice."}
+            ? "Territorio, tiempo, modalidad y entidades con una lectura visual más limpia del corte visible."
+            : "Territory, time, modality, and entities in a cleaner visual readout of the visible slice."}
         </p>
       </div>
 
       <div className="cv-dashboard__grid">
-        <article className="cv-dashboard-card cv-dashboard-card--treemap">
+        <article className="cv-dashboard-card">
           <div className="cv-dashboard-card__head">
-            <strong>{lang === "es" ? "Mapa compacto del país" : "Compact country map"}</strong>
-            <span>{lang === "es" ? "Tamaño = contratos · color = intensidad" : "Size = contracts · color = intensity"}</span>
+            <p className="cv-dashboard-card__kicker">{lang === "es" ? "Territorio" : "Territory"}</p>
+            <strong>{lang === "es" ? "Departamentos con más volumen visible" : "Departments with the most visible volume"}</strong>
+            <span>
+              {lang === "es"
+                ? "Color por intensidad media y volumen ordenado para detectar dónde conviene empezar."
+                : "Colored by average intensity and ordered by volume so you can see where to start."}
+            </span>
           </div>
           <div className="cv-dashboard-card__plot">
             <Plot
-              data={[treemapData as any]}
+              data={territoryData as any}
               layout={{
                 ...baseLayout,
-                margin: { l: 8, r: 8, t: 8, b: 8 },
-                uniformtext: { minsize: 10, mode: "hide" },
+                margin: { l: 110, r: 48, t: 8, b: 10 },
+                xaxis: { gridcolor: GRID_COLOR, zeroline: false, tickfont: { size: 11 } },
+                yaxis: { tickfont: { size: 12 } },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               onClick={(event: any) => {
-                const department = event.points?.[0]?.id;
-                if (department && typeof department === "string") onDepartmentPick?.(department);
+                const label = event.points?.[0]?.y;
+                const department = departments.find((item) => item.label === label);
+                if (department?.geoName) onDepartmentPick?.(department.geoName);
               }}
               style={{ width: "100%", height: 240 }}
             />
@@ -214,16 +266,21 @@ export function ContractsDashboard({
 
         <article className="cv-dashboard-card">
           <div className="cv-dashboard-card__head">
-            <strong>{lang === "es" ? "Ritmo de firmas" : "Signing pace"}</strong>
-            <span>{lang === "es" ? "Pulsa un mes para filtrar por fecha" : "Tap a month to filter by date"}</span>
+            <p className="cv-dashboard-card__kicker">{lang === "es" ? "Tiempo" : "Time"}</p>
+            <strong>{lang === "es" ? "Ritmo visible por mes" : "Visible monthly pace"}</strong>
+            <span>
+              {lang === "es"
+                ? "Curva de la muestra actual. Haz clic en un mes para volver a ordenar el corte."
+                : "Curve of the current sample. Click a month to reorganize the slice."}
+            </span>
           </div>
           <div className="cv-dashboard-card__plot">
             <Plot
               data={timelineData as any}
               layout={{
                 ...baseLayout,
-                yaxis: { gridcolor: GRID_COLOR, zeroline: false },
-                xaxis: { tickangle: -35 },
+                yaxis: { gridcolor: GRID_COLOR, zeroline: false, tickfont: { size: 11 } },
+                xaxis: { tickangle: -35, tickfont: { size: 11 } },
                 hovermode: "x unified",
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
@@ -238,17 +295,22 @@ export function ContractsDashboard({
 
         <article className="cv-dashboard-card">
           <div className="cv-dashboard-card__head">
-            <strong>{lang === "es" ? "Modalidades del corte" : "Slice modalities"}</strong>
-            <span>{lang === "es" ? "Composición del corte visible" : "Composition of the visible slice"}</span>
+            <p className="cv-dashboard-card__kicker">{lang === "es" ? "Modalidad" : "Modality"}</p>
+            <strong>{lang === "es" ? "Modalidades que dominan el corte" : "Modalities driving the slice"}</strong>
+            <span>
+              {lang === "es"
+                ? "Las barras combinan volumen visible y tono de riesgo medio por modalidad."
+                : "Bars combine visible volume and average risk tone per modality."}
+            </span>
           </div>
           <div className="cv-dashboard-card__plot">
             <Plot
-              data={donutData as any}
+              data={modalityData as any}
               layout={{
                 ...baseLayout,
-                margin: { l: 18, r: 18, t: 8, b: 8 },
-                showlegend: true,
-                legend: { orientation: "h", y: -0.14, x: 0, font: { size: 11, color: "#6b6a65" } },
+                margin: { l: 18, r: 18, t: 8, b: 56 },
+                xaxis: { tickangle: -18, tickfont: { size: 10 } },
+                yaxis: { gridcolor: GRID_COLOR, zeroline: false, tickfont: { size: 11 } },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               style={{ width: "100%", height: 240 }}
@@ -258,16 +320,22 @@ export function ContractsDashboard({
 
         <article className="cv-dashboard-card">
           <div className="cv-dashboard-card__head">
-            <strong>{lang === "es" ? "Entidades que más pesan" : "Entities carrying the slice"}</strong>
-            <span>{lang === "es" ? "Ordenadas por número de contratos visibles" : "Ordered by visible contract count"}</span>
+            <p className="cv-dashboard-card__kicker">{lang === "es" ? "Entidades" : "Entities"}</p>
+            <strong>{lang === "es" ? "Entidades con mayor carga visible" : "Entities carrying the visible load"}</strong>
+            <span>
+              {lang === "es"
+                ? `${visibleCount.toLocaleString("es-CO")} filas visibles en tabla; aquí se resume quién concentra más contratos.`
+                : `${visibleCount.toLocaleString("en-US")} visible rows in the table; this summarizes who concentrates the most contracts.`}
+            </span>
           </div>
           <div className="cv-dashboard-card__plot">
             <Plot
               data={entityData as any}
               layout={{
                 ...baseLayout,
-                margin: { l: 190, r: 12, t: 12, b: 24 },
-                xaxis: { gridcolor: GRID_COLOR, zeroline: false },
+                margin: { l: 170, r: 50, t: 8, b: 10 },
+                xaxis: { gridcolor: GRID_COLOR, zeroline: false, tickfont: { size: 11 } },
+                yaxis: { tickfont: { size: 11 } },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               style={{ width: "100%", height: 240 }}

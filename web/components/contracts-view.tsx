@@ -1212,6 +1212,8 @@ export function ContractsView({
           lang={lang}
           departments={overview?.map.departments ?? []}
           rows={tableRows}
+          summaryEntities={summaryEntities}
+          summaryModalities={summaryModalities}
           onDepartmentPick={(department) => {
             const next = { ...filters, department };
             runFilters(next, "map");
