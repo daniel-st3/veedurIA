@@ -6456,6 +6456,494 @@ input[type="date"] {
   }
 }
 
+/* EOF override: Promesometro controls and text wrapping */
+
+.lp-hero-top > *,
+.cv-hero-panel__top > *,
+.cv-block__header > *,
+.pmr-section-header > *,
+.pmr-board__top > *,
+.pmr-spotlight > *,
+.pmr-detail__header > *,
+.pmr-reference-focus > *,
+.pmr-sandbox__deck > *,
+.pmr-sandbox-toolbar > *,
+.cv-focus-head > *,
+.cv-focus-summary > *,
+.explorer-card__top > *,
+.explorer-card__footer > * { min-width: 0; }
+
+.lp-hero-title,
+.lp-start-card--open strong,
+.lp-module h2,
+.cv-hero-panel h1,
+.cv-block__header h2,
+.cv-focus-head h3,
+.cv-case-chip h3,
+.explorer-card__title,
+.pmr-hero h1,
+.pmr-section-header h2,
+.pmr-board__note strong,
+.pmr-spotlight__person h2,
+.pmr-detail__header h2,
+.pmr-promise-card h3,
+.pmr-politician-card strong,
+.pmr-reference-focus__body h3,
+.pmr-reference-card__body strong,
+.pmr-source-card strong,
+.pmr-method-card strong {
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-wrap: balance;
+}
+
+.pmr-politician-card span,
+.pmr-reference-choice span,
+.pmr-source-band__card span,
+.pmr-source-band__card p,
+.pmr-promise-card p,
+.pmr-detail-card p,
+.pmr-reference-card__body p,
+.pmr-method-card p,
+.pmr-source-card p,
+.cv-summary-card p,
+.cv-context-card p,
+.cv-methodology-card p,
+.lp-module__description,
+.lp-entry-card p,
+.cv-reading-strip article p,
+.cv-map-guide article p {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.btn-primary,
+.btn-secondary,
+.nav-link-pill,
+.pmr-cycle-tab,
+.pmr-cycle-tab span,
+.pmr-cycle-tab strong,
+.pmr-cycle-tab em,
+.pmr-chamber-pill,
+.pmr-reference-choice,
+.pmr-reference-choice strong,
+.pmr-reference-choice span,
+.pmr-sandbox-dropzone strong,
+.pmr-sandbox-toggle__button,
+.pmr-sandbox-chip,
+.pmr-sandbox-select span,
+.pmr-filter span,
+.pmr-filter select,
+.pmr-status-pill,
+.coherence-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-overflow: clip;
+  line-height: 1.3;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  min-height: 42px;
+}
+
+.pmr-page .btn-primary,
+.pmr-page .pmr-cycle-tab--active,
+.pmr-page .pmr-chamber-pill--active,
+.pmr-page .pmr-sandbox-toggle__button--active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 10px 24px rgba(1, 95, 101, 0.18);
+}
+
+.pmr-page .btn-primary:hover,
+.pmr-page .pmr-cycle-tab--active:hover,
+.pmr-page .pmr-chamber-pill--active:hover,
+.pmr-page .pmr-sandbox-toggle__button--active:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: #fff;
+}
+
+.pmr-page .btn-secondary,
+.pmr-page .pmr-cycle-tab,
+.pmr-page .pmr-chamber-pill,
+.pmr-page .pmr-reference-choice,
+.pmr-page .pmr-sandbox-chip,
+.pmr-page .pmr-sandbox-toggle__button,
+.pmr-page .pmr-sandbox-dropzone,
+.pmr-page .pmr-filter select {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 92%, white 8%);
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
+  box-shadow: 0 1px 2px rgba(40, 37, 29, 0.05);
+}
+
+.pmr-page .btn-secondary:hover,
+.pmr-page .pmr-cycle-tab:hover,
+.pmr-page .pmr-chamber-pill:hover,
+.pmr-page .pmr-reference-choice:hover,
+.pmr-page .pmr-sandbox-chip:hover,
+.pmr-page .pmr-sandbox-toggle__button:hover,
+.pmr-page .pmr-sandbox-dropzone:hover,
+.pmr-page .pmr-filter select:hover,
+.pmr-page .pmr-filter select:focus {
+  color: var(--text);
+  background: color-mix(in srgb, var(--primary-light) 62%, var(--surface) 38%);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  box-shadow: 0 8px 20px rgba(1, 95, 101, 0.12);
+}
+
+.pmr-page .pmr-cycle-tab,
+.pmr-page .pmr-reference-choice,
+.pmr-page .pmr-politician-card,
+.pmr-page .pmr-promise-card,
+.pmr-page .pmr-detail-card,
+.pmr-page .pmr-quote-card,
+.pmr-page .pmr-source-card,
+.pmr-page .pmr-method-card,
+.pmr-page .pmr-reference-card,
+.pmr-page .pmr-reference-focus,
+.pmr-page .pmr-board__note { min-width: 0; }
+
+.pmr-page .pmr-politician-card,
+.pmr-page .pmr-promise-card,
+.pmr-page .pmr-detail-card,
+.pmr-page .pmr-quote-card,
+.pmr-page .pmr-source-card,
+.pmr-page .pmr-method-card,
+.pmr-page .pmr-reference-card,
+.pmr-page .pmr-board__note {
+  background: rgba(249, 248, 245, 0.08);
+  border-color: rgba(249, 248, 245, 0.12);
+}
+
+.pmr-page .pmr-politician-card:hover,
+.pmr-page .pmr-promise-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, transparent);
+  box-shadow: 0 14px 28px rgba(1, 95, 101, 0.12);
+}
+
+.pmr-page .pmr-politician-card--active,
+.pmr-page .pmr-promise-card--active {
+  background: color-mix(in srgb, var(--primary-light) 24%, rgba(249, 248, 245, 0.08));
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  box-shadow: 0 10px 24px rgba(1, 95, 101, 0.14);
+}
+
+.pmr-page .pmr-filter select,
+.pmr-page .pmr-sandbox-select select { min-height: 42px; }
+
+.pmr-page .pmr-filter select option,
+.pmr-page .pmr-sandbox-select select option { color: var(--text); }
+
+.pmr-page .pmr-status-dot--green,
+.pmr-page .pmr-status-pill--green {
+  background: rgba(39, 166, 71, 0.16);
+  color: #dff4e4;
+}
+
+.pmr-page .pmr-status-dot--yellow,
+.pmr-page .pmr-status-pill--yellow {
+  background: rgba(212, 128, 10, 0.18);
+  color: #ffe9c3;
+}
+
+.pmr-page .pmr-status-dot--muted,
+.pmr-page .pmr-status-pill--muted {
+  background: rgba(249, 248, 245, 0.14);
+  color: rgba(249, 248, 245, 0.82);
+}
+
+@media (max-width: 860px) {
+  .pmr-cycle-tab,
+  .pmr-reference-choice,
+  .pmr-chamber-pill,
+  .pmr-sandbox-chip,
+  .pmr-sandbox-toggle__button,
+  .btn-primary,
+  .btn-secondary { max-width: 100%; }
+}
+
+@media (max-width: 640px) {
+  .lp-hero-title,
+  .cv-hero-panel h1,
+  .pmr-hero h1 { line-height: 1.08; }
+
+  .pmr-cycle-tabs,
+  .pmr-chamber-pills,
+  .pmr-sandbox-chips,
+  .pmr-sandbox-toggle { gap: 0.55rem; }
+
+  .pmr-cycle-tab,
+  .pmr-reference-choice { grid-template-columns: 1fr; }
+
+  .pmr-reference-choice img {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* 2026-04 final Promesometro contrast and global text wrapping */
+
+.lp-hero-top > *,
+.cv-hero-panel__top > *,
+.cv-block__header > *,
+.pmr-section-header > *,
+.pmr-board__top > *,
+.pmr-spotlight > *,
+.pmr-detail__header > *,
+.pmr-reference-focus > *,
+.pmr-sandbox__deck > *,
+.pmr-sandbox-toolbar > *,
+.cv-focus-head > *,
+.cv-focus-summary > *,
+.explorer-card__top > *,
+.explorer-card__footer > * {
+  min-width: 0;
+}
+
+.lp-hero-title,
+.lp-start-card--open strong,
+.lp-module h2,
+.cv-hero-panel h1,
+.cv-block__header h2,
+.cv-focus-head h3,
+.cv-case-chip h3,
+.explorer-card__title,
+.pmr-hero h1,
+.pmr-section-header h2,
+.pmr-board__note strong,
+.pmr-spotlight__person h2,
+.pmr-detail__header h2,
+.pmr-promise-card h3,
+.pmr-politician-card strong,
+.pmr-reference-focus__body h3,
+.pmr-reference-card__body strong,
+.pmr-source-card strong,
+.pmr-method-card strong {
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-wrap: balance;
+}
+
+.pmr-politician-card span,
+.pmr-reference-choice span,
+.pmr-source-band__card span,
+.pmr-source-band__card p,
+.pmr-promise-card p,
+.pmr-detail-card p,
+.pmr-reference-card__body p,
+.pmr-method-card p,
+.pmr-source-card p,
+.cv-summary-card p,
+.cv-context-card p,
+.cv-methodology-card p,
+.lp-module__description,
+.lp-entry-card p,
+.cv-reading-strip article p,
+.cv-map-guide article p {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.btn-primary,
+.btn-secondary,
+.nav-link-pill,
+.pmr-cycle-tab,
+.pmr-cycle-tab span,
+.pmr-cycle-tab strong,
+.pmr-cycle-tab em,
+.pmr-chamber-pill,
+.pmr-reference-choice,
+.pmr-reference-choice strong,
+.pmr-reference-choice span,
+.pmr-sandbox-dropzone strong,
+.pmr-sandbox-toggle__button,
+.pmr-sandbox-chip,
+.pmr-sandbox-select span,
+.pmr-filter span,
+.pmr-filter select,
+.pmr-status-pill,
+.coherence-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-overflow: clip;
+  line-height: 1.3;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  min-height: 42px;
+}
+
+.pmr-page .btn-primary,
+.pmr-page .pmr-cycle-tab--active,
+.pmr-page .pmr-chamber-pill--active,
+.pmr-page .pmr-sandbox-toggle__button--active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 10px 24px rgba(1, 95, 101, 0.18);
+}
+
+.pmr-page .btn-primary:hover,
+.pmr-page .pmr-cycle-tab--active:hover,
+.pmr-page .pmr-chamber-pill--active:hover,
+.pmr-page .pmr-sandbox-toggle__button--active:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: #fff;
+}
+
+.pmr-page .btn-secondary,
+.pmr-page .pmr-cycle-tab,
+.pmr-page .pmr-chamber-pill,
+.pmr-page .pmr-reference-choice,
+.pmr-page .pmr-sandbox-chip,
+.pmr-page .pmr-sandbox-toggle__button,
+.pmr-page .pmr-sandbox-dropzone,
+.pmr-page .pmr-filter select {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 92%, white 8%);
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
+  box-shadow: 0 1px 2px rgba(40, 37, 29, 0.05);
+}
+
+.pmr-page .btn-secondary:hover,
+.pmr-page .pmr-cycle-tab:hover,
+.pmr-page .pmr-chamber-pill:hover,
+.pmr-page .pmr-reference-choice:hover,
+.pmr-page .pmr-sandbox-chip:hover,
+.pmr-page .pmr-sandbox-toggle__button:hover,
+.pmr-page .pmr-sandbox-dropzone:hover,
+.pmr-page .pmr-filter select:hover,
+.pmr-page .pmr-filter select:focus {
+  color: var(--text);
+  background: color-mix(in srgb, var(--primary-light) 62%, var(--surface) 38%);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  box-shadow: 0 8px 20px rgba(1, 95, 101, 0.12);
+}
+
+.pmr-page .pmr-cycle-tab,
+.pmr-page .pmr-reference-choice,
+.pmr-page .pmr-politician-card,
+.pmr-page .pmr-promise-card,
+.pmr-page .pmr-detail-card,
+.pmr-page .pmr-quote-card,
+.pmr-page .pmr-source-card,
+.pmr-page .pmr-method-card,
+.pmr-page .pmr-reference-card,
+.pmr-page .pmr-reference-focus,
+.pmr-page .pmr-board__note {
+  min-width: 0;
+}
+
+.pmr-page .pmr-politician-card,
+.pmr-page .pmr-promise-card,
+.pmr-page .pmr-detail-card,
+.pmr-page .pmr-quote-card,
+.pmr-page .pmr-source-card,
+.pmr-page .pmr-method-card,
+.pmr-page .pmr-reference-card,
+.pmr-page .pmr-board__note {
+  background: rgba(249, 248, 245, 0.08);
+  border-color: rgba(249, 248, 245, 0.12);
+}
+
+.pmr-page .pmr-politician-card:hover,
+.pmr-page .pmr-promise-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, transparent);
+  box-shadow: 0 14px 28px rgba(1, 95, 101, 0.12);
+}
+
+.pmr-page .pmr-politician-card--active,
+.pmr-page .pmr-promise-card--active {
+  background: color-mix(in srgb, var(--primary-light) 24%, rgba(249, 248, 245, 0.08));
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  box-shadow: 0 10px 24px rgba(1, 95, 101, 0.14);
+}
+
+.pmr-page .pmr-filter select,
+.pmr-page .pmr-sandbox-select select {
+  min-height: 42px;
+}
+
+.pmr-page .pmr-filter select option,
+.pmr-page .pmr-sandbox-select select option {
+  color: var(--text);
+}
+
+.pmr-page .pmr-status-dot--green,
+.pmr-page .pmr-status-pill--green {
+  background: rgba(39, 166, 71, 0.16);
+  color: #dff4e4;
+}
+
+.pmr-page .pmr-status-dot--yellow,
+.pmr-page .pmr-status-pill--yellow {
+  background: rgba(212, 128, 10, 0.18);
+  color: #ffe9c3;
+}
+
+.pmr-page .pmr-status-dot--muted,
+.pmr-page .pmr-status-pill--muted {
+  background: rgba(249, 248, 245, 0.14);
+  color: rgba(249, 248, 245, 0.82);
+}
+
+@media (max-width: 860px) {
+  .pmr-cycle-tab,
+  .pmr-reference-choice,
+  .pmr-chamber-pill,
+  .pmr-sandbox-chip,
+  .pmr-sandbox-toggle__button,
+  .btn-primary,
+  .btn-secondary {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .lp-hero-title,
+  .cv-hero-panel h1,
+  .pmr-hero h1 {
+    line-height: 1.08;
+  }
+
+  .pmr-cycle-tabs,
+  .pmr-chamber-pills,
+  .pmr-sandbox-chips,
+  .pmr-sandbox-toggle {
+    gap: 0.55rem;
+  }
+
+  .pmr-cycle-tab,
+  .pmr-reference-choice {
+    grid-template-columns: 1fr;
+  }
+
+  .pmr-reference-choice img {
+    width: 56px;
+    height: 56px;
+  }
+}
+
 /* 2026-04 final institutional overrides */
 
 :root {
@@ -6846,6 +7334,258 @@ textarea {
 .colombia-map__shape.is-active {
   stroke: rgba(1, 95, 101, 0.6);
   filter: drop-shadow(0 0 12px rgba(1, 95, 101, 0.12));
+}
+
+/* 2026-04 final readability and Promesometro control contrast */
+
+.lp-hero-top > *,
+.cv-hero-panel__top > *,
+.cv-block__header > *,
+.pmr-section-header > *,
+.pmr-board__top > *,
+.pmr-spotlight > *,
+.pmr-detail__header > *,
+.pmr-reference-focus > *,
+.pmr-sandbox__deck > *,
+.pmr-sandbox-toolbar > *,
+.cv-focus-head > *,
+.cv-focus-summary > *,
+.explorer-card__top > *,
+.explorer-card__footer > * {
+  min-width: 0;
+}
+
+.lp-hero-title,
+.lp-start-card--open strong,
+.lp-module h2,
+.cv-hero-panel h1,
+.cv-block__header h2,
+.cv-focus-head h3,
+.cv-case-chip h3,
+.explorer-card__title,
+.pmr-hero h1,
+.pmr-section-header h2,
+.pmr-board__note strong,
+.pmr-spotlight__person h2,
+.pmr-detail__header h2,
+.pmr-promise-card h3,
+.pmr-politician-card strong,
+.pmr-reference-focus__body h3,
+.pmr-reference-card__body strong,
+.pmr-source-card strong,
+.pmr-method-card strong {
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-wrap: balance;
+}
+
+.pmr-politician-card span,
+.pmr-reference-choice span,
+.pmr-source-band__card span,
+.pmr-source-band__card p,
+.pmr-promise-card p,
+.pmr-detail-card p,
+.pmr-reference-card__body p,
+.pmr-method-card p,
+.pmr-source-card p,
+.cv-summary-card p,
+.cv-context-card p,
+.cv-methodology-card p,
+.lp-module__description,
+.lp-entry-card p,
+.cv-reading-strip article p,
+.cv-map-guide article p {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.btn-primary,
+.btn-secondary,
+.nav-link-pill,
+.pmr-cycle-tab,
+.pmr-cycle-tab span,
+.pmr-cycle-tab strong,
+.pmr-cycle-tab em,
+.pmr-chamber-pill,
+.pmr-reference-choice,
+.pmr-reference-choice strong,
+.pmr-reference-choice span,
+.pmr-sandbox-dropzone strong,
+.pmr-sandbox-toggle__button,
+.pmr-sandbox-chip,
+.pmr-sandbox-select span,
+.pmr-filter span,
+.pmr-filter select,
+.pmr-status-pill,
+.coherence-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-overflow: clip;
+  line-height: 1.3;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  min-height: 42px;
+}
+
+.pmr-page .btn-primary,
+.pmr-page .pmr-cycle-tab--active,
+.pmr-page .pmr-chamber-pill--active,
+.pmr-page .pmr-sandbox-toggle__button--active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 10px 24px rgba(1, 95, 101, 0.18);
+}
+
+.pmr-page .btn-primary:hover,
+.pmr-page .pmr-cycle-tab--active:hover,
+.pmr-page .pmr-chamber-pill--active:hover,
+.pmr-page .pmr-sandbox-toggle__button--active:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: #fff;
+}
+
+.pmr-page .btn-secondary,
+.pmr-page .pmr-cycle-tab,
+.pmr-page .pmr-chamber-pill,
+.pmr-page .pmr-reference-choice,
+.pmr-page .pmr-sandbox-chip,
+.pmr-page .pmr-sandbox-toggle__button,
+.pmr-page .pmr-sandbox-dropzone,
+.pmr-page .pmr-filter select {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 92%, white 8%);
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
+  box-shadow: 0 1px 2px rgba(40, 37, 29, 0.05);
+}
+
+.pmr-page .btn-secondary:hover,
+.pmr-page .pmr-cycle-tab:hover,
+.pmr-page .pmr-chamber-pill:hover,
+.pmr-page .pmr-reference-choice:hover,
+.pmr-page .pmr-sandbox-chip:hover,
+.pmr-page .pmr-sandbox-toggle__button:hover,
+.pmr-page .pmr-sandbox-dropzone:hover,
+.pmr-page .pmr-filter select:hover,
+.pmr-page .pmr-filter select:focus {
+  color: var(--text);
+  background: color-mix(in srgb, var(--primary-light) 62%, var(--surface) 38%);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  box-shadow: 0 8px 20px rgba(1, 95, 101, 0.12);
+}
+
+.pmr-page .pmr-cycle-tab,
+.pmr-page .pmr-reference-choice,
+.pmr-page .pmr-politician-card,
+.pmr-page .pmr-promise-card,
+.pmr-page .pmr-detail-card,
+.pmr-page .pmr-quote-card,
+.pmr-page .pmr-source-card,
+.pmr-page .pmr-method-card,
+.pmr-page .pmr-reference-card,
+.pmr-page .pmr-reference-focus,
+.pmr-page .pmr-board__note {
+  min-width: 0;
+}
+
+.pmr-page .pmr-politician-card,
+.pmr-page .pmr-promise-card,
+.pmr-page .pmr-detail-card,
+.pmr-page .pmr-quote-card,
+.pmr-page .pmr-source-card,
+.pmr-page .pmr-method-card,
+.pmr-page .pmr-reference-card,
+.pmr-page .pmr-board__note {
+  background: rgba(249, 248, 245, 0.08);
+  border-color: rgba(249, 248, 245, 0.12);
+}
+
+.pmr-page .pmr-politician-card:hover,
+.pmr-page .pmr-promise-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, transparent);
+  box-shadow: 0 14px 28px rgba(1, 95, 101, 0.12);
+}
+
+.pmr-page .pmr-politician-card--active,
+.pmr-page .pmr-promise-card--active {
+  background: color-mix(in srgb, var(--primary-light) 24%, rgba(249, 248, 245, 0.08));
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  box-shadow: 0 10px 24px rgba(1, 95, 101, 0.14);
+}
+
+.pmr-page .pmr-filter select,
+.pmr-page .pmr-sandbox-select select {
+  min-height: 42px;
+}
+
+.pmr-page .pmr-filter select option,
+.pmr-page .pmr-sandbox-select select option {
+  color: var(--text);
+}
+
+.pmr-page .pmr-status-dot--green,
+.pmr-page .pmr-status-pill--green {
+  background: rgba(39, 166, 71, 0.16);
+  color: #dff4e4;
+}
+
+.pmr-page .pmr-status-dot--yellow,
+.pmr-page .pmr-status-pill--yellow {
+  background: rgba(212, 128, 10, 0.18);
+  color: #ffe9c3;
+}
+
+.pmr-page .pmr-status-dot--muted,
+.pmr-page .pmr-status-pill--muted {
+  background: rgba(249, 248, 245, 0.14);
+  color: rgba(249, 248, 245, 0.82);
+}
+
+@media (max-width: 860px) {
+  .pmr-cycle-tab,
+  .pmr-reference-choice,
+  .pmr-chamber-pill,
+  .pmr-sandbox-chip,
+  .pmr-sandbox-toggle__button,
+  .btn-primary,
+  .btn-secondary {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .lp-hero-title,
+  .cv-hero-panel h1,
+  .pmr-hero h1 {
+    line-height: 1.08;
+  }
+
+  .pmr-cycle-tabs,
+  .pmr-chamber-pills,
+  .pmr-sandbox-chips,
+  .pmr-sandbox-toggle {
+    gap: 0.55rem;
+  }
+
+  .pmr-cycle-tab,
+  .pmr-reference-choice {
+    grid-template-columns: 1fr;
+  }
+
+  .pmr-reference-choice img {
+    width: 56px;
+    height: 56px;
+  }
 }
 
 /* 2026-04 institutional dashboard system */
@@ -9215,5 +9955,240 @@ textarea {
   .cv-factor-row,
   .cv-summary-row {
     grid-template-columns: 1fr;
+  }
+}
+/* EOF final override: Promesometro contrast and global text wrapping */
+
+.lp-hero-top > *,
+.cv-hero-panel__top > *,
+.cv-block__header > *,
+.pmr-section-header > *,
+.pmr-board__top > *,
+.pmr-spotlight > *,
+.pmr-detail__header > *,
+.pmr-reference-focus > *,
+.pmr-sandbox__deck > *,
+.pmr-sandbox-toolbar > *,
+.cv-focus-head > *,
+.cv-focus-summary > *,
+.explorer-card__top > *,
+.explorer-card__footer > * { min-width: 0; }
+
+.lp-hero-title,
+.lp-start-card--open strong,
+.lp-module h2,
+.cv-hero-panel h1,
+.cv-block__header h2,
+.cv-focus-head h3,
+.cv-case-chip h3,
+.explorer-card__title,
+.pmr-hero h1,
+.pmr-section-header h2,
+.pmr-board__note strong,
+.pmr-spotlight__person h2,
+.pmr-detail__header h2,
+.pmr-promise-card h3,
+.pmr-politician-card strong,
+.pmr-reference-focus__body h3,
+.pmr-reference-card__body strong,
+.pmr-source-card strong,
+.pmr-method-card strong {
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-wrap: balance;
+}
+
+.pmr-politician-card span,
+.pmr-reference-choice span,
+.pmr-source-band__card span,
+.pmr-source-band__card p,
+.pmr-promise-card p,
+.pmr-detail-card p,
+.pmr-reference-card__body p,
+.pmr-method-card p,
+.pmr-source-card p,
+.cv-summary-card p,
+.cv-context-card p,
+.cv-methodology-card p,
+.lp-module__description,
+.lp-entry-card p,
+.cv-reading-strip article p,
+.cv-map-guide article p {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.btn-primary,
+.btn-secondary,
+.nav-link-pill,
+.pmr-cycle-tab,
+.pmr-cycle-tab span,
+.pmr-cycle-tab strong,
+.pmr-cycle-tab em,
+.pmr-chamber-pill,
+.pmr-reference-choice,
+.pmr-reference-choice strong,
+.pmr-reference-choice span,
+.pmr-sandbox-dropzone strong,
+.pmr-sandbox-toggle__button,
+.pmr-sandbox-chip,
+.pmr-sandbox-select span,
+.pmr-filter span,
+.pmr-filter select,
+.pmr-status-pill,
+.coherence-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-overflow: clip;
+  line-height: 1.3;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  min-height: 42px;
+}
+
+.pmr-page .btn-primary,
+.pmr-page .pmr-cycle-tab--active,
+.pmr-page .pmr-chamber-pill--active,
+.pmr-page .pmr-sandbox-toggle__button--active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 10px 24px rgba(1, 95, 101, 0.18);
+}
+
+.pmr-page .btn-primary:hover,
+.pmr-page .pmr-cycle-tab--active:hover,
+.pmr-page .pmr-chamber-pill--active:hover,
+.pmr-page .pmr-sandbox-toggle__button--active:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: #fff;
+}
+
+.pmr-page .btn-secondary,
+.pmr-page .pmr-cycle-tab,
+.pmr-page .pmr-chamber-pill,
+.pmr-page .pmr-reference-choice,
+.pmr-page .pmr-sandbox-chip,
+.pmr-page .pmr-sandbox-toggle__button,
+.pmr-page .pmr-sandbox-dropzone,
+.pmr-page .pmr-filter select {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 92%, white 8%);
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
+  box-shadow: 0 1px 2px rgba(40, 37, 29, 0.05);
+}
+
+.pmr-page .btn-secondary:hover,
+.pmr-page .pmr-cycle-tab:hover,
+.pmr-page .pmr-chamber-pill:hover,
+.pmr-page .pmr-reference-choice:hover,
+.pmr-page .pmr-sandbox-chip:hover,
+.pmr-page .pmr-sandbox-toggle__button:hover,
+.pmr-page .pmr-sandbox-dropzone:hover,
+.pmr-page .pmr-filter select:hover,
+.pmr-page .pmr-filter select:focus {
+  color: var(--text);
+  background: color-mix(in srgb, var(--primary-light) 62%, var(--surface) 38%);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  box-shadow: 0 8px 20px rgba(1, 95, 101, 0.12);
+}
+
+.pmr-page .pmr-cycle-tab,
+.pmr-page .pmr-reference-choice,
+.pmr-page .pmr-politician-card,
+.pmr-page .pmr-promise-card,
+.pmr-page .pmr-detail-card,
+.pmr-page .pmr-quote-card,
+.pmr-page .pmr-source-card,
+.pmr-page .pmr-method-card,
+.pmr-page .pmr-reference-card,
+.pmr-page .pmr-reference-focus,
+.pmr-page .pmr-board__note { min-width: 0; }
+
+.pmr-page .pmr-politician-card,
+.pmr-page .pmr-promise-card,
+.pmr-page .pmr-detail-card,
+.pmr-page .pmr-quote-card,
+.pmr-page .pmr-source-card,
+.pmr-page .pmr-method-card,
+.pmr-page .pmr-reference-card,
+.pmr-page .pmr-board__note {
+  background: rgba(249, 248, 245, 0.08);
+  border-color: rgba(249, 248, 245, 0.12);
+}
+
+.pmr-page .pmr-politician-card:hover,
+.pmr-page .pmr-promise-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, transparent);
+  box-shadow: 0 14px 28px rgba(1, 95, 101, 0.12);
+}
+
+.pmr-page .pmr-politician-card--active,
+.pmr-page .pmr-promise-card--active {
+  background: color-mix(in srgb, var(--primary-light) 24%, rgba(249, 248, 245, 0.08));
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  box-shadow: 0 10px 24px rgba(1, 95, 101, 0.14);
+}
+
+.pmr-page .pmr-filter select,
+.pmr-page .pmr-sandbox-select select { min-height: 42px; }
+
+.pmr-page .pmr-filter select option,
+.pmr-page .pmr-sandbox-select select option { color: var(--text); }
+
+.pmr-page .pmr-status-dot--green,
+.pmr-page .pmr-status-pill--green {
+  background: rgba(39, 166, 71, 0.16);
+  color: #dff4e4;
+}
+
+.pmr-page .pmr-status-dot--yellow,
+.pmr-page .pmr-status-pill--yellow {
+  background: rgba(212, 128, 10, 0.18);
+  color: #ffe9c3;
+}
+
+.pmr-page .pmr-status-dot--muted,
+.pmr-page .pmr-status-pill--muted {
+  background: rgba(249, 248, 245, 0.14);
+  color: rgba(249, 248, 245, 0.82);
+}
+
+@media (max-width: 860px) {
+  .pmr-cycle-tab,
+  .pmr-reference-choice,
+  .pmr-chamber-pill,
+  .pmr-sandbox-chip,
+  .pmr-sandbox-toggle__button,
+  .btn-primary,
+  .btn-secondary { max-width: 100%; }
+}
+
+@media (max-width: 640px) {
+  .lp-hero-title,
+  .cv-hero-panel h1,
+  .pmr-hero h1 { line-height: 1.08; }
+
+  .pmr-cycle-tabs,
+  .pmr-chamber-pills,
+  .pmr-sandbox-chips,
+  .pmr-sandbox-toggle { gap: 0.55rem; }
+
+  .pmr-cycle-tab,
+  .pmr-reference-choice { grid-template-columns: 1fr; }
+
+  .pmr-reference-choice img {
+    width: 56px;
+    height: 56px;
   }
 }
