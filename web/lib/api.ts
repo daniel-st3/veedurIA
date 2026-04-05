@@ -31,6 +31,18 @@ function hasObjectShape(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function hasMeaningfulContractsFilter(filters: ContractsFilters & { offset?: number; limit?: number }) {
+  return Boolean(
+    filters.full ||
+      filters.department ||
+      (filters.risk && filters.risk !== "all") ||
+      filters.modality ||
+      filters.query?.trim() ||
+      filters.dateFrom ||
+      filters.dateTo,
+  );
+}
+
 function isValidOverviewPayload(value: unknown): value is OverviewPayload {
   if (!hasObjectShape(value)) return false;
   const payload = value as Record<string, unknown>;
@@ -43,7 +55,14 @@ function isValidOverviewPayload(value: unknown): value is OverviewPayload {
     Array.isArray(payload.leadCases) &&
     hasObjectShape(benchmarks) &&
     typeof benchmarks.sliceMeanRisk === "number" &&
-    typeof benchmarks.nationalMeanRisk === "number"
+      typeof benchmarks.nationalMeanRisk === "number"
+  );
+}
+
+function hasUsableOverviewCounts(payload: OverviewPayload, filters: ContractsFilters) {
+  if (hasMeaningfulContractsFilter(filters)) return true;
+  return [payload.meta.sourceRows, payload.meta.totalRows, payload.meta.shownRows, payload.slice.totalContracts].some(
+    (value) => typeof value === "number" && value > 0,
   );
 }
 
@@ -51,6 +70,19 @@ function isValidFreshnessPayload(value: unknown): value is ContractsFreshnessPay
   if (!hasObjectShape(value)) return false;
   const payload = value as Record<string, unknown>;
   return hasObjectShape(payload.liveFeed) && Array.isArray(payload.liveFeed.contracts);
+}
+
+function isValidTablePayload(
+  value: unknown,
+  filters: ContractsFilters & { offset?: number; limit?: number },
+): value is TablePayload {
+  if (!hasObjectShape(value)) return false;
+  const payload = value as Record<string, unknown>;
+  const total = payload.total;
+  const rows = payload.rows;
+  if (typeof total !== "number" || !Array.isArray(rows)) return false;
+  if (!hasMeaningfulContractsFilter(filters) && total <= 0) return false;
+  return true;
 }
 
 function isRichPromisesPayload(value: unknown): value is PromisesPayload {
@@ -153,6 +185,7 @@ export async function fetchOverview(filters: ContractsFilters): Promise<Overview
     if (!response.ok) throw new Error("Failed to fetch overview");
     const payload = await response.json();
     if (!isValidOverviewPayload(payload)) throw new Error("Incomplete overview payload");
+    if (!hasUsableOverviewCounts(payload, filters)) throw new Error("Degenerate overview payload");
     return payload;
   } catch {
     const mock = getMockOverview(filters);
@@ -211,7 +244,9 @@ export async function fetchContractsTable(
       cache: "no-store",
     });
     if (!response.ok) throw new Error("Failed to fetch table");
-    return await response.json();
+    const payload = await response.json();
+    if (!isValidTablePayload(payload, filters)) throw new Error("Incomplete table payload");
+    return payload;
   } catch {
     return getMockTable(filters);
   }

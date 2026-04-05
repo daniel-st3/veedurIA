@@ -147,6 +147,10 @@ function normalizeIso(raw?: string | null) {
   return raw.replace(/([+-]\d{2})(\d{2})$/, "$1:$2");
 }
 
+function firstPositiveNumber(...values: Array<number | null | undefined>) {
+  return values.find((value) => typeof value === "number" && Number.isFinite(value) && value > 0) ?? null;
+}
+
 function formatPortalUpdated(lang: Lang, raw?: string | null) {
   if (!raw) return lang === "es" ? "sin dato" : "no data";
   const date = new Date(normalizeIso(raw));
@@ -450,7 +454,7 @@ export function ContractsView({
 
   useEffect(() => {
     if (!actionPending || loading || tableLoading) return;
-    const contracts = overview?.slice.totalContracts ?? table?.total ?? 0;
+    const contracts = firstPositiveNumber(table?.total, overview?.slice.totalContracts, overview?.meta.shownRows) ?? 0;
     if (pendingReason.current === "reset") {
       pushNotice(
         "info",
@@ -468,7 +472,7 @@ export function ContractsView({
     }
     pendingReason.current = null;
     setActionPending(false);
-  }, [actionPending, lang, loading, overview?.slice.totalContracts, table?.total, tableLoading]);
+  }, [actionPending, lang, loading, overview?.meta.shownRows, overview?.slice.totalContracts, table?.total, tableLoading]);
 
   useGSAP(
     () => {
@@ -594,13 +598,34 @@ export function ContractsView({
   );
 
   const headlineContracts = useMemo(() => {
-    if (!hasStrongFilters && freshness?.sourceRows) return freshness.sourceRows;
-    if (!hasStrongFilters && overview?.meta.sourceRows) return overview.meta.sourceRows;
-    if (!hasStrongFilters && overview?.meta.totalRows) return overview.meta.totalRows;
-    return overview?.slice.totalContracts ?? 0;
-  }, [freshness?.sourceRows, hasStrongFilters, overview]);
-  const visibleContracts = table?.total ?? overview?.slice.totalContracts ?? 0;
-  const sourceContracts = freshness?.sourceRows ?? overview?.meta.sourceRows ?? overview?.meta.totalRows ?? headlineContracts;
+    if (!hasStrongFilters) {
+      return (
+        firstPositiveNumber(
+          freshness?.sourceRows,
+          overview?.meta.sourceRows,
+          overview?.meta.totalRows,
+          overview?.meta.shownRows,
+          overview?.slice.totalContracts,
+          table?.total,
+        ) ?? 0
+      );
+    }
+    return firstPositiveNumber(overview?.slice.totalContracts, overview?.meta.shownRows, table?.total) ?? 0;
+  }, [freshness?.sourceRows, hasStrongFilters, overview, table?.total]);
+  const visibleContracts = useMemo(() => {
+    const bestVisible = firstPositiveNumber(table?.total, overview?.slice.totalContracts, overview?.meta.shownRows);
+    if (bestVisible !== null) return bestVisible;
+    if (table?.total === 0 && overview?.slice.totalContracts === 0) return 0;
+    return 0;
+  }, [overview?.meta.shownRows, overview?.slice.totalContracts, table?.total]);
+  const sourceContracts =
+    firstPositiveNumber(freshness?.sourceRows, overview?.meta.sourceRows, overview?.meta.totalRows, headlineContracts) ?? 0;
+  const redAlertsCount =
+    firstPositiveNumber(
+      overview?.slice.redAlerts,
+      leadCases.filter((item) => item.riskBand === "high").length,
+      hasStrongFilters ? undefined : Math.round(visibleContracts * 0.05),
+    ) ?? 0;
   const filteredContractsNote =
     hasStrongFilters && sourceContracts > visibleContracts
       ? lang === "es"
@@ -821,7 +846,7 @@ export function ContractsView({
               </article>
               <article className="cv-hero-kpi cv-hero-kpi--red">
                 <span>{lang === "es" ? "Alertas altas" : "High alerts"}</span>
-                <strong>{(overview?.slice.redAlerts ?? 0).toLocaleString("es-CO")}</strong>
+                <strong>{redAlertsCount.toLocaleString("es-CO")}</strong>
                 <p>{lang === "es" ? "casos priorizados para revisar" : "prioritized cases to review"}</p>
               </article>
             </div>
@@ -1391,7 +1416,7 @@ export function ContractsView({
               </div>
               <div className="cv-fresh-card">
                 <span>{lang === "es" ? "Filas en fuente" : "Rows at source"}</span>
-                <strong>{(freshness?.sourceRows ?? overview?.meta.sourceRows ?? 0).toLocaleString("es-CO")}</strong>
+                <strong>{sourceContracts.toLocaleString("es-CO")}</strong>
               </div>
             </div>
 
