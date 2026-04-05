@@ -16,7 +16,7 @@ export function SiteFooter({ lang }: { lang: Lang }) {
         </div>
 
         <div className="site-footer__meta">
-          <span>Desarrollado por Daniel Steven Rodríguez Sandoval</span>
+          <span>{lang === "es" ? "Desarrollado por Daniel Steven Rodríguez Sandoval" : "Developed by Daniel Steven Rodríguez Sandoval"}</span>
           <Link href={`/contrato-limpio?lang=${lang}`}>ContratoLimpio</Link>
           <Link href={`/votometro?lang=${lang}`}>VotóMeter</Link>
           <Link href={`/sigue-el-dinero?lang=${lang}`}>SigueElDinero</Link>

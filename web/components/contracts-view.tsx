@@ -46,6 +46,7 @@ type SavedSearch = {
   id: string;
   label: string;
   filters: FilterState;
+  resultCount: number;
 };
 
 const INITIAL_FILTERS: FilterState = {
@@ -347,6 +348,7 @@ export function ContractsView({
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [actionPending, setActionPending] = useState(false);
+  const [showGapExplanation, setShowGapExplanation] = useState(false);
   const pendingReason = useRef<"apply" | "reset" | "save" | "map" | "month" | null>(null);
   const syncingUrl = useRef(true);
 
@@ -414,10 +416,27 @@ export function ContractsView({
     try {
       const raw = window.localStorage.getItem("veeduria:saved-contract-slices");
       if (!raw) return;
-      const parsed = JSON.parse(raw) as SavedSearch[];
-      if (Array.isArray(parsed)) setSavedSearches(parsed);
+      const parsed = JSON.parse(raw) as Array<Partial<SavedSearch> & { name?: string }>;
+      if (!Array.isArray(parsed)) return;
+      setSavedSearches(
+        parsed
+          .map((item, index) => ({
+            id: String(item.id ?? `saved-${index}`),
+            label: String(item.label ?? item.name ?? (lang === "es" ? "Corte guardado" : "Saved slice")),
+            filters: {
+              ...INITIAL_FILTERS,
+              ...(item.filters ?? {}),
+              risk:
+                item.filters?.risk === "high" || item.filters?.risk === "medium" || item.filters?.risk === "low"
+                  ? item.filters.risk
+                  : "all" as FilterState["risk"],
+            },
+            resultCount: typeof item.resultCount === "number" ? item.resultCount : 0,
+          }))
+          .slice(0, 6),
+      );
     } catch {}
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     if (syncingUrl.current) {
@@ -432,13 +451,7 @@ export function ContractsView({
   useEffect(() => {
     if (!actionPending || loading || tableLoading) return;
     const contracts = overview?.slice.totalContracts ?? table?.total ?? 0;
-    if (pendingReason.current === "save") {
-      pushNotice(
-        "success",
-        lang === "es" ? "La búsqueda quedó guardada en este navegador." : "The search was saved on this browser.",
-        lang === "es" ? "Búsqueda guardada" : "Search saved",
-      );
-    } else if (pendingReason.current === "reset") {
+    if (pendingReason.current === "reset") {
       pushNotice(
         "info",
         lang === "es" ? "Volviste al corte general de Colombia." : "You returned to the national Colombia slice.",
@@ -586,6 +599,20 @@ export function ContractsView({
     if (!hasStrongFilters && overview?.meta.totalRows) return overview.meta.totalRows;
     return overview?.slice.totalContracts ?? 0;
   }, [freshness?.sourceRows, hasStrongFilters, overview]);
+  const visibleContracts = table?.total ?? overview?.slice.totalContracts ?? 0;
+  const sourceContracts = freshness?.sourceRows ?? overview?.meta.sourceRows ?? overview?.meta.totalRows ?? headlineContracts;
+  const filteredContractsNote =
+    hasStrongFilters && sourceContracts > visibleContracts
+      ? lang === "es"
+        ? `filtrado de ${sourceContracts.toLocaleString("es-CO")}`
+        : `filtered from ${sourceContracts.toLocaleString("en-US")}`
+      : hasStrongFilters
+        ? lang === "es"
+          ? "corte activo"
+          : "active slice"
+        : lang === "es"
+          ? "fuente nacional"
+          : "national source";
 
   const latestScoredDate = overview?.meta.latestContractDate ?? freshness?.latestContractDate ?? "—";
   const latestSourceDate = freshness?.sourceLatestContractDate ?? overview?.meta.sourceLatestContractDate ?? "—";
@@ -702,19 +729,31 @@ export function ContractsView({
   };
 
   const saveCurrentSearch = () => {
+    const defaultLabel =
+      lang === "es"
+        ? `Corte ${new Date().toLocaleDateString("es-CO", { month: "short", day: "numeric" })}`
+        : `Slice ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+    const customLabel = window.prompt(
+      lang === "es" ? "Nombre para esta búsqueda" : "Name for this saved search",
+      defaultLabel,
+    );
+    if (!customLabel?.trim()) return;
     const saved: SavedSearch = {
       id: `${Date.now()}`,
-      label:
-        lang === "es"
-          ? `Corte ${new Date().toLocaleDateString("es-CO", { month: "short", day: "numeric" })}`
-          : `Slice ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+      label: customLabel.trim(),
       filters,
+      resultCount: visibleContracts,
     };
     const next = [saved, ...savedSearches].slice(0, 6);
     setSavedSearches(next);
     window.localStorage.setItem("veeduria:saved-contract-slices", JSON.stringify(next));
-    pendingReason.current = "save";
-    setActionPending(true);
+    pushNotice(
+      "success",
+      lang === "es"
+        ? `Búsqueda "${saved.label}" guardada con ${visibleContracts.toLocaleString("es-CO")} contratos visibles.`
+        : `Saved "${saved.label}" with ${visibleContracts.toLocaleString("en-US")} visible contracts.`,
+      lang === "es" ? "Búsqueda guardada" : "Search saved",
+    );
   };
 
   const removeFilterChip = (key: keyof FilterState) => {
@@ -769,12 +808,12 @@ export function ContractsView({
             <div className="cv-hero-kpis">
               <article className="cv-hero-kpi cv-hero-kpi--yellow">
                 <span>{hasStrongFilters ? (lang === "es" ? "Corte actual" : "Current slice") : lang === "es" ? "Fuente oficial" : "Official source"}</span>
-                <strong>{headlineContracts.toLocaleString("es-CO")}</strong>
+                <strong>{(hasStrongFilters ? visibleContracts : headlineContracts).toLocaleString("es-CO")}</strong>
                 <p>
                   {hasStrongFilters
                     ? lang === "es"
-                      ? "contratos visibles con tus filtros activos"
-                      : "visible contracts under your active filters"
+                      ? `${filteredContractsNote}; el total oficial sigue en ${sourceContracts.toLocaleString("es-CO")}`
+                      : `${filteredContractsNote}; official source remains ${sourceContracts.toLocaleString("en-US")}`
                     : lang === "es"
                       ? "registros disponibles en la fuente nacional"
                       : "records available in the national source"}
@@ -790,16 +829,38 @@ export function ContractsView({
 
           {staleScore ? (
             <div className="cv-status-banner cv-status-banner--warning" role="status">
-              <strong>
-                {lang === "es"
-                  ? `Datos oficiales al ${latestSourceDate}; scoring visible al ${latestScoredDate}.`
-                  : `Official data through ${latestSourceDate}; visible scoring through ${latestScoredDate}.`}
-              </strong>
-              <span>
-                {lang === "es"
-                  ? `La brecha actual es de ${freshnessGap} días. Última corrida visible: ${lastModelRun ?? "sin hora disponible"}.`
-                  : `The current gap is ${freshnessGap} days. Last visible scoring run: ${lastModelRun ?? "no visible timestamp"}.`}
-              </span>
+              <div className="cv-status-banner__copy">
+                <strong>
+                  {lang === "es"
+                    ? `Datos oficiales al ${latestSourceDate}; scoring visible al ${latestScoredDate}.`
+                    : `Official data through ${latestSourceDate}; visible scoring through ${latestScoredDate}.`}
+                </strong>
+                <span>
+                  {lang === "es"
+                    ? `La brecha actual es de ${freshnessGap} días. Última corrida visible: ${lastModelRun ?? "sin hora disponible"}`
+                    : `The current gap is ${freshnessGap} days. Last visible scoring run: ${lastModelRun ?? "no visible timestamp"}`}
+                </span>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => setShowGapExplanation((current) => !current)}
+                >
+                  {lang === "es" ? "¿Por qué hay brecha?" : "Why is there a gap?"}
+                </button>
+              </div>
+              {showGapExplanation ? (
+                <div className="cv-gap-explanation">
+                  <p>
+                    {lang === "es"
+                      ? "Los contratos nuevos entran a diario desde SECOP II, pero el scoring visible se recalcula en corridas validadas para evitar lecturas apresuradas sobre datos recién publicados."
+                      : "New contracts arrive daily from SECOP II, but the visible scoring is refreshed in validated runs to avoid rushed readings over newly published data."}
+                  </p>
+                  <p>
+                    <strong>{lang === "es" ? "Próxima actualización visible:" : "Next visible scoring refresh:"}</strong>{" "}
+                    {lang === "es" ? "30 de abril de 2026" : "April 30, 2026"}
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -823,8 +884,8 @@ export function ContractsView({
                   <strong>{activeSlice.length ? activeSlice.join(" · ") : copy.currentSliceDefault}</strong>
                   <p>
                     {lang === "es"
-                      ? `${(overview?.slice.totalContracts ?? 0).toLocaleString("es-CO")} contratos visibles y lectura territorial del corte activo.`
-                      : `${(overview?.slice.totalContracts ?? 0).toLocaleString("en-US")} visible contracts and territorial readout for the active slice.`}
+                      ? `${visibleContracts.toLocaleString("es-CO")} contratos visibles y lectura territorial del corte activo.`
+                      : `${visibleContracts.toLocaleString("en-US")} visible contracts and territorial readout for the active slice.`}
                   </p>
                 </article>
                 <article className="cv-context-card cv-context-card--static">
@@ -940,9 +1001,24 @@ export function ContractsView({
                     const next = { ...draft, full: !draft.full };
                     runFilters(next, "apply");
                   }}
+                  title={
+                    draft.full
+                      ? lang === "es"
+                        ? "Volver a la vista rápida sin salir de esta página"
+                        : "Return to the quick slice without leaving this page"
+                      : lang === "es"
+                        ? "Abrir el historial completo del corte actual dentro de esta misma vista"
+                        : "Open the full history for the current slice inside this same view"
+                  }
                 >
                   <Database size={15} />
-                  {draft.full ? copy.togglePreview : copy.toggleFull}
+                  {draft.full
+                    ? lang === "es"
+                      ? "Volver a vista rápida"
+                      : "Back to quick view"
+                    : lang === "es"
+                      ? "Activar historial completo"
+                      : "Enable full history"}
                 </button>
 
                 <button type="button" className="btn-secondary cv-filter-action" onClick={resetFilters}>
@@ -964,21 +1040,34 @@ export function ContractsView({
               <div className="cv-saved-search-row">
                 <label className="filter-field">
                   <span className="label">{lang === "es" ? "Búsquedas guardadas" : "Saved searches"}</span>
-                  <select
-                    value=""
-                    onChange={(event) => {
-                      const selected = savedSearches.find((item) => item.id === event.target.value);
-                      if (!selected) return;
-                      runFilters(selected.filters, "apply");
-                    }}
-                  >
-                    <option value="">{lang === "es" ? "Elegir corte guardado" : "Choose a saved slice"}</option>
-                    {savedSearches.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
+                  {savedSearches.length ? (
+                    <select
+                      value=""
+                      onChange={(event) => {
+                        const selected = savedSearches.find((item) => item.id === event.target.value);
+                        if (!selected) return;
+                        runFilters(selected.filters, "apply");
+                      }}
+                    >
+                      <option value="">{lang === "es" ? "Elegir corte guardado" : "Choose a saved slice"}</option>
+                      {savedSearches.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {`${item.label} (${item.resultCount.toLocaleString("es-CO")} ${lang === "es" ? "contratos" : "contracts"})`}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="cv-saved-search-empty">
+                      <select disabled>
+                        <option>{lang === "es" ? "No tienes búsquedas guardadas" : "You have no saved searches"}</option>
+                      </select>
+                      <p>
+                        {lang === "es"
+                          ? 'Aplica filtros y haz clic en "Guardar búsqueda" para crear un acceso rápido.'
+                          : 'Apply filters and click "Save search" to create a quick access point.'}
+                      </p>
+                    </div>
+                  )}
                 </label>
               </div>
 
@@ -1004,8 +1093,8 @@ export function ContractsView({
                     ? "Historial completo activo. La consulta tarda más, pero deja de depender de la muestra rápida."
                     : "Full history is active. The query takes longer, but no longer depends on the quick sample."
                   : lang === "es"
-                    ? "La interacción rápida trabaja sobre la muestra priorizada; el titular principal sigue mostrando el tamaño real de la fuente cuando no hay filtros fuertes."
-                    : "Fast interaction uses the prioritized sample; the headline still shows the real source size when there are no strong filters."}
+                    ? "La vista rápida usa la muestra priorizada; si necesitas ver todo el historial del corte, activa el historial completo sin salir de esta página."
+                    : "Quick view uses the prioritized sample; if you need the full history for this slice, enable full history without leaving this page."}
               </p>
             </section>
 
@@ -1029,11 +1118,13 @@ export function ContractsView({
                 </article>
                 <article className="cv-map-insight">
                   <span>{lang === "es" ? "Contratos visibles" : "Visible contracts"}</span>
-                  <strong>{currentDepartment?.contractCount?.toLocaleString("es-CO") ?? (overview?.slice.totalContracts ?? 0).toLocaleString("es-CO")}</strong>
+                  <strong>{visibleContracts.toLocaleString("es-CO")}</strong>
+                  <small>{filteredContractsNote}</small>
                 </article>
                 <article className="cv-map-insight">
                   <span>{lang === "es" ? "Intensidad media" : "Average intensity"}</span>
                   <strong>{currentDepartment ? `${Math.round(currentDepartment.avgRisk * 100)}/100` : `${sliceMeanScore}/100`}</strong>
+                  <small>{lang === "es" ? "recalculada con el corte visible" : "recalculated from the visible slice"}</small>
                 </article>
               </div>
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -17,11 +18,6 @@ import type { Lang, OverviewPayload } from "@/lib/types";
 gsap.registerPlugin(ScrollTrigger);
 
 type FeatureTone = "yellow" | "blue" | "red";
-
-const HERO_LINES = {
-  es: ["Detecta la señal", "antes de que", "se pierda"],
-  en: ["Detect the signal", "before it fades"],
-} as const;
 
 const FEATURE_TEXT = {
   es: {
@@ -92,9 +88,11 @@ export function LandingPage({
   initialOverview: OverviewPayload;
 }) {
   const scope = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
   const [overview, setOverview] = useState<OverviewPayload>(initialOverview);
   const [geojson, setGeojson] = useState<any | null>(null);
   const [activeDepartment, setActiveDepartment] = useState(initialOverview.map.departments[0]?.geoName);
+  const [showStickyCta, setShowStickyCta] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -122,13 +120,22 @@ export function LandingPage({
     };
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowStickyCta(window.scrollY > window.innerHeight * 0.5);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   useGSAP(
     () => {
       const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (reduceMotion) return;
 
       gsap.fromTo(
-        ".lp-hero-line",
+        ".lp-hero-word",
         { autoAlpha: 0, y: 100, rotateX: -90, transformOrigin: "center bottom" },
         { autoAlpha: 1, y: 0, rotateX: 0, duration: 1, stagger: 0.08, ease: "back.out(1.7)" },
       );
@@ -144,26 +151,6 @@ export function LandingPage({
           ease: "power3.out",
         },
       );
-
-      const counters = gsap.utils.toArray<HTMLElement>(".lp-counter");
-      counters.forEach((node) => {
-        const finalValue = Number(node.dataset.value ?? 0);
-        const counter = { value: 0 };
-        gsap.to(counter, {
-          value: finalValue,
-          duration: 2.5,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: node,
-            start: "top 85%",
-            once: true,
-          },
-          onUpdate: () => {
-            node.textContent = Math.round(counter.value).toLocaleString(lang === "es" ? "es-CO" : "en-US");
-          },
-        });
-      });
-
     },
     { scope, dependencies: [lang, overview.meta.sourceRows, overview.slice.redAlerts] },
   );
@@ -222,11 +209,16 @@ export function LandingPage({
             </p>
 
             <h1 className="lp-hero-title lp-hero-title--centered">
-              {HERO_LINES[lang].map((line, index) => (
-                <span key={line} className={`lp-hero-line ${index === HERO_LINES[lang].length - 1 ? "lp-hero-line--accent" : ""}`}>
-                  {line}
-                </span>
-              ))}
+              <span className="lp-hero-word">Detecta</span>{" "}
+              <span className="lp-hero-word lp-hero-word--accent">
+                {lang === "es" ? "la señal" : "the signal"}
+              </span>{" "}
+              <span className="lp-hero-word">
+                {lang === "es" ? "antes de que" : "before it"}
+              </span>{" "}
+              <span className="lp-hero-word lp-hero-word--nowrap">
+                {lang === "es" ? "se pierda" : "fades"}
+              </span>
             </h1>
 
             <p className="lp-hero-body">
@@ -250,30 +242,63 @@ export function LandingPage({
 
           <div className="lp-kpi-row stats-grid">
             <article className="lp-kpi-card lp-kpi-card--yellow">
-              <span>{lang === "es" ? "Registros oficiales hoy" : "Official records today"}</span>
-              <strong className="lp-counter" data-value={totalContracts}>0</strong>
+              <span title={lang === "es" ? "Cantidad de registros visibles desde la fuente oficial" : "Visible records coming from the official source"}>
+                {lang === "es" ? "Registros oficiales hoy" : "Official records today"}
+              </span>
+              {totalContracts ? (
+                <strong>{totalContracts.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
+              ) : (
+                <div className="lp-stat-skeleton" aria-hidden="true" />
+              )}
               <p>{lang === "es" ? `fuente visible al ${latestDate}` : `source visible through ${latestDate}`}</p>
             </article>
             <article className="lp-kpi-card lp-kpi-card--blue">
-              <span>{lang === "es" ? "Alertas listas" : "Alerts ready"}</span>
-              <strong className="lp-counter" data-value={overview.slice.redAlerts}>0</strong>
+              <span title={lang === "es" ? "Casos priorizados para abrir primero" : "Cases prioritized for first review"}>
+                {lang === "es" ? "Alertas listas" : "Alerts ready"}
+              </span>
+              {overview.slice.redAlerts ? (
+                <strong>{overview.slice.redAlerts.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
+              ) : (
+                <div className="lp-stat-skeleton" aria-hidden="true" />
+              )}
               <p>{lang === "es" ? "casos priorizados para abrir primero" : "cases prioritized for first review"}</p>
             </article>
             <article className="lp-kpi-card lp-kpi-card--red">
-              <span>{lang === "es" ? "Territorio más encendido" : "Most active territory"}</span>
+              <span title={lang === "es" ? "Departamento con mayor intensidad visible" : "Department with the strongest visible intensity"}>
+                {lang === "es" ? "Territorio más encendido" : "Most active territory"}
+              </span>
               <strong>{currentDepartmentData?.label ?? "Colombia"}</strong>
               <p>{currentDepartmentData ? `${Math.round(currentDepartmentData.avgRisk * 100)}/100` : "—"}</p>
             </article>
           </div>
+          <p className="lp-kpi-legend">
+            {lang === "es"
+              ? "Los colores del panel distinguen fuente oficial, alertas priorizadas y territorio con mayor intensidad visible."
+              : "Panel colors distinguish official source, prioritized alerts, and the territory with the strongest visible intensity."}
+          </p>
 
           <div className="lp-hero-signal">
+            <div className="lp-hero-signal__meta">
+              <div>
+                <p className="eyebrow">{lang === "es" ? "Mapa de riesgo" : "Risk map"}</p>
+                <h2>{lang === "es" ? "Riesgo de contratación por departamento" : "Procurement risk by department"}</h2>
+              </div>
+              <p>
+                {lang === "es"
+                  ? "Intensidad de alertas en contratación pública. Haz clic en un departamento para abrir su corte en ContratoLimpio."
+                  : "Alert intensity across public procurement. Click a department to open its slice in ContratoLimpio."}
+              </p>
+            </div>
             <div className="lp-hero-signal__map">
               {geojson ? (
                 <ColombiaMap
                   geojson={geojson}
                   departments={overview.map.departments}
                   activeDepartment={activeDepartment}
-                  onSelect={(department) => setActiveDepartment(department)}
+                  onSelect={(department) => {
+                    setActiveDepartment(department);
+                    router.push(`/contrato-limpio?lang=${lang}&dept=${encodeURIComponent(department)}`);
+                  }}
                   mode="hero"
                   showCaption={false}
                   tooltipData={mapTooltipData}
@@ -285,6 +310,25 @@ export function LandingPage({
                 </div>
               )}
             </div>
+            <div className="lp-map-legend" aria-label={lang === "es" ? "Leyenda del mapa" : "Map legend"}>
+              <span className="lp-map-legend__item">
+                <i className="is-high" />
+                {lang === "es" ? "Alto riesgo" : "High risk"}
+              </span>
+              <span className="lp-map-legend__item">
+                <i className="is-mid" />
+                {lang === "es" ? "Riesgo medio" : "Medium risk"}
+              </span>
+              <span className="lp-map-legend__item">
+                <i className="is-low" />
+                {lang === "es" ? "Riesgo bajo" : "Low risk"}
+              </span>
+            </div>
+            <p className="lp-map-hint">
+              <Link href={`/contrato-limpio?lang=${lang}`} className="lp-inline-link">
+                {lang === "es" ? "Explora el corte completo en ContratoLimpio →" : "Explore the full slice in ContratoLimpio →"}
+              </Link>
+            </p>
           </div>
 
           <div className="lp-entry-grid">
@@ -292,12 +336,14 @@ export function LandingPage({
               const Icon = feature.icon;
               return (
                 <Link key={feature.title} href={feature.href} className={`lp-entry-card lp-entry-card--${feature.tone}`}>
-                  <span className="lp-entry-card__kicker">{feature.kicker}</span>
-                  <div className="lp-entry-card__row">
-                    <strong>{feature.title}</strong>
-                    <Icon size={18} />
+                  <div className="lp-entry-card__content">
+                    <span className="lp-entry-card__kicker">{feature.kicker}</span>
+                    <div className="lp-entry-card__row">
+                      <strong>{feature.title}</strong>
+                      <Icon size={18} />
+                    </div>
+                    <p>{feature.body}</p>
                   </div>
-                  <p>{feature.body}</p>
                   <span className="lp-entry-card__cta">
                     {feature.cta}
                     <ArrowRight size={16} />
@@ -308,6 +354,12 @@ export function LandingPage({
           </div>
         </section>
       </main>
+
+      <div className={`lp-sticky-cta ${showStickyCta ? "is-visible" : ""}`}>
+        <Link href={`/contrato-limpio?lang=${lang}`} className="btn-primary">
+          {lang === "es" ? "Explorar contratos →" : "Explore contracts →"}
+        </Link>
+      </div>
 
       <SiteFooter lang={lang} />
     </div>

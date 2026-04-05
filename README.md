@@ -1,106 +1,113 @@
 # VeedurIA
 
-**VeedurIA** is a civic intelligence product for reading public power in Colombia.
+**VeedurIA** es una capa cívica de lectura pública del poder en Colombia.
 
-It turns overwhelming public data into a product people can actually use:
-- **ContratoLimpio** surfaces public contracts that break the expected pattern
-- **Promesómetro** compares political promises against visible public action
-- **SigueElDinero** is the next layer for tracing networks, money, and influence
+No intenta reemplazar la fuente oficial. La reorganiza para que periodistas, veedurías, ONG, academia y ciudadanía lleguen más rápido a tres preguntas:
 
-This is not a dashboard made to impress other engineers. It is built to help journalists, watchdogs, researchers, and citizens get to the point faster: what deserves attention, why it stands out, and where the official source is.
+1. ¿Qué contrato conviene abrir primero?
+2. ¿Cómo votó un legislador frente a lo que prometía defender?
+3. ¿Qué red de relaciones vale la pena seguir después?
 
-## What The Product Does
+La app vive hoy en: `https://veeduria.vercel.app`
+
+## Qué incluye hoy
 
 ### 1. ContratoLimpio
-Reads scored SECOP contract data and reorganizes it into a practical investigation flow:
-- clear filters
-- territorial risk map
-- guided lead cases
-- explainable factors behind each score
-- direct jump back to the official SECOP record
+Lee contratación pública, permite filtrar el corte visible y ordena qué revisar primero.
 
-The score is a **priority signal**, not an accusation.
+Incluye:
+- filtros por texto, territorio, riesgo, modalidad y fechas
+- mapa de riesgo por departamento
+- caso principal con factores explicativos
+- comparativos del mismo corte
+- explorador y sandbox exportable
+- salto directo al expediente oficial en SECOP II
 
-### 2. Promesómetro
-Tracks the distance between what politicians promise and what public evidence shows:
-- promise source
-- linked public action
-- semantic similarity readout
-- per-profile breakdowns
-- readable NLP explanation instead of opaque jargon
+El puntaje es una **señal de prioridad**, no una acusación.
 
-The goal is not to declare “fulfilled” in a legal sense. The goal is to show whether there is visible public action that meaningfully matches the promise.
+### 2. VotóMeter
+Cruza votaciones nominales del Congreso con el perfil programático visible de cada legislador.
+
+Incluye:
+- grid de legisladores
+- spotlight con métricas objetivas de coherencia
+- tabla de votaciones filtrable
+- matriz legislador × tema
+- enlace a ContratoLimpio cuando hay contratos asociados
+
+La coherencia visible se calcula a partir de votos, ausencias y posición pública por tema. No usa “similitud semántica” como métrica principal en la UI.
 
 ### 3. SigueElDinero
-Planned network layer for:
-- donors
-- contractors
-- officials
-- recurring relationships
-- concentration and capture patterns
+Es la siguiente capa del producto.
 
-## Why It Exists
+Hoy muestra:
+- avance del módulo
+- semilla de datos ya disponible
+- vista previa del frente relacional
+- roadmap de construcción
 
-Colombian public data is massive, messy, and often technically accessible but practically unreadable.
+El objetivo final es conectar contratistas, donantes, funcionarios, votaciones y aprobaciones presupuestales dentro de una misma lectura.
 
-VeedurIA exists to close that gap.
+## Arquitectura
 
-Instead of asking users to start with raw tables, it starts with:
-1. a useful slice
-2. a lead signal
-3. a concise explanation
-4. the official source
-
-That is the product philosophy across the whole stack.
-
-## Product Stack
-
-The repo is intentionally split:
+El repo está dividido para mantener producto web y capa analítica sin mezclar responsabilidades:
 
 - `web/`
-  Next.js product shell for the landing page and public-facing modules
+  Next.js App Router. Aquí vive la interfaz pública, navegación, OG images, estilos y módulos.
 - `backend/`
-  FastAPI layer that serves contract and promises payloads to the web app
+  FastAPI entrypoint para el frontend web.
 - `src/`
-  Python ingestion, feature engineering, model logic, and API services
+  servicios Python, lectura de datos, scoring y lógica analítica.
 - `data/`
-  reference files, processed metadata, and local development artifacts
+  artefactos procesados, metadata del modelo y archivos de referencia.
 
-This keeps the heavy data and ML work in Python while shipping a real web product instead of a notebook-style interface.
-
-## Current Experience
-
-### Routes
+## Rutas principales
 
 - `/`
-  product landing page
+  landing del producto
 - `/contrato-limpio`
-  contract risk reading experience
+  lectura de contratación pública
+- `/votometro`
+  seguimiento de votaciones legislativas
 - `/promesmetro`
-  promises vs evidence experience
+  redirect legado hacia `/votometro`
 - `/promesometro`
-  alias redirect to `/promesmetro`
+  redirect legado hacia `/votometro`
 - `/sigue-el-dinero`
-  placeholder for the next phase
+  frente relacional en construcción
+- `/etica-y-privacidad`
+  privacidad, ética y límites de uso
 
-### Design Direction
+## Stack
 
-The current product direction is:
-- editorial, not generic
-- concise, not bloated
-- explainable, not mystical
-- source-first, not model-first
+### Frontend
+- Next.js 15
+- React
+- TypeScript
+- GSAP
+- Plotly / Recharts
+- CSS global orientado a producto editorial
 
-## Local Development
+### Backend
+- FastAPI
+- pandas / pyarrow
+- servicios Python de lectura y scoring
 
-### 1. Backend
+### Deploy
+- GitHub como origen de verdad
+- Vercel para `web/`
+- despliegue automático desde `main`
+
+## Cómo correrlo local
+
+### Backend
 
 ```bash
 pip install -r requirements.txt
 uvicorn backend.main:app --reload --port 8000
 ```
 
-### 2. Frontend
+### Frontend
 
 ```bash
 cd web
@@ -108,90 +115,72 @@ npm install
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 npm run dev
 ```
 
-Then open:
+Abrir:
 
 ```bash
 http://localhost:3000
 ```
 
-## Build Checks
+## Checks útiles
 
-Frontend production build:
+Frontend:
 
 ```bash
 cd web
 npm run build
 ```
 
-Backend syntax sanity check:
+Sanidad Python:
 
 ```bash
 python3 -m py_compile backend/main.py src/api/contracts_service.py src/api/promises_service.py
 ```
 
-## Data Notes
+## Datos y fallback
 
-- processed datasets may live locally or in Supabase Storage
-- GitHub tracks code, light reference data, metadata, and configuration
-- the app includes fallback mock data so the web product can still render when the API is unavailable
+La experiencia web intenta consumir la API Python. Si esa API no está disponible, la app cae a un fallback mock para que el producto siga renderizando en Vercel.
 
-## Core Technical Ideas
+Eso implica dos cosas:
+- la UI nunca debe romperse por ausencia del backend
+- cuando se trabaja sobre fallback, hay que dejar explícito qué es dato visible y qué sigue siendo cobertura piloto
 
-### Contract Scoring
+## Archivos clave
 
-ContratoLimpio uses anomaly-style scoring over public procurement records.
-
-In plain language:
-- the system learns what a more typical contract looks like
-- it checks which contracts fall far away from that pattern
-- it explains which factors pushed the case upward
-
-This is useful for **preventive review**, not automatic judgment.
-
-### Promise Linking
-
-Promesómetro uses NLP to compare:
-- the wording of the original promise
-- the wording of legislative or executive actions
-
-High similarity means the action is meaningfully close in topic and intent.
-It does **not** automatically mean full policy fulfillment.
-
-## Repo Guide
-
-| Path | Purpose |
+| Path | Rol |
 |---|---|
-| `web/components/landing-page.tsx` | landing page |
-| `web/components/contracts-view.tsx` | ContratoLimpio UI |
-| `web/components/promises-view.tsx` | Promesómetro UI |
-| `web/components/colombia-map.tsx` | reusable Colombia map |
-| `web/components/site-nav.tsx` | shared product navigation |
-| `backend/main.py` | FastAPI entrypoint |
-| `src/api/contracts_service.py` | contracts payload builder |
-| `src/api/promises_service.py` | promises payload builder |
-| `CLAUDE.md` | architecture, workflows, and project context |
+| `web/components/landing-page.tsx` | landing principal |
+| `web/components/contracts-view.tsx` | ContratoLimpio |
+| `web/components/contracts-dashboard.tsx` | gráficas del corte |
+| `web/components/colombia-map.tsx` | mapa reusable de Colombia |
+| `web/components/votometro-view.tsx` | módulo VotóMeter |
+| `web/components/module-placeholder.tsx` | frente de SigueElDinero |
+| `web/components/site-nav.tsx` | shell de navegación compartido |
+| `web/components/site-footer.tsx` | footer compartido |
+| `web/lib/api.ts` | capa fetch del frontend |
+| `web/lib/mock-data.ts` | fallback mock del producto |
+| `web/lib/votometro-data.ts` | dataset visible del módulo legislativo |
+| `backend/main.py` | entrypoint FastAPI |
+| `src/api/contracts_service.py` | payloads de contratos |
+| `src/api/promises_service.py` | payloads Python heredados |
 
-## Deployment
+## Principios del producto
 
-Typical deployment split:
+- fuente primero
+- explicación antes que jerga
+- una sola lectura, no diez pantallas
+- contraste entre dato oficial, scoring y evidencia visible
+- diseño sobrio, no dashboard genérico
 
-- deploy `web/` to Vercel
-- deploy `backend/` to Render, Railway, Fly.io, or equivalent
-- set `NEXT_PUBLIC_API_BASE_URL` in the frontend environment
+## Estado actual
 
-## Positioning
+VeedurIA ya no es solo una prueba visual. Hoy funciona como un producto web con navegación compartida, módulos activos y una ruta clara de expansión:
 
-VeedurIA is trying to become a **public accountability surface** for Colombia:
-- contracts
-- promises
-- money
-- networks
-- evidence
+- ContratoLimpio ya sirve como frente operativo
+- VotóMeter ya reemplazó al módulo anterior de promesas
+- SigueElDinero ya muestra avance real y no una pantalla vacía
 
-One product.
-One reading flow.
-No wasted clicks.
+## Notas
 
-## Documentation
-
-For deeper architecture and workflow notes, see [CLAUDE.md](CLAUDE.md).
+- Si haces push a `main`, Vercel despliega automáticamente.
+- Si la UI en producción no refleja un cambio reciente, normalmente basta un hard refresh.
+- Para contexto más detallado de arquitectura y flujo de trabajo, ver `CLAUDE.md`.

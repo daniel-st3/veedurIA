@@ -675,18 +675,61 @@ function buildVoteRows(pattern: PatternKey) {
       result: template.result,
       coherence: topicState.coherence,
       gaceta: template.gaceta,
-      gacetaHref: "#",
+      gacetaHref: "",
       deviatesFromBench: topicState.deviates,
     } satisfies VoteRecord;
   });
 }
 
-function buildHeatmap(pattern: PatternKey) {
-  const themeStates = PATTERNS[pattern];
+function hashSeed(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) % 9973;
+  }
+  return hash;
+}
 
+function clampScore(value: number) {
+  return Math.max(18, Math.min(94, Math.round(value)));
+}
+
+function buildTopicState(seed: LegislatorSeed, topicKey: TopicTemplate["key"]) {
+  const base = PATTERNS[seed.pattern][topicKey];
+  const explicit = seed.themeBars.find((item) => item.key === topicKey);
+  const hash = hashSeed(`${seed.id}:${topicKey}`);
+  const delta = (hash % 11) - 5;
+  const score = explicit?.score ?? (base.score === null ? null : clampScore(base.score + delta));
+
+  return {
+    ...base,
+    score,
+    deviates: base.deviates || hash % 7 === 0,
+  };
+}
+
+function buildVoteRowsForSeed(seed: LegislatorSeed) {
+  return VOTE_TEMPLATES.map((template, index) => {
+    const topicState = buildTopicState(seed, template.key);
+    return {
+      id: `${seed.id}-${template.key}-${index + 1}`,
+      project: template.project,
+      date: template.date,
+      dateLabel: formatDateLabel(template.date),
+      theme: template.theme,
+      position: topicState.position,
+      result: template.result,
+      coherence: topicState.coherence,
+      gaceta: template.gaceta,
+      gacetaHref: "",
+      deviatesFromBench: topicState.deviates,
+    } satisfies VoteRecord;
+  });
+}
+
+function buildHeatmapForSeed(seed: LegislatorSeed) {
   return HEATMAP_COLUMNS.map((column) => {
     const template = VOTE_TEMPLATES.find((item) => item.key === column.key);
-    const state = themeStates[column.key];
+    const state = buildTopicState(seed, column.key);
     return {
       key: column.key,
       label: column.label,
@@ -721,8 +764,8 @@ export const VOTOMETRO_LEGISLATORS: VotometroLegislator[] = LEGISLATOR_SEEDS.map
   return {
     ...profile,
     topTopics: [...seed.themeBars].sort((a, b) => b.score - a.score).slice(0, 3).map((item) => item.label),
-    voteRows: buildVoteRows(pattern),
-    heatmap: buildHeatmap(pattern),
+    voteRows: buildVoteRowsForSeed(seed),
+    heatmap: buildHeatmapForSeed(seed),
   };
 });
 

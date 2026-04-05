@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ArrowRight, ArrowUpRight, Moon, Sun } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 
+import { SiteFooter } from "@/components/site-footer";
+import { SiteNav } from "@/components/site-nav";
 import type { Lang } from "@/lib/types";
 import {
   HEATMAP_COLUMNS,
@@ -18,8 +20,6 @@ import {
   type VotePeriodKey,
   type VoteRecord,
 } from "@/lib/votometro-data";
-
-type ThemeMode = "light" | "dark";
 
 type TableFilters = {
   theme: string;
@@ -46,7 +46,6 @@ const DEFAULT_FILTERS: TableFilters = {
 const PAGE_SIZE = 6;
 
 export function VotometroView({ lang }: { lang: Lang }) {
-  const [theme, setTheme] = useState<ThemeMode>("light");
   const [period, setPeriod] = useState<VotePeriodKey>("2022-2026");
   const [chamber, setChamber] = useState<VoteChamberKey>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -55,23 +54,6 @@ export function VotometroView({ lang }: { lang: Lang }) {
   const [barsVisible, setBarsVisible] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const spotlightRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setTheme(prefersDark ? "dark" : "light");
-  }, []);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const root = document.documentElement;
-    const previousTheme = root.dataset.theme;
-    root.dataset.theme = theme;
-    return () => {
-      if (previousTheme) root.dataset.theme = previousTheme;
-      else delete root.dataset.theme;
-    };
-  }, [theme]);
 
   const visibleProfiles = useMemo(() => {
     return VOTOMETRO_LEGISLATORS.filter((profile) => {
@@ -193,46 +175,14 @@ export function VotometroView({ lang }: { lang: Lang }) {
 
   return (
     <div className="vm-shell">
-      <nav className="vm-nav" aria-label="Navegación principal VotóMeter">
-        <div className="vm-nav__inner">
-          <Link href={`/?lang=${lang}`} className="vm-brand" aria-label="VeedurIA">
-            <svg viewBox="0 0 48 48" className="vm-brand__icon" aria-hidden="true">
-              <path
-                d="M7 24c4.8-8 10.5-12 17-12s12.2 4 17 12c-4.8 8-10.5 12-17 12S11.8 32 7 24Z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.6"
-              />
-              <circle cx="24" cy="24" r="5.2" fill="currentColor" />
-            </svg>
-            <span className="vm-brand__word">
-              Veedur<span>IA</span>
-            </span>
-          </Link>
-
-          <div className="vm-nav__links">
-            <Link href={`/contrato-limpio?lang=${lang}`} className="vm-nav__pill">
-              ContratoLimpio
-            </Link>
-            <Link href={`/votometro?lang=${lang}`} className="vm-nav__pill vm-nav__pill--active" aria-current="page">
-              VotóMeter
-            </Link>
-            <Link href={`/sigue-el-dinero?lang=${lang}`} className="vm-nav__pill">
-              SigueElDinero
-            </Link>
-          </div>
-
-          <button
-            type="button"
-            className="vm-theme-toggle"
-            onClick={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
-            aria-label={theme === "light" ? "Activar modo oscuro" : "Activar modo claro"}
-          >
-            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
-            <span>{theme === "light" ? "Oscuro" : "Claro"}</span>
-          </button>
-        </div>
-      </nav>
+      <SiteNav
+        lang={lang}
+        links={[
+          { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
+          { href: `/votometro?lang=${lang}`, label: "VotóMeter" },
+          { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
+        ]}
+      />
 
       <main className="vm-main">
         <section className="vm-hero">
@@ -443,8 +393,8 @@ export function VotometroView({ lang }: { lang: Lang }) {
                     <h2>Registro de votaciones</h2>
                   </div>
                   <p className="vm-section__note">
-                    La tabla se enfoca en el perfil seleccionado. Cada fila enlaza la gaceta y deja ver si el voto fue
-                    coherente, inconsistente o quedó sin promesa comparable.
+                    La tabla se enfoca en el perfil seleccionado. Cada fila conserva la gaceta disponible y deja ver si
+                    el voto fue coherente, inconsistente o quedó sin promesa comparable.
                   </p>
                 </header>
 
@@ -614,7 +564,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
               <div className="vm-container vm-methods__grid">
                 <article>
                   <h3>Gacetas del Congreso</h3>
-                  <p>Cada fila del registro conserva número de gaceta y fecha para volver al documento oficial que respalda la votación nominal.</p>
+                  <p>Cada fila conserva número de gaceta y fecha; cuando la URL ya está vinculada, abre el documento oficial que respalda la votación nominal.</p>
                 </article>
                 <article>
                   <h3>API Congreso Visible (Uniandes)</h3>
@@ -629,17 +579,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
           </>
         ) : null}
       </main>
-
-      <footer className="vm-footer">
-        <div className="vm-container vm-footer__inner">
-          <span>VeedurIA · lectura pública del poder · 2024-2026</span>
-          <div className="vm-footer__links">
-            <Link href={`/contrato-limpio?lang=${lang}`}>ContratoLimpio</Link>
-            <Link href={`/votometro?lang=${lang}`}>VotóMeter</Link>
-            <Link href={`/sigue-el-dinero?lang=${lang}`}>SigueElDinero</Link>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter lang={lang} />
 
       {tooltip ? (
         <div className="vm-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
@@ -662,10 +602,16 @@ function VoteRowView({ row }: { row: VoteRecord }) {
       <td>{row.result}</td>
       <td className={`vm-coherence-cell ${getCoherenceClass(row.coherence)}`}>{getCoherenceLabel(row.coherence)}</td>
       <td>
-        <a href={row.gacetaHref} target="_blank" rel="noopener noreferrer" className="vm-gaceta-link">
-          {row.gaceta}
-          <ArrowUpRight size={14} />
-        </a>
+        {row.gacetaHref && row.gacetaHref !== "#" ? (
+          <a href={row.gacetaHref} target="_blank" rel="noopener noreferrer" className="vm-gaceta-link">
+            {row.gaceta}
+            <ArrowUpRight size={14} />
+          </a>
+        ) : (
+          <span className="vm-gaceta-link vm-gaceta-link--pending" title="URL de gaceta en construcción">
+            {row.gaceta}
+          </span>
+        )}
       </td>
     </tr>
   );

@@ -683,21 +683,145 @@ function applyContractFilters(
         r.department.toLowerCase().includes(q),
     );
   }
+  if (filters.dateFrom) {
+    result = result.filter((r) => r.date >= filters.dateFrom!);
+  }
+  if (filters.dateTo) {
+    result = result.filter((r) => r.date <= filters.dateTo!);
+  }
   return result;
+}
+
+function hasContractNarrowing(filters: ContractsFilters) {
+  return Boolean(
+    filters.department ||
+      (filters.risk && filters.risk !== "all") ||
+      filters.modality ||
+      filters.query ||
+      filters.dateFrom ||
+      filters.dateTo,
+  );
+}
+
+function baseDepartmentCount(department?: string) {
+  if (!department) return 1_234_890;
+  return MOCK_DEPARTMENTS.find((item) => item.value === department)?.contractCount ?? 0;
+}
+
+function shouldScaleToPopulation(filters: ContractsFilters) {
+  return Boolean(
+    filters.department &&
+      !(filters.risk && filters.risk !== "all") &&
+      !filters.modality &&
+      !filters.query?.trim() &&
+      !filters.dateFrom &&
+      !filters.dateTo,
+  );
+}
+
+function scaleVisibleCount(filteredCount: number, sampleUniverse: number, basePopulation: number) {
+  if (filteredCount <= 0 || sampleUniverse <= 0 || basePopulation <= 0) return 0;
+  return Math.max(filteredCount, Math.round(basePopulation * (filteredCount / sampleUniverse)));
+}
+
+function buildMockDepartmentReadout(contextRows: typeof ALL_ROWS) {
+  return MOCK_DEPARTMENTS.map((department) => {
+    const baseRows = applyContractFilters(ALL_ROWS, { lang: "es", department: department.value });
+    const filteredRows = contextRows.filter(
+      (row) => normalizeDepartmentKey(row.department) === department.value,
+    );
+    const contractCount =
+      filteredRows.length && baseRows.length
+        ? scaleVisibleCount(filteredRows.length, baseRows.length, department.contractCount)
+        : filteredRows.length === 0 && contextRows.length
+          ? 0
+          : department.contractCount;
+    const avgRisk =
+      filteredRows.length > 0
+        ? filteredRows.reduce((sum, row) => sum + row.score / 100, 0) / filteredRows.length
+        : department.avgRisk;
+
+    return {
+      key: department.value,
+      label: department.label,
+      geoName: department.geoName,
+      avgRisk,
+      contractCount,
+    };
+  });
+}
+
+function buildScaledCounts(rows: typeof ALL_ROWS, scaledTotal: number) {
+  if (!rows.length || scaledTotal <= 0) return 0;
+  return Math.max(1, Math.round(scaledTotal / rows.length));
+}
+
+function buildMockEntitySummary(rows: typeof ALL_ROWS, scaledTotal: number) {
+  if (!rows.length) return [];
+  const multiplier = buildScaledCounts(rows, scaledTotal);
+  return [...rows]
+    .sort((left, right) => right.score - left.score || right.value - left.value)
+    .slice(0, 5)
+    .map((row, index) => ({
+      nombre_entidad: row.entity,
+      contracts: multiplier + Math.max(0, 4 - index) * Math.max(1, Math.round(multiplier * 0.08)),
+      meanRisk: row.score / 100,
+      maxRisk: Math.min(0.99, row.score / 100 + 0.06),
+    }));
+}
+
+function buildMockModalitySummary(rows: typeof ALL_ROWS, scaledTotal: number) {
+  if (!rows.length) return [];
+  const grouped = new Map<string, { contracts: number; totalRisk: number }>();
+  rows.forEach((row) => {
+    const current = grouped.get(row.modality) ?? { contracts: 0, totalRisk: 0 };
+    current.contracts += 1;
+    current.totalRisk += row.score / 100;
+    grouped.set(row.modality, current);
+  });
+
+  return [...grouped.entries()]
+    .map(([modalidad, value]) => ({
+      modalidad_de_contratacion: modalidad,
+      contracts: scaleVisibleCount(value.contracts, rows.length, scaledTotal),
+      meanRisk: value.contracts ? value.totalRisk / value.contracts : 0,
+    }))
+    .sort((left, right) => right.meanRisk - left.meanRisk || right.contracts - left.contracts)
+    .slice(0, 5);
 }
 
 export function getMockOverview(filters: ContractsFilters): OverviewPayload {
   const lang = filters.lang ?? "es";
+  const baseRows = filters.department
+    ? applyContractFilters(ALL_ROWS, { lang, department: filters.department })
+    : ALL_ROWS;
+  const contextRows = applyContractFilters(ALL_ROWS, { ...filters, department: undefined });
   const filtered = applyContractFilters(ALL_ROWS, filters);
   const filteredLeadCases = applyContractFilters(LEAD_CASES, filters);
-  const totalContracts = filters.department
-    ? (MOCK_DEPARTMENTS.find((d) => d.value === filters.department)?.contractCount ?? filtered.length)
-    : 1_234_890;
-  const redAlerts = Math.round(totalContracts * 0.05);
-  const prioritizedValue = filtered.filter((r) => r.riskBand === "high").reduce((s, r) => s + r.value, 0) || 124_500_000_000;
+  const hasNarrowing = hasContractNarrowing(filters);
+  const populationBase = baseDepartmentCount(filters.department);
+  const useScaledPopulation = shouldScaleToPopulation(filters);
+  const totalContracts =
+    hasNarrowing && useScaledPopulation && baseRows.length
+      ? scaleVisibleCount(filtered.length, baseRows.length, populationBase)
+      : hasNarrowing
+        ? filtered.length
+        : populationBase;
+  const highRiskShare = filtered.length ? filtered.filter((r) => r.riskBand === "high").length / filtered.length : 0;
+  const redAlerts = filtered.length ? Math.max(0, Math.round(totalContracts * highRiskShare)) : 0;
+  const scaleFactor = filtered.length ? totalContracts / filtered.length : 0;
+  const prioritizedValue =
+    filtered.length > 0
+      ? Math.round(filtered.filter((r) => r.riskBand === "high").reduce((sum, row) => sum + row.value, 0) * scaleFactor)
+      : 124_500_000_000;
+  const mapDepartments = buildMockDepartmentReadout(contextRows);
   const topDept = filters.department
     ? (MOCK_DEPARTMENTS.find((d) => d.value === filters.department)?.label ?? "Colombia")
-    : "Bogotá D.C.";
+    : [...mapDepartments].sort((left, right) => right.contractCount - left.contractCount || right.avgRisk - left.avgRisk)[0]?.label ?? "Bogotá D.C.";
+  const liveFeedContracts = (filtered.length ? filtered : ALL_ROWS).slice(0, 5);
+  const departmentMeanRisk = filters.department
+    ? mapDepartments.find((item) => item.key === filters.department || item.geoName === filters.department)?.avgRisk ?? null
+    : null;
 
   return {
     meta: {
@@ -719,13 +843,7 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
       modalities: MODALITIES,
     },
     map: {
-      departments: MOCK_DEPARTMENTS.map((d) => ({
-        key: d.value,
-        label: d.label,
-        geoName: d.geoName,
-        avgRisk: d.avgRisk,
-        contractCount: d.contractCount,
-      })),
+      departments: mapDepartments,
     },
     slice: {
       totalContracts,
@@ -737,9 +855,7 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
     benchmarks: {
       nationalMeanRisk: 0.52,
       sliceMeanRisk: filtered.length ? filtered.reduce((sum, row) => sum + row.score / 100, 0) / filtered.length : 0.52,
-      departmentMeanRisk: filters.department
-        ? (MOCK_DEPARTMENTS.find((d) => d.value === filters.department)?.avgRisk ?? null)
-        : null,
+      departmentMeanRisk,
       sliceMedianValue: filtered.length
         ? [...filtered].sort((left, right) => left.value - right.value)[Math.floor(filtered.length / 2)]?.value ?? 0
         : 3_240_000_000,
@@ -750,20 +866,8 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
       valueLabel: formatMockCurrency(item.value, lang),
     })),
     summaries: {
-      entities: [
-        { nombre_entidad: "UNIDAD NAL. GESTIÓN DEL RIESGO", contracts: 312, meanRisk: 0.76, maxRisk: 0.91 },
-        { nombre_entidad: "INVÍAS", contracts: 284, meanRisk: 0.69, maxRisk: 0.88 },
-        { nombre_entidad: "GOBERNACIÓN DEL CHOCÓ", contracts: 198, meanRisk: 0.72, maxRisk: 0.87 },
-        { nombre_entidad: "GOBERNACIÓN DE SUCRE", contracts: 175, meanRisk: 0.70, maxRisk: 0.85 },
-        { nombre_entidad: "GOBERNACIÓN DE LA GUAJIRA", contracts: 163, meanRisk: 0.78, maxRisk: 0.94 },
-      ],
-      modalities: [
-        { modalidad_de_contratacion: "Contratación directa", contracts: 8_423, meanRisk: 0.68 },
-        { modalidad_de_contratacion: "Selección abreviada", contracts: 12_180, meanRisk: 0.54 },
-        { modalidad_de_contratacion: "Licitación pública", contracts: 6_842, meanRisk: 0.44 },
-        { modalidad_de_contratacion: "Concurso de méritos", contracts: 2_310, meanRisk: 0.38 },
-        { modalidad_de_contratacion: "Mínima cuantía", contracts: 18_940, meanRisk: 0.32 },
-      ],
+      entities: buildMockEntitySummary(filtered.length ? filtered : ALL_ROWS, totalContracts),
+      modalities: buildMockModalitySummary(filtered.length ? filtered : ALL_ROWS, totalContracts),
     },
     methodology: {
       modelType: "IsolationForest",
@@ -777,7 +881,7 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
     liveFeed: {
       latestDate: "2026-04-02",
       rowsAtSource: 5_596_689,
-      contracts: ALL_ROWS.slice(0, 5).map((r) => ({
+      contracts: liveFeedContracts.map((r) => ({
         id: r.id,
         entity: r.entity,
         department: formatMockDepartmentLabel(r.department),
