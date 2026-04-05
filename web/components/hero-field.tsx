@@ -102,13 +102,13 @@ export function HeroField({ lang, status, title, body, legend, graphLabel, notes
         </div>
         <div className="hero-field__legend">
           <span className="label hero-field__legend-item">
-            <span className="status-dot" style={{ background: "var(--yellow)" }} /> {legend[0]}
+            <span className="status-dot" style={{ background: "var(--primary)" }} /> {legend[0]}
           </span>
           <span className="label hero-field__legend-item">
-            <span className="status-dot" style={{ background: "var(--blue)" }} /> {legend[1]}
+            <span className="status-dot" style={{ background: "var(--risk-med-bar)" }} /> {legend[1]}
           </span>
           <span className="label hero-field__legend-item">
-            <span className="status-dot" style={{ background: "var(--red)" }} /> {legend[2]}
+            <span className="status-dot" style={{ background: "var(--risk-high-bar)" }} /> {legend[2]}
           </span>
         </div>
       </div>

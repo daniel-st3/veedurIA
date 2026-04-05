@@ -6,11 +6,20 @@ import { useMemo } from "react";
 import type { Lang, PromiseCard, PromisesPayload } from "@/lib/types";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
+const PRIMARY = "#015f65";
+const PRIMARY_SOFT = "#5a9da3";
+const PRIMARY_WASH = "rgba(1, 95, 101, 0.16)";
+const GRID_COLOR = "rgba(40, 37, 29, 0.08)";
+const TOOLTIP_THEME = {
+  bgcolor: "#f9f8f5",
+  bordercolor: "rgba(40, 37, 29, 0.1)",
+  font: { color: "#1e1c17", size: 13, family: "Inter, ui-sans-serif, system-ui, sans-serif" },
+} as const;
 
 function statusColor(status: PromiseCard["status"]) {
-  if (status === "con_accion_registrada") return "#10B981";
-  if (status === "en_seguimiento") return "#F5C518";
-  return "#64748B";
+  if (status === "con_accion_registrada") return "#27a647";
+  if (status === "en_seguimiento") return "#d4800a";
+  return "#7a6a55";
 }
 
 function buildTimeline(cards: PromiseCard[]) {
@@ -42,9 +51,9 @@ export function PromisesAnalytics({
       r: scorecard.domains.map((item) => Math.round(item.score * 100)),
       theta: scorecard.domains.map((item) => item.label),
       fill: "toself",
-      line: { color: "#2E5BFF", width: 3 },
-      marker: { color: "#F5C518", size: 7 },
-      fillcolor: "rgba(46, 91, 255, 0.18)",
+      line: { color: PRIMARY, width: 3 },
+      marker: { color: PRIMARY_SOFT, size: 7 },
+      fillcolor: PRIMARY_WASH,
       hovertemplate:
         lang === "es"
           ? "<b>%{theta}</b><br>%{r}/100 de consistencia<extra></extra>"
@@ -61,11 +70,11 @@ export function PromisesAnalytics({
         y: timeline.map((item) => item.y),
         type: "scatter",
         mode: "lines+markers",
-        line: { color: "#93C5FD", width: 2, shape: "spline" },
+        line: { color: PRIMARY_SOFT, width: 2.5, shape: "spline" },
         marker: {
           size: 12,
           color: timeline.map((item) => statusColor(item.status)),
-          line: { color: "rgba(255,255,255,0.16)", width: 1 },
+          line: { color: "rgba(40, 37, 29, 0.12)", width: 1 },
         },
         customdata: timeline.map((item) => [item.domain, item.source, item.text]),
         hovertemplate:
@@ -93,7 +102,8 @@ export function PromisesAnalytics({
     autosize: true,
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
-    font: { color: "#d8e2f0", family: "ui-sans-serif, system-ui, sans-serif" },
+    font: { color: "#1e1c17", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
+    hoverlabel: TOOLTIP_THEME,
   } as const;
 
   return (
@@ -124,8 +134,8 @@ export function PromisesAnalytics({
                 margin: { l: 32, r: 32, t: 8, b: 8 },
                 polar: {
                   bgcolor: "rgba(0,0,0,0)",
-                  radialaxis: { range: [0, 100], gridcolor: "rgba(149, 168, 194, 0.14)" },
-                  angularaxis: { gridcolor: "rgba(149, 168, 194, 0.14)" },
+                  radialaxis: { range: [0, 100], gridcolor: GRID_COLOR },
+                  angularaxis: { gridcolor: GRID_COLOR },
                 },
                 showlegend: false,
               }}
@@ -146,8 +156,8 @@ export function PromisesAnalytics({
               layout={{
                 ...baseLayout,
                 margin: { l: 44, r: 18, t: 12, b: 48 },
-                xaxis: { gridcolor: "rgba(149, 168, 194, 0.12)", tickangle: -28 },
-                yaxis: { range: [0, 100], gridcolor: "rgba(149, 168, 194, 0.12)", title: lang === "es" ? "Similitud" : "Similarity" },
+                xaxis: { gridcolor: GRID_COLOR, tickangle: -28 },
+                yaxis: { range: [0, 100], gridcolor: GRID_COLOR, title: lang === "es" ? "Similitud" : "Similarity" },
                 showlegend: false,
               }}
               config={{ responsive: true, displaylogo: false }}

@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Suspense } from "react";
+import { usePathname } from "next/navigation";
 
 import { LanguageSwitch } from "@/components/language-switch";
 import type { Lang } from "@/lib/types";
@@ -12,6 +15,8 @@ type Props = {
 };
 
 export function SiteNav({ lang, links }: Props) {
+  const pathname = usePathname();
+
   return (
     <nav className="site-nav">
       <Link href={`/?lang=${lang}`} className="brand" aria-label="VeedurIA">
@@ -29,11 +34,20 @@ export function SiteNav({ lang, links }: Props) {
       </Link>
 
       <div className="nav-links">
-        {links.map((link) => (
-          <Link key={link.href} href={link.href} className="nav-link-pill">
-            {link.label}
-          </Link>
-        ))}
+        {links.map((link) => {
+          const targetPath = link.href.split("?")[0] || "/";
+          const isActive = pathname === targetPath;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="nav-link-pill"
+              aria-current={isActive ? "page" : undefined}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
       </div>
 
       <div className="nav-actions">

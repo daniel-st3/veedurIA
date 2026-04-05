@@ -82,7 +82,13 @@ const CHARTS: Array<{ key: ChartKey; labelEs: string; labelEn: string }> = [
   { key: "area", labelEs: "Área", labelEn: "Area" },
 ];
 
-const PALETTE = ["#f3c322", "#1b74ff", "#e24152", "#10b981", "#fb7185", "#8b5cf6", "#22c55e", "#f97316"];
+const PALETTE = ["#015f65", "#5a9da3", "#b0d4d7", "#7a6a55", "#c8bfaf"];
+const GRID_COLOR = "rgba(40, 37, 29, 0.08)";
+const TOOLTIP_THEME = {
+  bgcolor: "#f9f8f5",
+  bordercolor: "rgba(40, 37, 29, 0.1)",
+  font: { color: "#1e1c17", size: 13, family: "Inter, ui-sans-serif, system-ui, sans-serif" },
+} as const;
 
 function metricLabel(lang: Lang, key: MetricKey) {
   return METRICS.find((item) => item.key === key)?.[lang === "es" ? "labelEs" : "labelEn"] ?? key;
@@ -369,21 +375,22 @@ export function PromisePivotSandbox({
                 autosize: true,
                 paper_bgcolor: "rgba(0,0,0,0)",
                 plot_bgcolor: "rgba(0,0,0,0)",
-                font: { color: "#d8e2f0", family: "Sora, sans-serif" },
+                font: { color: "#1e1c17", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
+                hoverlabel: TOOLTIP_THEME,
                 margin: { l: 40, r: 18, t: 18, b: 48 },
                 barmode: seriesKey === "none" ? "group" : "stack",
                 showlegend: seriesKey !== "none",
                 legend: { orientation: "h", y: -0.22, x: 0 },
                 xaxis: {
-                  tickfont: { color: "#c8d4e6" },
-                  gridcolor: "rgba(120, 139, 165, 0.12)",
-                  zerolinecolor: "rgba(120, 139, 165, 0.12)",
+                  tickfont: { color: "#6b6a65" },
+                  gridcolor: GRID_COLOR,
+                  zerolinecolor: GRID_COLOR,
                 },
                 yaxis: {
                   title: metricLabel(lang, metric),
-                  tickfont: { color: "#c8d4e6" },
-                  gridcolor: "rgba(120, 139, 165, 0.12)",
-                  zerolinecolor: "rgba(120, 139, 165, 0.12)",
+                  tickfont: { color: "#6b6a65" },
+                  gridcolor: GRID_COLOR,
+                  zerolinecolor: GRID_COLOR,
                 },
               }}
               config={{

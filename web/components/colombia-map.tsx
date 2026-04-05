@@ -46,6 +46,14 @@ type ProjectedFeature = {
 const VIEWBOX_WIDTH = 540;
 const VIEWBOX_HEIGHT = 640;
 const PAD = 2;
+const MAP_TONES = {
+  low: "rgba(39, 166, 71, 0.76)",
+  medium: "rgba(212, 128, 10, 0.76)",
+  high: "rgba(192, 57, 43, 0.8)",
+  neutral: "rgba(1, 95, 101, 0.12)",
+  activeGlow: "rgba(1, 95, 101, 0.18)",
+  activeDot: "#015f65",
+};
 
 function readPoints(value: any, bucket: [number, number][]) {
   if (!Array.isArray(value) || !value.length) return;
@@ -140,10 +148,10 @@ function buildRiskStops(values: number[]) {
 }
 
 function toneForRisk(value: number, stops: { medium: number; high: number; peak: number }) {
-  if (value >= stops.peak) return "rgba(230, 57, 70, 0.96)";
-  if (value >= stops.high) return "rgba(230, 57, 70, 0.72)";
-  if (value >= stops.medium) return "rgba(245, 197, 24, 0.92)";
-  return "rgba(46, 91, 255, 0.34)";
+  if (value >= stops.peak) return "rgba(192, 57, 43, 0.92)";
+  if (value >= stops.high) return MAP_TONES.high;
+  if (value >= stops.medium) return MAP_TONES.medium;
+  return MAP_TONES.low;
 }
 
 function randomPoint(range: number, offset: number) {
@@ -291,14 +299,9 @@ export function ColombiaMap({
     >
       <svg viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`} className="colombia-map__svg" aria-label="Mapa de Colombia">
         <defs>
-          <linearGradient id={`flag-gradient-${mode}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#F5C518" stopOpacity="0.94" />
-            <stop offset="52%" stopColor="#2E5BFF" stopOpacity="0.88" />
-            <stop offset="100%" stopColor="#E63946" stopOpacity="0.9" />
-          </linearGradient>
           <radialGradient id={`map-glow-${mode}`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(46,91,255,0.24)" />
-            <stop offset="100%" stopColor="rgba(46,91,255,0)" />
+            <stop offset="0%" stopColor="rgba(1, 95, 101, 0.18)" />
+            <stop offset="100%" stopColor="rgba(1, 95, 101, 0)" />
           </radialGradient>
         </defs>
 
@@ -316,7 +319,7 @@ export function ColombiaMap({
                 cx={feature.centerX}
                 cy={feature.centerY}
                 r={mode === "hero" ? 6 : 4.5}
-                fill={index % 3 === 0 ? "#F5C518" : index % 3 === 1 ? "#2E5BFF" : "#E63946"}
+                fill={index % 3 === 0 ? MAP_TONES.low : index % 3 === 1 ? MAP_TONES.medium : MAP_TONES.high}
                 opacity="0"
               />
             ))}
@@ -329,21 +332,15 @@ export function ColombiaMap({
             const isActive = currentDepartment === feature.key;
             const isHot = (datum?.avgRisk ?? 0) >= 0.7;
             const fill =
-              mode === "hero"
-                ? isActive
-                  ? `url(#flag-gradient-${mode})`
-                  : datum
-                    ? toneForRisk(datum.avgRisk, stops)
-                    : index % 3 === 0
-                      ? "rgba(245,197,24,0.16)"
-                      : index % 3 === 1
-                        ? "rgba(46,91,255,0.14)"
-                        : "rgba(230,57,70,0.12)"
-                : isActive
-                  ? `url(#flag-gradient-${mode})`
-                  : datum
-                    ? toneForRisk(datum.avgRisk, stops)
-                    : "rgba(23,32,51,0.08)";
+              datum
+                ? toneForRisk(datum.avgRisk, stops)
+                : mode === "hero"
+                  ? index % 3 === 0
+                    ? "rgba(39, 166, 71, 0.14)"
+                    : index % 3 === 1
+                      ? "rgba(1, 95, 101, 0.12)"
+                      : "rgba(122, 106, 85, 0.12)"
+                  : MAP_TONES.neutral;
 
             return (
               <path
@@ -353,6 +350,7 @@ export function ColombiaMap({
                 fill={fill}
                 fillRule="evenodd"
                 className={`colombia-map__shape ${isActive ? "is-active" : ""} ${isHot ? "is-hot" : ""}`}
+                stroke={isActive ? "rgba(1, 95, 101, 0.7)" : undefined}
                 style={{ animationDelay: `${index * 18}ms` }}
                 onMouseEnter={() => setHovered(feature.key)}
                 onMouseLeave={() => setHovered(null)}
@@ -364,8 +362,13 @@ export function ColombiaMap({
 
         {currentFeature ? (
           <g className="colombia-map__marker">
-            <circle cx={currentFeature.centerX} cy={currentFeature.centerY} r={mode === "hero" ? 15 : 11} fill="rgba(46,91,255,0.18)" />
-            <circle cx={currentFeature.centerX} cy={currentFeature.centerY} r={mode === "hero" ? 7 : 5} fill="#2E5BFF" />
+            <circle
+              cx={currentFeature.centerX}
+              cy={currentFeature.centerY}
+              r={mode === "hero" ? 15 : 11}
+              fill={MAP_TONES.activeGlow}
+            />
+            <circle cx={currentFeature.centerX} cy={currentFeature.centerY} r={mode === "hero" ? 7 : 5} fill={MAP_TONES.activeDot} />
           </g>
         ) : null}
       </svg>

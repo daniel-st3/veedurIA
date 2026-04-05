@@ -6,6 +6,18 @@ import { useMemo } from "react";
 import type { DepartmentDatum, Lang, TableRow } from "@/lib/types";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
+const CHART_PALETTE = ["#015f65", "#5a9da3", "#b0d4d7", "#7a6a55", "#c8bfaf"];
+const RISK_COLORS = {
+  high: "#c0392b",
+  medium: "#d4800a",
+  low: "#27a647",
+};
+const GRID_COLOR = "rgba(40, 37, 29, 0.08)";
+const TOOLTIP_THEME = {
+  bgcolor: "#f9f8f5",
+  bordercolor: "rgba(40, 37, 29, 0.1)",
+  font: { color: "#1e1c17", size: 13, family: "Inter, ui-sans-serif, system-ui, sans-serif" },
+} as const;
 
 function groupByMonth(rows: TableRow[]) {
   const buckets = new Map<string, number>();
@@ -65,9 +77,13 @@ export function ContractsDashboard({
       customdata: departments.map((item) => [Math.round(item.avgRisk * 100), item.contractCount]),
       marker: {
         colors: departments.map((item) =>
-          item.avgRisk >= 0.7 ? "#E63946" : item.avgRisk >= 0.4 ? "#F5C518" : "#2E5BFF",
+          item.avgRisk >= 0.7
+            ? RISK_COLORS.high
+            : item.avgRisk >= 0.4
+              ? RISK_COLORS.medium
+              : RISK_COLORS.low,
         ),
-        line: { color: "rgba(255,255,255,0.22)", width: 1.2 },
+        line: { color: "rgba(40, 37, 29, 0.1)", width: 1.1 },
       },
       texttemplate: "%{label}<br>%{value:,}",
       hovertemplate:
@@ -89,8 +105,9 @@ export function ContractsDashboard({
         type: "scatter",
         mode: "lines+markers",
         fill: "tozeroy",
-        line: { color: "#2E5BFF", width: 3, shape: "spline" },
-        marker: { color: "#F5C518", size: 8 },
+        fillcolor: "rgba(1, 95, 101, 0.12)",
+        line: { color: CHART_PALETTE[0], width: 3, shape: "spline" },
+        marker: { color: CHART_PALETTE[1], size: 8 },
         hovertemplate:
           lang === "es"
             ? "<b>%{x}</b><br>%{y} contratos visibles<extra></extra>"
@@ -108,7 +125,7 @@ export function ContractsDashboard({
         type: "pie",
         hole: 0.62,
         marker: {
-          colors: ["#F5C518", "#2E5BFF", "#E63946", "#10B981", "#F97316", "#8B5CF6"],
+          colors: CHART_PALETTE,
         },
         textinfo: "label+percent",
         hovertemplate:
@@ -129,7 +146,11 @@ export function ContractsDashboard({
         orientation: "h",
         marker: {
           color: topEntities.map((item) =>
-            item.peakScore >= 80 ? "#E63946" : item.peakScore >= 55 ? "#F5C518" : "#2E5BFF",
+            item.peakScore >= 80
+              ? RISK_COLORS.high
+              : item.peakScore >= 55
+                ? RISK_COLORS.medium
+                : CHART_PALETTE[0],
           ),
         },
         hovertemplate:
@@ -145,7 +166,8 @@ export function ContractsDashboard({
     autosize: true,
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
-    font: { color: "#d7deeb", family: "ui-sans-serif, system-ui, sans-serif" },
+    font: { color: "#1e1c17", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
+    hoverlabel: TOOLTIP_THEME,
     margin: { l: 28, r: 16, t: 16, b: 38 },
   } as const;
 
@@ -193,7 +215,7 @@ export function ContractsDashboard({
               data={timelineData as any}
               layout={{
                 ...baseLayout,
-                yaxis: { gridcolor: "rgba(138, 154, 179, 0.12)", zeroline: false },
+                yaxis: { gridcolor: GRID_COLOR, zeroline: false },
                 xaxis: { tickangle: -35 },
               }}
               config={{ responsive: true, displaylogo: false }}
@@ -232,7 +254,7 @@ export function ContractsDashboard({
               layout={{
                 ...baseLayout,
                 margin: { l: 170, r: 16, t: 12, b: 24 },
-                xaxis: { gridcolor: "rgba(138, 154, 179, 0.12)", zeroline: false },
+                xaxis: { gridcolor: GRID_COLOR, zeroline: false },
               }}
               config={{ responsive: true, displaylogo: false }}
               style={{ width: "100%", height: "100%" }}
