@@ -189,7 +189,7 @@ export function ContractsDashboard({
       </div>
 
       <div className="cv-dashboard__grid">
-        <article className="cv-dashboard-card">
+        <article className="cv-dashboard-card cv-dashboard-card--treemap">
           <div className="cv-dashboard-card__head">
             <strong>{lang === "es" ? "Mapa compacto del país" : "Compact country map"}</strong>
             <span>{lang === "es" ? "Tamaño = contratos · color = intensidad" : "Size = contracts · color = intensity"}</span>
@@ -207,7 +207,7 @@ export function ContractsDashboard({
                 const department = event.points?.[0]?.id;
                 if (department && typeof department === "string") onDepartmentPick?.(department);
               }}
-              style={{ width: "100%", height: "100%" }}
+              style={{ width: "100%", height: 240 }}
             />
           </div>
         </article>
@@ -231,7 +231,7 @@ export function ContractsDashboard({
                 const month = event.points?.[0]?.x;
                 if (month && typeof month === "string") onMonthPick?.(month);
               }}
-              style={{ width: "100%", height: "100%" }}
+              style={{ width: "100%", height: 240 }}
             />
           </div>
         </article>
@@ -251,7 +251,7 @@ export function ContractsDashboard({
                 legend: { orientation: "h", y: -0.14, x: 0, font: { size: 11, color: "#6b6a65" } },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
-              style={{ width: "100%", height: "100%" }}
+              style={{ width: "100%", height: 240 }}
             />
           </div>
         </article>
@@ -270,7 +270,7 @@ export function ContractsDashboard({
                 xaxis: { gridcolor: GRID_COLOR, zeroline: false },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
-              style={{ width: "100%", height: "100%" }}
+              style={{ width: "100%", height: 240 }}
             />
           </div>
         </article>

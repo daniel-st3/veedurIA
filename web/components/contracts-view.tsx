@@ -1262,77 +1262,69 @@ export function ContractsView({
         </section>
 
         <section className="cv-block surface">
-          <div className="cv-block__header">
-            <div>
-              <p className="eyebrow">{lang === "es" ? "Resumen ejecutivo" : "Executive summary"}</p>
-              <h2>{lang === "es" ? "Hallazgos concretos del corte" : "Concrete findings from this slice"}</h2>
-            </div>
-            <p>
-              {lang === "es"
-                ? "Cuatro señales rápidas para entender qué se concentra aquí antes de abrir el explorador completo."
-                : "Four quick signals to understand what is concentrating here before opening the full explorer."}
-            </p>
-          </div>
+          <details className="cv-collapsible cv-collapsible--desktop-open">
+            <summary>
+              <span>{lang === "es" ? "Resumen ejecutivo — Hallazgos concretos del corte" : "Executive summary — Concrete findings from this slice"}</span>
+            </summary>
 
-          <div className="cv-summary-grid cv-summary-grid--compact">
-            {summaryHighlights.map((item) => (
-              <article key={item.label} className="cv-summary-card">
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-                <p>{item.note}</p>
-              </article>
-            ))}
-          </div>
+            <div className="cv-summary-grid cv-summary-grid--compact">
+              {summaryHighlights.map((item) => (
+                <article key={item.label} className="cv-summary-card">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                  <p>{item.note}</p>
+                </article>
+              ))}
+            </div>
+          </details>
         </section>
 
         <section className="cv-block surface stripe-green">
-          <div className="cv-block__header">
-            <div>
-              <p className="eyebrow">{lang === "es" ? "Últimos contratos vistos" : "Latest contracts seen"}</p>
-              <h2>{lang === "es" ? "Qué acaba de aparecer en la fuente oficial" : "What just appeared in the official source"}</h2>
-            </div>
-            <p>
-              {lang === "es"
-                ? `La fuente oficial publica cortes diarios. Hoy reporta contratos hasta ${latestSourceDate} y la última actualización visible del portal es ${formatPortalUpdated(lang, sourceUpdatedAt)}. La capa analítica se compara contra ese corte y hoy está puntuada hasta ${latestScoredDate}.`
-                : `The official source publishes daily cuts. Today it reports contracts through ${latestSourceDate}, and the latest visible portal update is ${formatPortalUpdated(lang, sourceUpdatedAt)}. The analytical layer is compared against that cut and is currently scored through ${latestScoredDate}.`}
-            </p>
-          </div>
+          <details className="cv-collapsible">
+            <summary>
+              <span>
+                {lang === "es"
+                  ? `Ver contratos recientes (${liveContracts.length} nuevos hoy)`
+                  : `View recent contracts (${liveContracts.length} new today)`}
+              </span>
+            </summary>
 
-          <div className="cv-fresh-headline">
-            <div className="cv-fresh-card">
-              <span>{lang === "es" ? "Portal actualizado" : "Portal updated"}</span>
-              <strong>{formatPortalUpdated(lang, sourceUpdatedAt)}</strong>
+            <div className="cv-fresh-headline">
+              <div className="cv-fresh-card">
+                <span>{lang === "es" ? "Portal actualizado" : "Portal updated"}</span>
+                <strong>{formatPortalUpdated(lang, sourceUpdatedAt)}</strong>
+              </div>
+              <div className="cv-fresh-card">
+                <span>{lang === "es" ? "Brecha analítica" : "Analytical gap"}</span>
+                <strong>{freshnessGap === null || freshnessGap === undefined ? "—" : `${freshnessGap} ${lang === "es" ? "días" : "days"}`}</strong>
+              </div>
+              <div className="cv-fresh-card">
+                <span>{lang === "es" ? "Filas en fuente" : "Rows at source"}</span>
+                <strong>{(freshness?.sourceRows ?? overview?.meta.sourceRows ?? 0).toLocaleString("es-CO")}</strong>
+              </div>
             </div>
-            <div className="cv-fresh-card">
-              <span>{lang === "es" ? "Brecha analítica" : "Analytical gap"}</span>
-              <strong>{freshnessGap === null || freshnessGap === undefined ? "—" : `${freshnessGap} ${lang === "es" ? "días" : "days"}`}</strong>
-            </div>
-            <div className="cv-fresh-card">
-              <span>{lang === "es" ? "Filas en fuente" : "Rows at source"}</span>
-              <strong>{(freshness?.sourceRows ?? overview?.meta.sourceRows ?? 0).toLocaleString("es-CO")}</strong>
-            </div>
-          </div>
 
-          {liveContracts.length ? (
-            <div className="contract-freshness__feed">
-              {liveContracts.map((row) => (
-                <Link key={row.id} href={row.secopUrl || "#"} target="_blank" className="contract-freshness__item">
-                  <div>
-                    <div className="label" style={{ marginBottom: "0.2rem" }}>{row.department}</div>
-                    <strong>{row.entity}</strong>
-                  </div>
-                  <div className="contract-freshness__item-meta">
-                    <span>{row.date}</span>
-                    <span>{formatCompactCop(row.value, lang)}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="surface-soft" style={{ padding: "1rem" }}>
-              {lang === "es" ? "No hay una muestra en vivo disponible en este momento." : "No live sample is available right now."}
-            </div>
-          )}
+            {liveContracts.length ? (
+              <div className="contract-freshness__feed">
+                {liveContracts.map((row) => (
+                  <Link key={row.id} href={row.secopUrl || "#"} target="_blank" className="contract-freshness__item">
+                    <div>
+                      <div className="label" style={{ marginBottom: "0.2rem" }}>{row.department}</div>
+                      <strong>{row.entity}</strong>
+                    </div>
+                    <div className="contract-freshness__item-meta">
+                      <span>{row.date}</span>
+                      <span>{formatCompactCop(row.value, lang)}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="surface-soft" style={{ padding: "1rem" }}>
+                {lang === "es" ? "No hay una muestra en vivo disponible en este momento." : "No live sample is available right now."}
+              </div>
+            )}
+          </details>
         </section>
 
         <section className="cv-block surface">
@@ -1348,42 +1340,46 @@ export function ContractsView({
             </p>
           </div>
 
-          <div className="cv-sandbox-toolbar">
-            <label className="filter-field">
-              <span className="label">
-                <SlidersHorizontal size={13} style={{ verticalAlign: "middle", marginRight: 5 }} />
-                {lang === "es" ? "Agrupar por" : "Group by"}
-              </span>
-              <select value={explorerGroup} onChange={(event) => setExplorerGroup(event.target.value as ExplorerGroupKey)}>
-                <option value="department">{lang === "es" ? "Departamento" : "Department"}</option>
-                <option value="modality">{lang === "es" ? "Modalidad" : "Modality"}</option>
-                <option value="entity">{lang === "es" ? "Entidad" : "Entity"}</option>
-              </select>
-            </label>
+          <details open className="cv-collapsible">
+            <summary>
+              <span>{lang === "es" ? "Sandbox — agrupa y descarga" : "Sandbox — group and download"}</span>
+            </summary>
 
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => {
-                pushNotice(
-                  "info",
-                  lang === "es"
-                    ? `Descargando ${tableRows.length.toLocaleString("es-CO")} registros del corte visible.`
-                    : `Downloading ${tableRows.length.toLocaleString("en-US")} visible slice records.`,
-                  lang === "es" ? "Exportación iniciada" : "Export started",
-                );
-                downloadRows(tableRows, lang);
-              }}
-            >
-              <Download size={15} />
-              {lang === "es" ? "Descargar datos ↓" : "Download data ↓"}
-            </button>
-          </div>
+            <div className="cv-sandbox-toolbar">
+              <label className="filter-field">
+                <span className="label">
+                  <SlidersHorizontal size={13} style={{ verticalAlign: "middle", marginRight: 5 }} />
+                  {lang === "es" ? "Agrupar por" : "Group by"}
+                </span>
+                <select value={explorerGroup} onChange={(event) => setExplorerGroup(event.target.value as ExplorerGroupKey)}>
+                  <option value="department">{lang === "es" ? "Departamento" : "Department"}</option>
+                  <option value="modality">{lang === "es" ? "Modalidad" : "Modality"}</option>
+                  <option value="entity">{lang === "es" ? "Entidad" : "Entity"}</option>
+                </select>
+              </label>
 
-          {tableLoading ? (
-            <div className="surface-soft" style={{ padding: "1.2rem", textAlign: "center" }}>{copy.loading}</div>
-          ) : (
-            <>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  pushNotice(
+                    "info",
+                    lang === "es"
+                      ? `Descargando ${tableRows.length.toLocaleString("es-CO")} registros del corte visible.`
+                      : `Downloading ${tableRows.length.toLocaleString("en-US")} visible slice records.`,
+                    lang === "es" ? "Exportación iniciada" : "Export started",
+                  );
+                  downloadRows(tableRows, lang);
+                }}
+              >
+                <Download size={15} />
+                {lang === "es" ? "Descargar datos ↓" : "Download data ↓"}
+              </button>
+            </div>
+
+            {tableLoading ? (
+              <div className="surface-soft" style={{ padding: "1.2rem", textAlign: "center" }}>{copy.loading}</div>
+            ) : (
               <div className="cv-sandbox-groups">
                 {explorerGroups.slice(0, 6).map((group) => (
                   <article key={group.label} className="cv-sandbox-group">
@@ -1399,122 +1395,116 @@ export function ContractsView({
                   </article>
                 ))}
               </div>
+            )}
+          </details>
 
-              {tableRows.length ? (
-                <div className="cv-explorer-grid">
-                  {tableRows.map((row) => (
-                    <article
-                      key={row.id}
-                      className={`explorer-card explorer-card--${row.riskBand}`}
-                    >
-                      <div className="explorer-card__top">
-                        <div>
-                          <div className="label" style={{ marginBottom: "0.3rem" }}>{row.department}</div>
-                          <div className="explorer-card__title">{highlightText(row.entity, filters.query)}</div>
-                        </div>
-                        <div className={`score risk-${row.riskBand}`} style={{ fontSize: "1.5rem" }}>{row.score}</div>
-                      </div>
-                      <div className="body-copy" style={{ fontSize: "0.82rem", marginBottom: "0.7rem" }}>{highlightText(row.provider, filters.query)}</div>
-                      <div className="explorer-card__metrics">
-                        <div>
-                          <div className="label" style={{ marginBottom: "0.3rem" }}>{copy.tableValue}</div>
-                          <strong>{formatCompactCop(row.value, lang)}</strong>
-                          <div className="table-value__track" style={{ marginTop: 6 }}>
-                            <span
-                              className="table-value__fill"
-                              data-width={`${tableValueMax > 0 ? Math.max(10, (row.value / tableValueMax) * 100) : 10}%`}
-                              style={{ width: `${tableValueMax > 0 ? Math.max(10, (row.value / tableValueMax) * 100) : 10}%` }}
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <div className="label" style={{ marginBottom: "0.3rem" }}>{lang === "es" ? "Fecha" : "Date"}</div>
-                          <strong>{row.date}</strong>
-                        </div>
-                      </div>
-                      <div className="explorer-card__footer">
-                        <span>{row.modality}</span>
-                        <Link href={row.secopUrl || "#"} target="_blank" className="btn-secondary">
-                          {copy.verify} <ArrowUpRight size={14} />
-                        </Link>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <div className="cv-empty-state surface-soft">
-                  {lang === "es"
-                    ? "No se encontraron contratos con estos filtros. Intenta ampliar tu búsqueda."
-                    : "No contracts were found for these filters. Try broadening your search."}
-                </div>
-              )}
-
-              <div className="cv-pagination">
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  disabled={page === 0}
-                  onClick={() => setPage((current) => Math.max(0, current - 1))}
+          {tableRows.length ? (
+            <div className="cv-explorer-grid">
+              {tableRows.map((row) => (
+                <article
+                  key={row.id}
+                  className={`explorer-card explorer-card--${row.riskBand}`}
                 >
-                  {copy.previous}
-                </button>
-                <span className="label">
-                  {lang === "es"
-                    ? `Página ${page + 1} de ${totalPages}`
-                    : `Page ${page + 1} of ${totalPages}`}
-                </span>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
-                >
-                  {copy.next}
-                </button>
-              </div>
-            </>
+                  <div className="explorer-card__top">
+                    <div>
+                      <div className="label" style={{ marginBottom: "0.3rem" }}>{row.department}</div>
+                      <div className="explorer-card__title">{highlightText(row.entity, filters.query)}</div>
+                    </div>
+                    <div className={`score risk-${row.riskBand}`} style={{ fontSize: "1.5rem" }}>{row.score}</div>
+                  </div>
+                  <div className="body-copy" style={{ fontSize: "0.82rem", marginBottom: "0.7rem" }}>{highlightText(row.provider, filters.query)}</div>
+                  <div className="explorer-card__metrics">
+                    <div>
+                      <div className="label" style={{ marginBottom: "0.3rem" }}>{copy.tableValue}</div>
+                      <strong>{formatCompactCop(row.value, lang)}</strong>
+                      <div className="table-value__track" style={{ marginTop: 6 }}>
+                        <span
+                          className="table-value__fill"
+                          data-width={`${tableValueMax > 0 ? Math.max(10, (row.value / tableValueMax) * 100) : 10}%`}
+                          style={{ width: `${tableValueMax > 0 ? Math.max(10, (row.value / tableValueMax) * 100) : 10}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="label" style={{ marginBottom: "0.3rem" }}>{lang === "es" ? "Fecha" : "Date"}</div>
+                      <strong>{row.date}</strong>
+                    </div>
+                  </div>
+                  <div className="explorer-card__footer">
+                    <span>{row.modality}</span>
+                    <Link href={row.secopUrl || "#"} target="_blank" className="btn-secondary">
+                      {copy.verify} <ArrowUpRight size={14} />
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="cv-empty-state surface-soft">
+              {lang === "es"
+                ? "No se encontraron contratos con estos filtros. Intenta ampliar tu búsqueda."
+                : "No contracts were found for these filters. Try broadening your search."}
+            </div>
           )}
+
+          <div className="cv-pagination">
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={page === 0}
+              onClick={() => setPage((current) => Math.max(0, current - 1))}
+            >
+              {copy.previous}
+            </button>
+            <span className="label">
+              {lang === "es"
+                ? `Página ${page + 1} de ${totalPages}`
+                : `Page ${page + 1} of ${totalPages}`}
+            </span>
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
+            >
+              {copy.next}
+            </button>
+          </div>
         </section>
 
         <section className="cv-block surface-soft">
-          <div className="cv-block__header">
-            <div>
-              <p className="eyebrow">{lang === "es" ? "Cómo se construye el puntaje" : "How the score is built"}</p>
-              <h2>{lang === "es" ? "Variables que más mueven la señal" : "Variables that move the signal most"}</h2>
-            </div>
-            <p>
-              {lang === "es"
-                ? "El puntaje va de 0 a 100. Sube cuando un contrato se aparta del patrón común de su contexto por competencia, precio, concentración o momento de firma."
-                : "The score runs from 0 to 100. It does not depend on a single rule: it combines observable variables to find contracts that depart from the common pattern in their context."}
-            </p>
-          </div>
+          <details className="cv-collapsible">
+            <summary>
+              <span>{lang === "es" ? "ℹ Metodología del scoring — clic para expandir" : "ℹ Scoring methodology — click to expand"}</span>
+            </summary>
 
-          <div className="cv-methodology-groups">
-            {MODEL_GROUPS[lang].map((group) => (
-              <article key={group.title} className="cv-methodology-card">
-                <strong>{group.title}</strong>
-                <ul>
-                  {group.items.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-
-          <div className="cv-methodology">
-            <p>
-              {lang === "es"
-                ? `El modelo actual trabaja con ${overview?.methodology.nFeatures ?? 14} variables y marca como rojo los contratos por encima de ${Math.round((overview?.methodology.redThreshold ?? 0.7) * 100)}/100. La familia técnica del modelo es ${overview?.methodology.modelType ?? "modelo de anomalías"}, pero aquí lo importante es su función: comparar cada contrato contra pares parecidos para detectar desvíos relevantes.`
-                : `The current model works with ${overview?.methodology.nFeatures ?? 14} variables and flags as red the contracts above ${Math.round((overview?.methodology.redThreshold ?? 0.7) * 100)}/100. The technical family is ${overview?.methodology.modelType ?? "anomaly model"}, but what matters here is its function: compare each contract against similar peers to detect relevant deviations.`}
-            </p>
-            <div className="cv-methodology__note">
-              <span>{lang === "es" ? "Entrenado" : "Trained"}: {overview?.methodology.trainedAt ?? "—"}</span>
-              <span>{lang === "es" ? "Ámbar desde" : "Amber from"}: {Math.round((overview?.methodology.yellowThreshold ?? 0.4) * 100)}/100</span>
-              <span>{lang === "es" ? "Rojo desde" : "Red from"}: {Math.round((overview?.methodology.redThreshold ?? 0.7) * 100)}/100</span>
-              <span>{lang === "es" ? "Estimadores" : "Estimators"}: {overview?.methodology.nEstimators ?? "—"}</span>
+            <div className="cv-methodology-groups">
+              {MODEL_GROUPS[lang].map((group) => (
+                <article key={group.title} className="cv-methodology-card">
+                  <strong>{group.title}</strong>
+                  <ul>
+                    {group.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
             </div>
-          </div>
+
+            <div className="cv-methodology">
+              <p>
+                {lang === "es"
+                  ? `El modelo actual trabaja con ${overview?.methodology.nFeatures ?? 14} variables y marca como rojo los contratos por encima de ${Math.round((overview?.methodology.redThreshold ?? 0.7) * 100)}/100. La familia técnica del modelo es ${overview?.methodology.modelType ?? "modelo de anomalías"}, pero aquí lo importante es su función: comparar cada contrato contra pares parecidos para detectar desvíos relevantes.`
+                  : `The current model works with ${overview?.methodology.nFeatures ?? 14} variables and flags as red the contracts above ${Math.round((overview?.methodology.redThreshold ?? 0.7) * 100)}/100. The technical family is ${overview?.methodology.modelType ?? "anomaly model"}, but what matters here is its function: compare each contract against similar peers to detect relevant deviations.`}
+              </p>
+              <div className="cv-methodology__note">
+                <span>{lang === "es" ? "Entrenado" : "Trained"}: {overview?.methodology.trainedAt ?? "—"}</span>
+                <span>{lang === "es" ? "Ámbar desde" : "Amber from"}: {Math.round((overview?.methodology.yellowThreshold ?? 0.4) * 100)}/100</span>
+                <span>{lang === "es" ? "Rojo desde" : "Red from"}: {Math.round((overview?.methodology.redThreshold ?? 0.7) * 100)}/100</span>
+                <span>{lang === "es" ? "Estimadores" : "Estimators"}: {overview?.methodology.nEstimators ?? "—"}</span>
+              </div>
+            </div>
+          </details>
         </section>
       </main>
 

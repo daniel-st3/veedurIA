@@ -317,9 +317,8 @@ export function VotometroView({ lang }: { lang: Lang }) {
                   aria-pressed={profile.id === selectedProfile?.id}
                 >
                   <div className="vm-legislator-card__head">
-                    <div className="vm-avatar" aria-hidden="true">
-                      {profile.initials}
-                      <span className="vm-avatar__dot" style={{ background: profile.partyColor }} />
+                    <div className="vm-avatar" aria-hidden="true" style={{ background: partyColor(profile.party) }}>
+                      {profile.name.charAt(0)}
                     </div>
                     <div>
                       <strong className="vm-legislator-card__name">{profile.name}</strong>
@@ -352,9 +351,8 @@ export function VotometroView({ lang }: { lang: Lang }) {
             <section className="vm-spotlight" ref={spotlightRef}>
               <div className="vm-container vm-spotlight__layout">
                 <aside className="vm-spotlight__aside">
-                  <div className="vm-avatar vm-avatar--large" aria-hidden="true">
-                    {selectedProfile.initials}
-                    <span className="vm-avatar__dot" style={{ background: selectedProfile.partyColor }} />
+                  <div className="vm-avatar vm-avatar--large" aria-hidden="true" style={{ background: partyColor(selectedProfile.party) }}>
+                    {selectedProfile.name.charAt(0)}
                   </div>
                   <div className="vm-spotlight__identity">
                     <h2>{selectedProfile.name}</h2>
@@ -575,7 +573,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                 </div>
 
                 <div className="vm-heatmap-wrap">
-                  <table className="vm-heatmap">
+                  <table className="vm-heatmap vm-matrix-table">
                     <thead>
                       <tr>
                         <th>Legislador</th>
@@ -594,7 +592,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                             <td key={`${profile.id}-${cell.key}`}>
                               <button
                                 type="button"
-                                className={`vm-heatmap__cell is-${cell.state}`}
+                                className={`vm-heatmap__cell ${getMatrixTone(cell)}`}
                                 onMouseEnter={(event) => showTooltip(event, profile.name, cell)}
                                 onMouseMove={moveTooltip}
                                 onMouseLeave={() => setTooltip(null)}
@@ -706,4 +704,22 @@ function getCoherenceLabel(coherence: VoteCoherence) {
     default:
       return "Sin promesa —";
   }
+}
+
+function partyColor(partido: string) {
+  const map: Record<string, string> = {
+    "Pacto Histórico": "#c0392b",
+    "Colombia Humana": "#e74c3c",
+    "Centro Democrático": "#1a5276",
+    "Alianza Verde": "#27ae60",
+    "Cambio Radical": "#f39c12",
+  };
+  return map[partido] ?? "#6b6a65";
+}
+
+function getMatrixTone(cell: HeatmapCell) {
+  if (cell.value === null) return "is-matrix-low";
+  if (cell.value >= 70) return "is-matrix-high";
+  if (cell.value >= 40) return "is-matrix-mid";
+  return "is-matrix-low";
 }

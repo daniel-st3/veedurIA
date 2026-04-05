@@ -11208,6 +11208,229 @@ html[data-theme="dark"] .vm-shell {
   }
 }
 
+/* 2026-04 layout pass: landing, contrato limpio, votometro */
+.lp-hero-signal {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.lp-hero-signal__map {
+  width: 100%;
+  height: 320px;
+  border-radius: 12px;
+  background: var(--surface-offset);
+  overflow: hidden;
+}
+
+.lp-hero-signal__map .colombia-map,
+.lp-hero-signal__map .colombia-map__svg {
+  width: 100%;
+  height: 100%;
+}
+
+.cv-dashboard__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.cv-dashboard-card {
+  min-height: 280px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.cv-dashboard-card--treemap {
+  grid-column: 1 / -1;
+  min-height: 240px;
+}
+
+.cv-dashboard-card__plot {
+  min-height: 240px;
+  padding: 0;
+  background: var(--surface);
+}
+
+details.cv-collapsible {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+details.cv-collapsible summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  list-style: none;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+details.cv-collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+details.cv-collapsible summary::after {
+  content: "▸";
+  font-size: 10px;
+  transition: transform 200ms ease;
+}
+
+details.cv-collapsible[open] summary::after {
+  transform: rotate(90deg);
+}
+
+details.cv-collapsible > *:not(summary) {
+  padding: 0 20px 20px;
+  background: var(--surface);
+}
+
+.cv-collapsible .cv-summary-grid,
+.cv-collapsible .cv-fresh-headline,
+.cv-collapsible .contract-freshness__feed,
+.cv-collapsible .cv-sandbox-toolbar,
+.cv-collapsible .cv-sandbox-groups,
+.cv-collapsible .cv-methodology-groups,
+.cv-collapsible .cv-methodology {
+  margin-top: 18px;
+}
+
+input[type="date"] {
+  min-width: 140px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.vm-avatar {
+  background: #6b6a65;
+  color: #fff;
+}
+
+.vm-avatar__dot {
+  display: none;
+}
+
+.vm-topic-bar__label {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vm-text);
+  font-size: 13px;
+}
+
+.vm-topic-bar__track {
+  margin-top: 4px;
+}
+
+.vm-heatmap-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vm-matrix-table th:first-child,
+.vm-matrix-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--vm-surface);
+  min-width: 120px;
+  max-width: 160px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.vm-matrix-table tbody th {
+  background: var(--vm-surface);
+}
+
+.vm-heatmap__cell {
+  min-width: 48px;
+  text-align: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vm-heatmap__cell.is-matrix-high {
+  background: #e8f4ec;
+  color: #1a5e2a;
+}
+
+.vm-heatmap__cell.is-matrix-mid {
+  background: #fef3e0;
+  color: #7a4a0a;
+}
+
+.vm-heatmap__cell.is-matrix-low {
+  background: #f2f1ed;
+  color: #b0afa9;
+}
+
+@media (max-width: 899px) {
+  .cv-dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cv-dashboard-card--treemap {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .cv-collapsible--desktop-open > *:not(summary) {
+    display: block !important;
+  }
+
+  .cv-collapsible--desktop-open summary::after {
+    transform: rotate(90deg);
+  }
+}
+
+@media (max-width: 767px) {
+  .cv-dashboard-card {
+    padding: 16px;
+  }
+
+  .lp-hero-title--centered {
+    margin-bottom: 2.2rem;
+    font-size: clamp(1.85rem, 10vw, 3rem);
+    line-height: 1.06;
+  }
+
+  .lp-hero-body {
+    max-width: 26rem;
+    margin-inline: auto;
+  }
+
+  .vm-nav__inner {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .vm-nav__links {
+    grid-column: 1 / -1;
+    order: 3;
+    justify-content: flex-start;
+  }
+}
+
 .lp-hero-top > *,
 .cv-hero-panel__top > *,
 .cv-block__header > *,

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowRight, ChevronDown, FileSearch, Radar, Waypoints } from "lucide-react";
+import { ArrowRight, FileSearch, Radar, Waypoints } from "lucide-react";
 
 import { ColombiaMap } from "@/components/colombia-map";
 import { SiteFooter } from "@/components/site-footer";
@@ -164,13 +164,6 @@ export function LandingPage({
         });
       });
 
-      gsap.to(".lp-scroll-hint", {
-        y: 8,
-        repeat: -1,
-        yoyo: true,
-        duration: 1.2,
-        ease: "sine.inOut",
-      });
     },
     { scope, dependencies: [lang, overview.meta.sourceRows, overview.slice.redAlerts] },
   );
@@ -274,12 +267,7 @@ export function LandingPage({
           </div>
 
           <div className="lp-hero-signal">
-            <div className="lp-hero-signal__header">
-              <span>{lang === "es" ? "Empieza por aquí" : "Start here"}</span>
-              <strong>{lang === "es" ? "Tres entradas claras, una sola lectura" : "Three clear entries, one clean read"}</strong>
-            </div>
-
-            <div className="lp-hero-signal__map surface-soft">
+            <div className="lp-hero-signal__map">
               {geojson ? (
                 <ColombiaMap
                   geojson={geojson}
@@ -296,14 +284,6 @@ export function LandingPage({
                   <span className="label">{lang === "es" ? "Cargando territorio" : "Loading territory"}</span>
                 </div>
               )}
-
-              <div className="lp-hero-signal__chips">
-                <p className="lp-hero-signal__note">
-                  {lang === "es"
-                    ? "Haz clic en el mapa para cambiar el foco territorial."
-                    : "Click the map to switch the territorial focus."}
-                </p>
-              </div>
             </div>
           </div>
 
@@ -326,49 +306,6 @@ export function LandingPage({
               );
             })}
           </div>
-
-          <a href="#modulos" className="lp-scroll-hint" aria-label={lang === "es" ? "Explorar módulos" : "Explore modules"}>
-            <span>{lang === "es" ? "Explorar más" : "Explore more"}</span>
-            <ChevronDown size={18} />
-          </a>
-        </section>
-
-        <section className="lp-tool-grid" id="modulos">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <Link key={feature.title} href={feature.href} className="lp-tool-card">
-                <div className="lp-tool-card__head">
-                  <div className="lp-tool-card__index">{String(index + 1).padStart(2, "0")}</div>
-                  <div>
-                    <p className="lp-tool-card__eyebrow">{feature.kicker}</p>
-                    <h2>{feature.title}</h2>
-                  </div>
-                </div>
-                <p className="lp-tool-card__description">{feature.body}</p>
-                <div className="lp-tool-card__detailband">
-                  <span>
-                    {feature.title === "ContratoLimpio"
-                      ? lang === "es"
-                        ? "Territorio, filtros, dashboard y expediente oficial"
-                        : "Territory, filters, dashboard, and official record"
-                      : feature.title === "VotóMeter"
-                        ? lang === "es"
-                          ? "Votaciones nominales, gacetas y coherencia por tema"
-                          : "Nominal votes, gazettes, and topic coherence"
-                        : lang === "es"
-                          ? "Vista previa del frente relacional"
-                          : "Preview of the relationship layer"}
-                  </span>
-                </div>
-                <div className="lp-tool-card__cta">
-                  <Icon size={16} />
-                  <span>{feature.cta}</span>
-                  <ArrowRight size={16} />
-                </div>
-              </Link>
-            );
-          })}
         </section>
       </main>
 
