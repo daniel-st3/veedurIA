@@ -341,9 +341,9 @@ def load_contracts(full: bool) -> pd.DataFrame:
     columns = _resolve_columns(schema)
     df = pd.read_parquet(path, columns=columns)
     frame = _normalize_frame(df)
-    if full:
-        return frame
-    return frame.sort_values(["fecha_ts", "risk_score", "valor_num"], ascending=[False, False, False]).head(PREVIEW_SIZE).reset_index(drop=True)
+    # The API should always use the full cached dataset to ensure national 
+    # aggregations (like the map and summaries) are accurate, avoiding 0s.
+    return frame
 
 
 @lru_cache(maxsize=1)
