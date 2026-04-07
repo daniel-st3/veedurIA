@@ -42,6 +42,7 @@ SECOP_TO_GEOJSON: dict[str, str] = {
     "BOGOTA D.C": "SANTAFE DE BOGOTA D.C",
     "SANTAFE DE BOGOTA": "SANTAFE DE BOGOTA D.C",
     "DISTRITO CAPITAL": "SANTAFE DE BOGOTA D.C",
+    "DISTRITO CAPITAL DE BOGOTA": "SANTAFE DE BOGOTA D.C",
     "SAN ANDRES": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
     "SAN ANDRES Y PROVIDENCIA": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
     "SAN ANDRES, PROVIDENCIA Y SANTA CATALINA": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
@@ -440,7 +441,7 @@ def _build_department_summary(df: pd.DataFrame) -> list[dict[str, Any]]:
         .agg(avg_risk=("avg_risk", "max"), contract_count=("contract_count", "sum"))
         .reset_index()
     )
-    return [
+    result = [
         {
             "key": row["departamento_geo"],
             "label": best_labels.get(row["departamento_geo"], row["departamento_geo"]).title(),
@@ -450,6 +451,23 @@ def _build_department_summary(df: pd.DataFrame) -> list[dict[str, Any]]:
         }
         for _, row in collapsed.iterrows()
     ]
+    # Pad missing GeoJSON departments so the map paints all 33 regions
+    geojson = load_geojson()
+    all_geo_names = {
+        feat["properties"]["NOMBRE_DPT"]
+        for feat in geojson.get("features", [])
+        if "NOMBRE_DPT" in feat.get("properties", {})
+    }
+    existing_keys = {r["geoName"] for r in result}
+    for geo_name in sorted(all_geo_names - existing_keys):
+        result.append({
+            "key": geo_name,
+            "label": geo_name.title(),
+            "geoName": geo_name,
+            "avgRisk": 0.0,
+            "contractCount": 0,
+        })
+    return result
 
 
 def _slice_stats(df: pd.DataFrame, lang: str) -> dict[str, Any]:

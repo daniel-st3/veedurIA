@@ -185,6 +185,37 @@ def load_full() -> pd.DataFrame:
     return _safe_read(path, columns=UI_COLUMNS)
 
 
+@st.cache_data(show_spinner=False, max_entries=1, ttl=3600)
+def load_national_dept_summary() -> pd.DataFrame:
+    """
+    Load pre-aggregated department risk summary from the FULL dataset.
+
+    Used exclusively for the choropleth map so it correctly shows ALL
+    departments (including low-volume ones like Vaupés/Guainía/Guaviare)
+    even when the main page is in 50k-row preview mode.
+
+    Cached for 1 hour (map data changes slowly).
+    Returns columns: departamento, avg_risk, contract_count.
+    The 'departamento' column contains raw SECOP names (not GeoJSON-normalized)
+    so build_department_summary can normalize them correctly.
+    """
+    path = _resolve_parquet_path()
+    if path is None:
+        return pd.DataFrame(columns=["departamento", "avg_risk", "contract_count"])
+    # Only need these 2 columns for map aggregation — very fast even for 2.8M rows
+    agg_cols = [c for c in ["departamento", "risk_score"] if True]  # always include both
+    df = _safe_read(path, columns=["departamento", "risk_score"])
+    if df.empty or "departamento" not in df.columns or "risk_score" not in df.columns:
+        return pd.DataFrame(columns=["departamento", "avg_risk", "contract_count"])
+    result = (
+        df.groupby("departamento", dropna=True)
+        .agg(avg_risk=("risk_score", "mean"), contract_count=("risk_score", "size"))
+        .reset_index()
+    )
+    result["avg_risk"] = result["avg_risk"].round(4)
+    return result
+
+
 def get_total_row_count() -> int:
     """Return the total number of rows without reading the file."""
     path = _resolve_parquet_path()

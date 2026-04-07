@@ -26,9 +26,10 @@ from src.ui.data_loaders import (
     TABLE_PAGE_SIZE,
     get_total_row_count,
     load_full,
+    load_national_dept_summary,
     load_preview,
 )
-from src.ui.maps import build_department_summary, render_plotly_choropleth
+from src.ui.maps import build_department_summary, render_plotly_choropleth, normalize_department_name
 
 # ── SHAP feature labels (plain-language Spanish) ──────────────────────────────
 try:
@@ -743,10 +744,10 @@ if st.session_state["total_row_count_cache"] is None:
     st.session_state["total_row_count_cache"] = get_total_row_count()
 total_in_file: int = st.session_state["total_row_count_cache"]
 
-df_dept_national = (
-    build_department_summary(df_all)
-    if "departamento" in df_all.columns else pd.DataFrame()
-)
+# ── Department summary for map (→ always uses FULL dataset, not preview) ─────
+# We use load_national_dept_summary which reads only 2 columns from the full
+# parquet and caches for 1h, so map shows all 33 departments (incl. Vaupes etc.)
+df_dept_national = build_department_summary(load_national_dept_summary())
 has_scores = (
     "risk_score" in df_all.columns
     and not df_all["risk_score"].isnull().all()
@@ -861,8 +862,11 @@ components.html(overview_html, height=280, scrolling=False)
 
 # ── Primary Filter Form (2 filters only) ─────────────────────────────────────
 dept_opts = (
-    [copy["all"]] + sorted(df_all["departamento"].dropna().unique().tolist())
-    if "departamento" in df_all.columns else ["Todos"]
+    [copy["all"]] + sorted(
+        d for d in df_all["departamento"].dropna().unique().tolist()
+        if d.strip() and d.lower() not in ("no definido", "")
+    )
+    if "departamento" in df_all.columns else [copy["all"]]
 )
 risk_option_map = _risk_option_map()
 risk_opts = list(risk_option_map.keys())
@@ -924,12 +928,36 @@ if is_preview and total_in_file > len(df_all):
 df = df_all.copy()
 
 # Department: both the form filter AND the map click selection
+# When clicking the map, `selected_dept` contains a GeoJSON-normalized
+# uppercase name (e.g. "CUNDINAMARCA"). The dataframe has raw SECOP
+# names (e.g. "Cundinamarca"). We normalize both sides before comparing.
 active_dept = st.session_state.get("selected_dept")
 effective_dept = active_dept if active_dept else (
     filter_dept_val if filter_dept_val != copy["all"] else None
 )
 if effective_dept and "departamento" in df.columns:
-    df = df[df["departamento"].str.upper().str.strip() == effective_dept.upper().strip()]
+    # Normalize the target department to GeoJSON format (uppercase, accent-stripped)
+    effective_dept_geo = normalize_department_name(effective_dept)
+    # Vectorized: normalize the whole series at once using the same logic
+    # _strip_accents is not vectorized, but pandas .str ops handle the simple cases.
+    # We add all row values to a set-based lookup from the SECOP_TO_GEOJSON mapping
+    # for speed: normalize uppercase, then map known variants, else keep as-is.
+    from src.ui.maps import SECOP_TO_GEOJSON as _S2G  # noqa: PLC0415
+    import unicodedata as _ud  # noqa: PLC0415
+    def _fast_norm(s: str) -> str:
+        s = s.strip().upper()
+        # strip accents except ñ
+        out = []
+        for c in _ud.normalize("NFD", s):
+            if _ud.category(c) == "Mn":
+                if c == "\u0303":
+                    out.append(c)
+            else:
+                out.append(c)
+        s = _ud.normalize("NFC", "".join(out))
+        return _S2G.get(s, s)
+    dept_geo_series = df["departamento"].fillna("").astype(str).apply(_fast_norm)
+    df = df[dept_geo_series == effective_dept_geo]
 
 if filter_risk_val != copy["risk_all"] and "risk_label" in df.columns:
     selected_risk = risk_option_map.get(filter_risk_val)

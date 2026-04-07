@@ -32,6 +32,9 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Module-level cache for GeoJSON department names (avoids re-reading disk on every call)
+_GEOJSON_NAMES_CACHE: dict[str, list[str]] = {}
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -253,8 +256,7 @@ def get_geojson_department_names(
 ) -> list[str]:
     """
     Extract all NOMBRE_DPT values from the GeoJSON file.
-
-    Useful for validation and testing.
+    Cached in-process via module-level dict so disk is only read once.
 
     Args:
         geojson_path: Path to GeoJSON file. Defaults to the bundled file.
@@ -262,19 +264,23 @@ def get_geojson_department_names(
     Returns:
         Sorted list of department names from the GeoJSON.
     """
-    geojson_path = Path(geojson_path) if geojson_path else DEFAULT_GEOJSON_PATH
+    from functools import lru_cache as _lru  # noqa: PLC0415
 
-    if not geojson_path.exists():
+    path = Path(geojson_path) if geojson_path else DEFAULT_GEOJSON_PATH
+    if not path.exists():
         return []
 
-    with open(geojson_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    return sorted(
-        feat["properties"]["NOMBRE_DPT"]
-        for feat in data.get("features", [])
-        if "NOMBRE_DPT" in feat.get("properties", {})
-    )
+    # Use a module-level cache keyed by resolved path
+    cache_key = str(path.resolve())
+    if cache_key not in _GEOJSON_NAMES_CACHE:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        _GEOJSON_NAMES_CACHE[cache_key] = sorted(
+            feat["properties"]["NOMBRE_DPT"]
+            for feat in data.get("features", [])
+            if "NOMBRE_DPT" in feat.get("properties", {})
+        )
+    return _GEOJSON_NAMES_CACHE[cache_key]
 
 
 # ---------------------------------------------------------------------------
