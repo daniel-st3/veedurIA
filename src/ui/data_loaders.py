@@ -58,7 +58,8 @@ UI_COLUMNS: list[str] = [
     "departamento",
     "modalidad_de_contratacion",
     "fecha_firma",
-    "valor_contrato",
+    "valor_del_contrato",   # actual column name in the parquet
+    "valor_contrato",       # alias column if it exists (scorer may create it)
     # Risk
     "risk_score",
     "risk_label",
@@ -195,24 +196,34 @@ def load_national_dept_summary() -> pd.DataFrame:
     even when the main page is in 50k-row preview mode.
 
     Cached for 1 hour (map data changes slowly).
-    Returns columns: departamento, avg_risk, contract_count.
-    The 'departamento' column contains raw SECOP names (not GeoJSON-normalized)
-    so build_department_summary can normalize them correctly.
+    Returns columns: departamento (GeoJSON-normalized), avg_risk, contract_count.
+    Ready to pass DIRECTLY to render_plotly_choropleth without going through
+    build_department_summary (which expects raw individual contract rows).
     """
+    from src.ui.maps import normalize_department_name, get_geojson_department_names  # noqa: PLC0415
     path = _resolve_parquet_path()
     if path is None:
         return pd.DataFrame(columns=["departamento", "avg_risk", "contract_count"])
-    # Only need these 2 columns for map aggregation — very fast even for 2.8M rows
-    agg_cols = [c for c in ["departamento", "risk_score"] if True]  # always include both
     df = _safe_read(path, columns=["departamento", "risk_score"])
     if df.empty or "departamento" not in df.columns or "risk_score" not in df.columns:
         return pd.DataFrame(columns=["departamento", "avg_risk", "contract_count"])
+    # Normalize names to GeoJSON format before aggregating
+    df = df.copy()
+    df["departamento"] = df["departamento"].fillna("").astype(str).apply(normalize_department_name)
+    df = df[df["departamento"] != ""]  # drop empties / "No Definido" etc.
     result = (
         df.groupby("departamento", dropna=True)
         .agg(avg_risk=("risk_score", "mean"), contract_count=("risk_score", "size"))
         .reset_index()
     )
     result["avg_risk"] = result["avg_risk"].round(4)
+    # Pad any missing GeoJSON departments with zeros
+    all_depts = get_geojson_department_names()
+    existing = set(result["departamento"].tolist())
+    missing = [d for d in all_depts if d not in existing]
+    if missing:
+        pad = pd.DataFrame({"departamento": missing, "avg_risk": 0.0, "contract_count": 0})
+        result = pd.concat([result, pad], ignore_index=True)
     return result
 
 

@@ -694,13 +694,22 @@ def _staleness() -> tuple[float, bool]:
     return -1.0, True
 
 
+def _get_valor_col(df: pd.DataFrame) -> str | None:
+    """Return the name of whichever value column exists in the DataFrame."""
+    for col in ("valor_contrato", "valor_del_contrato"):
+        if col in df.columns:
+            return col
+    return None
+
+
 def _value_at_risk(df: pd.DataFrame) -> float:
-    if "risk_score" not in df.columns or "valor_contrato" not in df.columns:
+    vcol = _get_valor_col(df)
+    if "risk_score" not in df.columns or vcol is None:
         return 0.0
     red = df[df["risk_score"] >= RED_THRESHOLD]
     if red.empty:
         return 0.0
-    return red["valor_contrato"].apply(_parse_cop).sum()
+    return red[vcol].apply(_parse_cop).sum()
 
 
 def _load_model_meta() -> dict:
@@ -745,9 +754,11 @@ if st.session_state["total_row_count_cache"] is None:
 total_in_file: int = st.session_state["total_row_count_cache"]
 
 # ── Department summary for map (→ always uses FULL dataset, not preview) ─────
-# We use load_national_dept_summary which reads only 2 columns from the full
-# parquet and caches for 1h, so map shows all 33 departments (incl. Vaupes etc.)
-df_dept_national = build_department_summary(load_national_dept_summary())
+# load_national_dept_summary reads only 2 columns from the full parquet, normalizes
+# dept names to GeoJSON format, and caches for 1h — so map correctly shows all
+# 33 departments (incl. Vaupés/Guainía/Guaviare). Pass it DIRECTLY to
+# render_plotly_choropleth without re-running build_department_summary.
+df_dept_national = load_national_dept_summary()
 has_scores = (
     "risk_score" in df_all.columns
     and not df_all["risk_score"].isnull().all()
@@ -1044,8 +1055,12 @@ with map_col:
 # ── Build curated focus cases with SHAP ──────────────────────────────────────
 hl_source = df.copy()
 if "risk_score" in hl_source.columns:
-    hl_source["_valor_num"] = hl_source.get("valor_contrato", 0).apply(_parse_cop)
-    hl_source["_fecha_rank"] = hl_source.get("fecha_firma", "").apply(_safe_date)
+    _vcol = _get_valor_col(hl_source)
+    if _vcol:
+        hl_source["_valor_num"] = hl_source[_vcol].apply(_parse_cop)
+    else:
+        hl_source["_valor_num"] = 0.0
+    hl_source["_fecha_rank"] = hl_source["fecha_firma"].apply(_safe_date) if "fecha_firma" in hl_source.columns else pd.Timestamp("1970-01-01")
     risk_rank = hl_source["risk_score"].rank(pct=True, method="max")
     value_rank = hl_source["_valor_num"].rank(pct=True, method="max") if hl_source["_valor_num"].max() > 0 else 0
     recent_rank = hl_source["_fecha_rank"].rank(pct=True, method="max")
@@ -1078,7 +1093,7 @@ for i, row in top_df.iterrows():
     provider  = str(row.get("proveedor_adjudicado", copy["unavailable"]))
     dept_v    = str(row.get("departamento", ""))
     fecha     = str(row.get("fecha_firma", ""))[:10]
-    raw_v     = row.get("valor_contrato", 0)
+    raw_v     = row.get("valor_contrato") or row.get("valor_del_contrato") or 0
     valor     = _fmt_cop(_parse_cop(raw_v))
     mod       = str(row.get("modalidad_de_contratacion", copy["unavailable"]))
     secop_url = str(row.get("secop_url") or row.get("urlproceso") or "")
@@ -1622,17 +1637,21 @@ with c3:
 
 # ── Table Expander ────────────────────────────────────────────────────────────
 with st.expander(copy["table_exp"].format(n=f"{len(df):,}"), expanded=False):
-    st.caption(copy["table_cap"])
+    # Resolve value column — parquet uses valor_del_contrato, scorer may alias it
+    _val_col = "valor_contrato" if "valor_contrato" in df.columns else (
+        "valor_del_contrato" if "valor_del_contrato" in df.columns else None
+    )
     display_cols = [c for c in [
         "risk_score", "nombre_entidad", "proveedor_adjudicado",
-        "valor_contrato", "modalidad_de_contratacion", "fecha_firma", "departamento",
-    ] if c in df.columns]
+        _val_col, "modalidad_de_contratacion", "fecha_firma", "departamento",
+    ] if c and c in df.columns]
     if display_cols:
         rename_map = {
             "risk_score": copy["table_col_risk"],
             "nombre_entidad": copy["table_col_entity"],
             "proveedor_adjudicado": copy["table_col_provider"],
             "valor_contrato": copy["table_col_value"],
+            "valor_del_contrato": copy["table_col_value"],
             "modalidad_de_contratacion": copy["table_col_mod"],
             "fecha_firma": copy["table_col_date"],
             "departamento": copy["table_col_dept"],
