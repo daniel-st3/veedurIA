@@ -1279,7 +1279,7 @@ a { color: inherit; }
           <div class="visual-topbar"></div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(23,32,51,.38);margin-bottom:.2rem;">Plataforma · 3 fases</div>
 
-          <a href="/ContratoLimpio" style="position:relative;text-decoration:none;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:2rem;border-radius:24px;background:rgba(255,255,255,0.85);border:1px solid rgba(13,91,215,0.2);box-shadow:0 12px 40px rgba(20,30,50,0.08);transition:transform 0.3s, box-shadow 0.3s;overflow:hidden;" target="_self" onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 20px 50px rgba(20,30,50,0.12)';" onmouseout="this.style.transform='';this.style.boxShadow='0 12px 40px rgba(20,30,50,0.08)';">
+          <a href="/ContratoLimpio" style="position:relative;text-decoration:none;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;padding:2rem;border-radius:24px;background:rgba(255,255,255,0.85);border:1px solid rgba(13,91,215,0.2);box-shadow:0 12px 40px rgba(20,30,50,0.08);transition:transform 0.3s, box-shadow 0.3s;overflow:hidden;" target="_top" onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 20px 50px rgba(20,30,50,0.12)';" onmouseout="this.style.transform='';this.style.boxShadow='0 12px 40px rgba(20,30,50,0.08)';">
             
             <!-- Minimal Map SVG -->
             <svg width="180" height="180" viewBox="0 0 100 120" style="margin-bottom:1.5rem;opacity:0.9;filter:drop-shadow(0 8px 16px rgba(13,91,215,0.2));">

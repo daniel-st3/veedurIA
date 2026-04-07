@@ -232,6 +232,18 @@ def build_department_summary(df: pd.DataFrame) -> pd.DataFrame:
         )
         .reset_index()
     )
+    
+    # Ensure all GeoJSON departments are present so they don't appear empty (transparent) on the map
+    all_depts = get_geojson_department_names()
+    missing_depts = [d for d in all_depts if d not in result["departamento"].values]
+    if missing_depts:
+        missing_df = pd.DataFrame({
+            "departamento": missing_depts,
+            "avg_risk": [0.0] * len(missing_depts),
+            "contract_count": [0] * len(missing_depts)
+        })
+        result = pd.concat([result, missing_df], ignore_index=True)
+
     result["avg_risk"] = result["avg_risk"].round(3)
     return result
 
