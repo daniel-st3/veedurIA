@@ -24,14 +24,13 @@ st.markdown(
 #MainMenu, footer, header, [data-testid="stToolbar"],
 [data-testid="stDecoration"], [data-testid="stStatusWidget"],
 [data-testid="stSidebar"], [data-testid="collapsedControl"],
-[data-testid="stSidebarNav"], .stDeployButton,
-.stAppViewBlockContainer > div:first-child,
-[data-testid="stMainBlockContainer"] {
+[data-testid="stSidebarNav"], .stDeployButton {
   display: none !important;
 }
 .stApp { background: #f7f2ea !important; }
 .block-container { padding: 0 !important; max-width: 100% !important; }
-iframe { display: block; border: none; }
+[data-testid="stMainBlockContainer"] { padding: 0 !important; }
+iframe { display: block; border: none; width: 100%; }
 </style>
 """,
     unsafe_allow_html=True,
