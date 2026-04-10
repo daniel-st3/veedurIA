@@ -566,13 +566,20 @@ export function ContractsView({
   const summaryEntities = overview?.summaries.entities ?? [];
   const summaryModalities = overview?.summaries.modalities ?? [];
   const tableRows = table?.rows ?? [];
+  const departmentLabelByGeoName = useMemo(
+    () => new Map((overview?.map.departments ?? []).map((item) => [item.geoName, item.label])),
+    [overview?.map.departments],
+  );
+  const activeDepartmentLabel = filters.department
+    ? departmentLabelByGeoName.get(filters.department) ?? filters.department
+    : null;
   const liveContracts = freshness?.liveFeed.contracts?.length ? freshness.liveFeed.contracts : overview?.liveFeed.contracts ?? [];
   const totalPages = table ? Math.max(1, Math.ceil(table.total / 24)) : 1;
   const isBooting = loading && !overview;
   const leadCaseMax = Math.max(...leadCases.map((item) => item.score), 100);
   const tableValueMax = Math.max(...tableRows.map((row) => row.value), 0);
   const activeSlice = [
-    filters.department,
+    activeDepartmentLabel,
     filters.risk !== "all"
       ? filters.risk === "high"
         ? copy.riskHigh
@@ -692,7 +699,10 @@ export function ContractsView({
   ];
   const activeFilterChips = [
     filters.department
-      ? { key: "department", label: lang === "es" ? `Departamento: ${filters.department}` : `Department: ${filters.department}` }
+      ? {
+          key: "department",
+          label: lang === "es" ? `Departamento: ${activeDepartmentLabel}` : `Department: ${activeDepartmentLabel}`,
+        }
       : null,
     filters.risk !== "all"
       ? {

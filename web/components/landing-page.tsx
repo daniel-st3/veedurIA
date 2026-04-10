@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -88,7 +87,6 @@ export function LandingPage({
   initialOverview: OverviewPayload;
 }) {
   const scope = useRef<HTMLDivElement | null>(null);
-  const router = useRouter();
   const [overview, setOverview] = useState<OverviewPayload>(initialOverview);
   const [geojson, setGeojson] = useState<any | null>(null);
   const [activeDepartment, setActiveDepartment] = useState(initialOverview.map.departments[0]?.geoName);
@@ -225,6 +223,7 @@ export function LandingPage({
     overview.map.departments.find((item) => item.geoName === focusedDepartment) ?? currentDepartmentData;
   const featureSet = FEATURE_TEXT[lang];
   const features = [featureSet.contract, featureSet.promises, featureSet.money];
+  const contratoHref = `/contrato-limpio?lang=${lang}`;
 
   const focusTone =
     (focusedDepartmentData?.avgRisk ?? 0) >= 0.7
@@ -354,22 +353,35 @@ export function LandingPage({
                 </div>
                 <p className="lp-story-map__description">
                   {lang === "es"
-                    ? "Explora el territorio y abre ContratoLimpio desde el departamento que quieras revisar."
-                    : "Explore the territory and open ContratoLimpio from the department you want to review."}
+                    ? "Este bloque es una entrada directa a ContratoLimpio. Resume el territorio y te lleva al módulo completo sin depender de hover."
+                    : "This block is a direct entry into ContratoLimpio. It summarizes the territory and opens the full module without relying on hover."}
                 </p>
               </div>
 
-              <div className="lp-story-map__frame">
+              <Link
+                href={contratoHref}
+                className="lp-story-map__frame lp-story-map__frame--link"
+                aria-label={lang === "es" ? "Abrir ContratoLimpio" : "Open ContratoLimpio"}
+              >
+                <div className="lp-story-map__launch-copy surface-soft">
+                  <span className="lp-story-map__launch-kicker">{lang === "es" ? "Entrada rápida" : "Quick entry"}</span>
+                  <strong>{lang === "es" ? "Ir directo a ContratoLimpio" : "Go straight to ContratoLimpio"}</strong>
+                  <p>
+                    {lang === "es"
+                      ? "Mapa nacional, filtros, alertas y tabla priorizada en una sola vista."
+                      : "National map, filters, alerts, and a prioritized table in one view."}
+                  </p>
+                  <span className="lp-story-map__launch-cta">
+                    {lang === "es" ? "Abrir módulo" : "Open module"}
+                    <ArrowRight size={15} />
+                  </span>
+                </div>
                 {geojson ? (
                   <ColombiaMap
                     geojson={geojson}
                     departments={overview.map.departments}
                     activeDepartment={activeDepartment}
                     onHoverChange={setHoveredDepartment}
-                    onSelect={(department) => {
-                      setActiveDepartment(department);
-                      router.push(`/contrato-limpio?lang=${lang}&dept=${encodeURIComponent(department)}`);
-                    }}
                     mode="hero"
                     showCaption={false}
                     showTooltip={false}
@@ -381,7 +393,7 @@ export function LandingPage({
                     <span className="label">{lang === "es" ? "Cargando territorio" : "Loading territory"}</span>
                   </div>
                 )}
-              </div>
+              </Link>
 
               <div className="lp-story-map__footer">
                 <div className={`lp-story-map__status lp-story-map__status--${focusTone}`}>
@@ -411,8 +423,8 @@ export function LandingPage({
                   </div>
                   <p className="lp-story-map__hint">
                     {lang === "es"
-                      ? "Haz clic en cualquier departamento para entrar directo al corte."
-                      : "Click any department to enter that slice directly."}
+                      ? "Toca el recuadro para abrir ContratoLimpio."
+                      : "Tap the card to open ContratoLimpio."}
                   </p>
                 </div>
               </div>

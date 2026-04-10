@@ -15,6 +15,9 @@ import { formatCompactCop } from "./format";
 const MOCK_DEPARTMENT_ALIASES: Record<string, string> = {
   BOGOTA: "SANTAFE DE BOGOTA D.C",
   "BOGOTA D.C.": "SANTAFE DE BOGOTA D.C",
+  "BOGOTA D.C": "SANTAFE DE BOGOTA D.C",
+  "DISTRITO CAPITAL": "SANTAFE DE BOGOTA D.C",
+  "DISTRITO CAPITAL DE BOGOTA": "SANTAFE DE BOGOTA D.C",
   BOLIVAR: "BOLIVAR",
   ATLANTICO: "ATLANTICO",
   CORDOBA: "CORDOBA",
@@ -25,13 +28,20 @@ const MOCK_DEPARTMENT_ALIASES: Record<string, string> = {
   CAQUETA: "CAQUETA",
   SAN_ANDRES: "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
   "SAN ANDRES": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
-  GUAINIA: "GUAINÍA",
-  VAUPES: "VAUPÉS",
+  "SAN ANDRES Y PROVIDENCIA": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+  "NORTE SANTANDER": "NORTE DE SANTANDER",
+  GUAINIA: "GUAINIA",
+  VAUPES: "VAUPES",
 };
+
+function stripDepartmentAccents(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
 
 function normalizeDepartmentKey(value: string | undefined) {
   if (!value) return "";
-  return MOCK_DEPARTMENT_ALIASES[value] ?? value;
+  const normalized = stripDepartmentAccents(value).trim().toUpperCase();
+  return MOCK_DEPARTMENT_ALIASES[normalized] ?? normalized;
 }
 
 function formatMockDepartmentLabel(value: string) {
@@ -76,8 +86,9 @@ export const MOCK_DEPARTMENTS = [
   { value: "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA", label: "San Andrés", geoName: "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA", avgRisk: 0.43, contractCount: 6_280 },
   { value: "VICHADA", label: "Vichada", geoName: "VICHADA", avgRisk: 0.71, contractCount: 4_230 },
   { value: "AMAZONAS", label: "Amazonas", geoName: "AMAZONAS", avgRisk: 0.53, contractCount: 3_840 },
-  { value: "GUAINÍA", label: "Guainía", geoName: "GUAINÍA", avgRisk: 0.67, contractCount: 2_910 },
-  { value: "VAUPÉS", label: "Vaupés", geoName: "VAUPÉS", avgRisk: 0.61, contractCount: 2_140 },
+  { value: "GUAINIA", label: "Guainía", geoName: "GUAINIA", avgRisk: 0.67, contractCount: 2_910 },
+  { value: "GUAVIARE", label: "Guaviare", geoName: "GUAVIARE", avgRisk: 0.59, contractCount: 2_460 },
+  { value: "VAUPES", label: "Vaupés", geoName: "VAUPES", avgRisk: 0.61, contractCount: 2_140 },
 ];
 
 const MODALITIES = [
@@ -724,22 +735,25 @@ function scaleVisibleCount(filteredCount: number, sampleUniverse: number, basePo
   return Math.max(filteredCount, Math.round(basePopulation * (filteredCount / sampleUniverse)));
 }
 
-function buildMockDepartmentReadout(contextRows: typeof ALL_ROWS) {
+function buildMockDepartmentReadout(contextRows: typeof ALL_ROWS, contextIsNarrowed: boolean) {
   return MOCK_DEPARTMENTS.map((department) => {
     const baseRows = applyContractFilters(ALL_ROWS, { lang: "es", department: department.value });
     const filteredRows = contextRows.filter(
       (row) => normalizeDepartmentKey(row.department) === department.value,
     );
+    const hasVisibleRows = filteredRows.length > 0;
     const contractCount =
-      filteredRows.length && baseRows.length
+      hasVisibleRows && baseRows.length
         ? scaleVisibleCount(filteredRows.length, baseRows.length, department.contractCount)
-        : filteredRows.length === 0 && contextRows.length
+        : contextIsNarrowed
           ? 0
           : department.contractCount;
     const avgRisk =
-      filteredRows.length > 0
+      hasVisibleRows
         ? filteredRows.reduce((sum, row) => sum + row.score / 100, 0) / filteredRows.length
-        : department.avgRisk;
+        : contextIsNarrowed
+          ? 0
+          : department.avgRisk;
 
     return {
       key: department.value,
@@ -799,6 +813,13 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
   const filtered = applyContractFilters(ALL_ROWS, filters);
   const filteredLeadCases = applyContractFilters(LEAD_CASES, filters);
   const hasNarrowing = hasContractNarrowing(filters);
+  const contextIsNarrowed = Boolean(
+    (filters.risk && filters.risk !== "all") ||
+      filters.modality ||
+      filters.query?.trim() ||
+      filters.dateFrom ||
+      filters.dateTo,
+  );
   const populationBase = baseDepartmentCount(filters.department);
   const useScaledPopulation = shouldScaleToPopulation(filters);
   const totalContracts =
@@ -814,7 +835,7 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
     filtered.length > 0
       ? Math.round(filtered.filter((r) => r.riskBand === "high").reduce((sum, row) => sum + row.value, 0) * scaleFactor)
       : 124_500_000_000;
-  const mapDepartments = buildMockDepartmentReadout(contextRows);
+  const mapDepartments = buildMockDepartmentReadout(contextRows, contextIsNarrowed);
   const topDept = filters.department
     ? (MOCK_DEPARTMENTS.find((d) => d.value === filters.department)?.label ?? "Colombia")
     : [...mapDepartments].sort((left, right) => right.contractCount - left.contractCount || right.avgRisk - left.avgRisk)[0]?.label ?? "Bogotá D.C.";
