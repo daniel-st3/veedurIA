@@ -9,6 +9,7 @@ import type {
   PromisesPayload,
   TablePayload,
 } from "./types";
+import type { NetworkNodeDetail, NetworkPayload, NetworkVersion } from "./network/types";
 import type { ContractsFilters, PromiseFilters } from "./api";
 import { formatCompactCop } from "./format";
 
@@ -1073,5 +1074,196 @@ export function getMockPromises(filters: PromiseFilters): PromisesPayload {
             ? "Under monitoring"
             : "With registered action",
     },
+  };
+}
+
+// ─── SigueElDinero mock data ───────────────────────────────────────────────────
+
+const NOW = new Date().toISOString();
+
+function mockEvidence(entity: string, contractor: string, value: number) {
+  return [
+    {
+      sourceType: "SECOP_II" as const,
+      sourceUrl: "https://www.datos.gov.co/resource/jbjy-vk9h.json",
+      sourceDocument: "Contratos registrados en SECOP II",
+      sourceDate: "2024-06-30",
+      algorithm: "exact_match_nit" as const,
+      confidence: 100,
+      confidenceBand: "high" as const,
+      confidenceLabel: "Alta confianza",
+      explanation: "NITs verificados en registros oficiales SECOP II",
+      extractedData: { contractValue: value, entity, contractor, modality: "Contratación directa", department: "BOGOTA D.C." },
+    },
+  ];
+}
+
+function mockEdge(
+  id: string, src: string, tgt: string, monto: number, count: number, confidence: number,
+  entity: string, contractor: string, dept = "BOGOTA D.C.", modality = "Contratación directa"
+) {
+  const band = confidence >= 80 ? "high" : confidence >= 60 ? "medium" : "low";
+  const bandLabel = confidence >= 80 ? "Alta confianza" : confidence >= 60 ? "Confianza media" : "Relación inferida";
+  return {
+    id,
+    source: src,
+    target: tgt,
+    type: "contrato-proveedor" as const,
+    typeLabel: "Contrato público",
+    typeDescription: `${contractor} recibió ${count} contrato${count > 1 ? "s" : ""} de ${entity} por un total de $${(monto / 1e9).toFixed(1)}MM COP.`,
+    confidence,
+    confidenceBand: band as "high" | "medium" | "low",
+    confidenceLabel: bandLabel,
+    total_monto: monto,
+    total_monto_label: `$${(monto / 1e9).toFixed(1)}MM COP`,
+    contract_count: count,
+    modalidad: modality,
+    departamento: dept,
+    date_range: { from: "2022-01", to: "2024-11" },
+    risk_mean: 0.55,
+    risk_max: 0.78,
+    evidence: mockEvidence(entity, contractor, monto),
+    detectedAt: NOW,
+  };
+}
+
+export function getMockNetwork(): NetworkPayload {
+  const n = (id: string, label: string, type: "entity" | "provider", value: number, degree: number, hhi: number | null, isHub = false) => ({
+    id,
+    label,
+    type,
+    typeLabel: type === "entity" ? "Entidad pública" : "Proveedor",
+    degree,
+    total_value: value,
+    total_value_label: `$${(value / 1e9).toFixed(1)}MM COP`,
+    mean_risk: 0.55,
+    max_risk: 0.82,
+    herfindahl: hhi,
+    herfindahl_label: hhi !== null ? (hhi >= 0.5 ? `Alta concentración (${hhi.toFixed(2)})` : `Moderado (${hhi.toFixed(2)})`) : "",
+    is_hub: isHub,
+    department: type === "entity" ? "BOGOTA D.C." : undefined,
+    nit: type === "entity" ? "9001" + id.replace(/\D/g, "").slice(0, 5) : undefined,
+    connection_count: degree,
+    cluster_id: null,
+  });
+
+  const nodes = [
+    n("e_mdn", "MINISTERIO DE DEFENSA NACIONAL", "entity", 4_200_000_000, 4, 0.45, true),
+    n("e_invias", "INVIAS", "entity", 9_500_000_000, 3, 0.38, true),
+    n("e_icbf", "ICBF", "entity", 3_100_000_000, 4, 0.52, true),
+    n("e_salud", "MINISTERIO DE SALUD", "entity", 6_800_000_000, 3, 0.31, true),
+    n("e_edu", "MINISTERIO DE EDUCACION NACIONAL", "entity", 5_400_000_000, 3, 0.41, true),
+    n("e_dnp", "DEPARTAMENTO NACIONAL DE PLANEACION", "entity", 2_200_000_000, 2, 0.68, true),
+    n("e_sena", "SENA", "entity", 7_100_000_000, 4, 0.27, true),
+    n("e_pdet", "AGENCIA DE RENOVACION DEL TERRITORIO", "entity", 1_800_000_000, 2, 0.71, true),
+    n("p_imcol", "INDUSTRIA MILITAR S.A.", "provider", 2_100_000_000, 2, null),
+    n("p_log", "LOGISTICA NACIONAL SAS", "provider", 800_000_000, 3, null),
+    n("p_con", "CONSTRUCTORA ANDINA S.A.", "provider", 9_500_000_000, 1, null),
+    n("p_far", "FARMACEUTICA DEL SUR", "provider", 3_400_000_000, 2, null),
+    n("p_tech", "TECNOLOGIAS CIVILES SAS", "provider", 1_200_000_000, 3, null),
+    n("p_cap", "CAPACITACION Y DESARROLLO S.A.", "provider", 2_800_000_000, 2, null),
+    n("p_inf", "INFRAESTRUCTURA MODERNA LTDA", "provider", 4_100_000_000, 2, null),
+    n("p_serv", "SERVICIOS INTEGRADOS SAS", "provider", 1_600_000_000, 3, null),
+    n("p_cons", "CONSULTORES ANDINOS SAS", "provider", 900_000_000, 2, null),
+    n("p_data", "DATATECH COLOMBIA", "provider", 2_300_000_000, 2, null),
+    n("p_build", "BUILDCO SAS", "provider", 5_200_000_000, 1, null),
+    n("p_med", "MEDICAMENTOS ESPECIALIZADOS SA", "provider", 3_400_000_000, 1, null),
+  ];
+
+  const edges = [
+    mockEdge("ed1", "e_mdn", "p_imcol", 2_100_000_000, 8, 100, "MINISTERIO DE DEFENSA NACIONAL", "INDUSTRIA MILITAR S.A."),
+    mockEdge("ed2", "e_mdn", "p_log", 800_000_000, 5, 80, "MINISTERIO DE DEFENSA NACIONAL", "LOGISTICA NACIONAL SAS"),
+    mockEdge("ed3", "e_mdn", "p_tech", 600_000_000, 3, 50, "MINISTERIO DE DEFENSA NACIONAL", "TECNOLOGIAS CIVILES SAS"),
+    mockEdge("ed4", "e_mdn", "p_serv", 700_000_000, 4, 40, "MINISTERIO DE DEFENSA NACIONAL", "SERVICIOS INTEGRADOS SAS"),
+    mockEdge("ed5", "e_invias", "p_con", 9_500_000_000, 7, 100, "INVIAS", "CONSTRUCTORA ANDINA S.A.", "ANTIOQUIA"),
+    mockEdge("ed6", "e_invias", "p_inf", 2_200_000_000, 4, 80, "INVIAS", "INFRAESTRUCTURA MODERNA LTDA"),
+    mockEdge("ed7", "e_invias", "p_build", 5_200_000_000, 3, 80, "INVIAS", "BUILDCO SAS", "CUNDINAMARCA"),
+    mockEdge("ed8", "e_icbf", "p_log", 600_000_000, 6, 100, "ICBF", "LOGISTICA NACIONAL SAS"),
+    mockEdge("ed9", "e_icbf", "p_cap", 1_800_000_000, 5, 80, "ICBF", "CAPACITACION Y DESARROLLO S.A."),
+    mockEdge("ed10", "e_icbf", "p_serv", 500_000_000, 3, 50, "ICBF", "SERVICIOS INTEGRADOS SAS"),
+    mockEdge("ed11", "e_icbf", "p_cons", 200_000_000, 2, 40, "ICBF", "CONSULTORES ANDINOS SAS"),
+    mockEdge("ed12", "e_salud", "p_far", 3_400_000_000, 9, 100, "MINISTERIO DE SALUD", "FARMACEUTICA DEL SUR"),
+    mockEdge("ed13", "e_salud", "p_med", 3_400_000_000, 7, 100, "MINISTERIO DE SALUD", "MEDICAMENTOS ESPECIALIZADOS SA"),
+    mockEdge("ed14", "e_salud", "p_tech", 0, 2, 50, "MINISTERIO DE SALUD", "TECNOLOGIAS CIVILES SAS"),
+    mockEdge("ed15", "e_edu", "p_cap", 1_000_000_000, 8, 80, "MINISTERIO DE EDUCACION NACIONAL", "CAPACITACION Y DESARROLLO S.A."),
+    mockEdge("ed16", "e_edu", "p_data", 2_300_000_000, 6, 100, "MINISTERIO DE EDUCACION NACIONAL", "DATATECH COLOMBIA"),
+    mockEdge("ed17", "e_edu", "p_serv", 400_000_000, 3, 40, "MINISTERIO DE EDUCACION NACIONAL", "SERVICIOS INTEGRADOS SAS"),
+    mockEdge("ed18", "e_dnp", "p_data", 0, 4, 80, "DEPARTAMENTO NACIONAL DE PLANEACION", "DATATECH COLOMBIA"),
+    mockEdge("ed19", "e_dnp", "p_cons", 700_000_000, 5, 80, "DEPARTAMENTO NACIONAL DE PLANEACION", "CONSULTORES ANDINOS SAS"),
+    mockEdge("ed20", "e_sena", "p_cap", 0, 10, 100, "SENA", "CAPACITACION Y DESARROLLO S.A."),
+    mockEdge("ed21", "e_sena", "p_tech", 600_000_000, 5, 80, "SENA", "TECNOLOGIAS CIVILES SAS"),
+    mockEdge("ed22", "e_sena", "p_log", 400_000_000, 4, 80, "SENA", "LOGISTICA NACIONAL SAS"),
+    mockEdge("ed23", "e_sena", "p_inf", 1_900_000_000, 6, 100, "SENA", "INFRAESTRUCTURA MODERNA LTDA"),
+    mockEdge("ed24", "e_pdet", "p_inf", 1_000_000_000, 4, 80, "AGENCIA DE RENOVACION DEL TERRITORIO", "INFRAESTRUCTURA MODERNA LTDA"),
+    mockEdge("ed25", "e_pdet", "p_cons", 200_000_000, 2, 40, "AGENCIA DE RENOVACION DEL TERRITORIO", "CONSULTORES ANDINOS SAS"),
+  ];
+
+  return {
+    meta: {
+      lang: "es",
+      version: "mock-2026",
+      total_nodes: nodes.length,
+      total_edges: edges.length,
+      total_value: nodes.filter((n) => n.type === "entity").reduce((s, n) => s + n.total_value, 0),
+      department_filter: null,
+      built_at: NOW,
+      source: "mock",
+      confidence_filter: 40,
+    },
+    nodes,
+    edges,
+  };
+}
+
+export function getMockNetworkNodeDetail(nodeId: string): NetworkNodeDetail {
+  const payload = getMockNetwork();
+  const node = payload.nodes.find((n) => n.id === nodeId) ?? payload.nodes[0];
+  const touching = payload.edges.filter((e) => e.source === nodeId || e.target === nodeId);
+  const top = touching.sort((a, b) => b.total_monto - a.total_monto).slice(0, 5);
+  const topConnections = top.map((e) => {
+    const neighborId = e.source === nodeId ? e.target : e.source;
+    const neighbor = payload.nodes.find((n) => n.id === neighborId);
+    return {
+      node_id: neighborId,
+      label: neighbor?.label ?? neighborId,
+      type: (neighbor?.type ?? "provider") as "entity" | "provider",
+      total_monto: e.total_monto,
+      total_monto_label: e.total_monto_label,
+      contract_count: e.contract_count,
+      confidence: e.confidence,
+      edge_id: e.id,
+    };
+  });
+  return {
+    ...node,
+    found: true,
+    top_connections: topConnections,
+    modality_breakdown: [
+      { modalidad: "Contratación directa", count: 8, share: 0.55 },
+      { modalidad: "Licitación pública", count: 4, share: 0.27 },
+      { modalidad: "Selección abreviada", count: 3, share: 0.18 },
+    ],
+    date_range: { from: "2022-01", to: "2024-11" },
+    top_contracts: top.slice(0, 3).map((e, i) => ({
+      id: e.id,
+      value: e.total_monto,
+      value_label: e.total_monto_label,
+      date: "2024-0" + (i + 1),
+      modality: e.modalidad,
+      department: e.departamento,
+      secop_url: "https://www.datos.gov.co/resource/jbjy-vk9h.json",
+      risk_score: 0.62,
+    })),
+  };
+}
+
+export function getMockNetworkVersion(): NetworkVersion {
+  return {
+    version: "mock-2026",
+    built_at: NOW,
+    entity_count: 8,
+    provider_count: 12,
+    edge_count: 25,
+    total_value: 40_100_000_000,
   };
 }

@@ -5,7 +5,21 @@ import type {
   PromisesPayload,
   TablePayload,
 } from "@/lib/types";
-import { getMockFreshness, getMockOverview, getMockPromises, getMockTable } from "@/lib/mock-data";
+import type {
+  NetworkNodeDetail,
+  NetworkPayload,
+  NetworkVersion,
+  ErrorReportBody,
+} from "@/lib/network/types";
+import {
+  getMockFreshness,
+  getMockOverview,
+  getMockPromises,
+  getMockTable,
+  getMockNetwork,
+  getMockNetworkNodeDetail,
+  getMockNetworkVersion,
+} from "@/lib/mock-data";
 import { formatCompactCop } from "@/lib/format";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -348,5 +362,106 @@ export async function fetchPromisesOverview(filters: PromiseFilters): Promise<Pr
     return payload;
   } catch {
     return getMockPromises(filters);
+  }
+}
+
+// ─── SigueElDinero — Network API ──────────────────────────────────────────────
+
+export type NetworkFilters = {
+  lang: Lang;
+  limit?: number;
+  department?: string;
+  minConfidence?: number;
+};
+
+function isNetworkPayload(value: unknown): value is NetworkPayload {
+  if (!hasObjectShape(value)) return false;
+  const p = value as Record<string, unknown>;
+  return (
+    hasObjectShape(p.meta) &&
+    Array.isArray(p.nodes) &&
+    Array.isArray(p.edges)
+  );
+}
+
+export async function fetchNetworkVersion(): Promise<NetworkVersion> {
+  try {
+    const response = await fetch(`${API_BASE}/network/version`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Failed");
+    return await response.json();
+  } catch {
+    return getMockNetworkVersion();
+  }
+}
+
+export async function fetchNetworkOverview(filters: NetworkFilters): Promise<NetworkPayload> {
+  try {
+    const query = buildQuery({
+      lang: filters.lang,
+      limit: filters.limit ?? 30,
+      department: filters.department,
+      min_confidence: filters.minConfidence ?? 40,
+    });
+    const response = await fetch(`${API_BASE}/network/overview?${query}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Failed to fetch network overview");
+    const payload = await response.json();
+    if (!isNetworkPayload(payload)) throw new Error("Invalid network payload");
+    return payload;
+  } catch {
+    return getMockNetwork();
+  }
+}
+
+export async function fetchNetworkSearch(query: string, lang: Lang, minConfidence = 40): Promise<NetworkPayload> {
+  try {
+    const qs = buildQuery({ q: query, lang, min_confidence: minConfidence });
+    const response = await fetch(`${API_BASE}/network/search?${qs}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Failed to fetch network search");
+    const payload = await response.json();
+    if (!isNetworkPayload(payload)) throw new Error("Invalid network search payload");
+    return payload;
+  } catch {
+    const mock = getMockNetwork();
+    // Simulate a filtered result
+    const q = query.toUpperCase();
+    const matched = mock.nodes.filter((n) => n.label.toUpperCase().includes(q));
+    if (!matched.length) return { ...mock, nodes: [], edges: [], meta: { ...mock.meta, found: false, query } };
+    return { ...mock, meta: { ...mock.meta, found: true, query, match_label: matched[0].label } };
+  }
+}
+
+export async function fetchNetworkExpand(nodeId: string, lang: Lang, minConfidence = 40): Promise<NetworkPayload> {
+  try {
+    const qs = buildQuery({ lang, min_confidence: minConfidence });
+    const response = await fetch(`${API_BASE}/network/expand/${nodeId}?${qs}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Failed to fetch network expand");
+    const payload = await response.json();
+    if (!isNetworkPayload(payload)) throw new Error("Invalid network expand payload");
+    return payload;
+  } catch {
+    return getMockNetwork();
+  }
+}
+
+export async function fetchNetworkNodeDetail(nodeId: string, lang: Lang): Promise<NetworkNodeDetail> {
+  try {
+    const qs = buildQuery({ lang });
+    const response = await fetch(`${API_BASE}/network/node/${nodeId}?${qs}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Failed to fetch node detail");
+    return await response.json();
+  } catch {
+    return getMockNetworkNodeDetail(nodeId);
+  }
+}
+
+export async function reportNetworkError(body: ErrorReportBody): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/network/report-error`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    // Silent — error report is best-effort
   }
 }

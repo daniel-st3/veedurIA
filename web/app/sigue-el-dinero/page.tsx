@@ -1,4 +1,4 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
+import { SigueElDineroView } from "@/components/sigue-el-dinero-view";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
 
@@ -15,8 +15,8 @@ export async function generateMetadata({
     title: lang === "es" ? "SigueElDinero — VeedurIA" : "SigueElDinero — VeedurIA",
     description:
       lang === "es"
-        ? "Sigue el avance del módulo relacional para conectar contratistas, donantes y señales repetidas."
-        : "Track the progress of the relationship module that connects contractors, donors, and repeated signals.",
+        ? "Explora quién contrata con quién, cómo se concentra el gasto público y qué relaciones se repiten."
+        : "Explore who contracts with whom, how public spending concentrates, and which relationships repeat.",
     imagePath: "/sigue-el-dinero/opengraph-image",
   });
 }
@@ -28,16 +28,5 @@ export default async function SigueElDineroPage({
 }) {
   const params = await searchParams;
   const lang = resolveLang(params.lang);
-  return (
-    <ModulePlaceholder
-      lang={lang}
-      phase={lang === "es" ? "Fase 3" : "Phase 3"}
-      title="SigueElDinero"
-      body={
-        lang === "es"
-          ? "Este módulo conectará contratistas, donantes, funcionarios y señales repetidas para pasar del caso aislado al patrón de relación. Por ahora muestra el avance del frente relacional y mantiene claro que todavía no está listo para auditoría completa."
-          : "This module will connect contractors, donors, public officials, and repeated signals to move from isolated cases to relationship patterns. For now it shows module progress and makes it explicit that the relational layer is not ready for full audit use yet."
-      }
-    />
-  );
+  return <SigueElDineroView lang={lang} />;
 }
