@@ -19,6 +19,21 @@ const TOOLTIP_THEME = {
   font: { color: "#1e1c17", size: 13, family: "Inter, ui-sans-serif, system-ui, sans-serif" },
 } as const;
 
+function truncateLabel(label: string, max = 28) {
+  if (label.length <= max) return label;
+  return `${label.slice(0, Math.max(0, max - 1)).trim()}…`;
+}
+
+function formatMonthTick(month: string, lang: Lang) {
+  const date = new Date(`${month}-01T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return month;
+  return new Intl.DateTimeFormat(lang === "es" ? "es-CO" : "en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
 function groupByMonth(rows: TableRow[]) {
   const buckets = new Map<string, number>();
   rows.forEach((row) => {
@@ -111,10 +126,10 @@ export function ContractsDashboard({
     () => [
       {
         x: topDepartments.map((item) => item.contractCount).reverse(),
-        y: topDepartments.map((item) => item.label).reverse(),
+        y: topDepartments.map((item) => truncateLabel(item.label, 24)).reverse(),
         type: "bar",
         orientation: "h",
-        customdata: topDepartments.map((item) => [Math.round(item.avgRisk * 100)]).reverse(),
+        customdata: topDepartments.map((item) => [item.label, Math.round(item.avgRisk * 100)]).reverse(),
         marker: {
           color: topDepartments
             .map((item) =>
@@ -128,8 +143,8 @@ export function ContractsDashboard({
         cliponaxis: false,
         hovertemplate:
           lang === "es"
-            ? "<b>%{y}</b><br>%{x:,} contratos<br>Intensidad %{customdata[0]}/100<extra></extra>"
-            : "<b>%{y}</b><br>%{x:,} contracts<br>Intensity %{customdata[0]}/100<extra></extra>",
+            ? "<b>%{customdata[0]}</b><br>%{x:,} contratos<br>Intensidad %{customdata[1]}/100<extra></extra>"
+            : "<b>%{customdata[0]}</b><br>%{x:,} contracts<br>Intensity %{customdata[1]}/100<extra></extra>",
       },
     ],
     [lang, topDepartments],
@@ -158,22 +173,24 @@ export function ContractsDashboard({
   const modalityData = useMemo(
     () => [
       {
-        x: modalityMix.map((item) => item.label),
-        y: modalityMix.map((item) => item.count),
+        x: modalityMix.map((item) => item.count).reverse(),
+        y: modalityMix.map((item) => truncateLabel(item.label, 26)).reverse(),
         type: "bar",
+        orientation: "h",
+        customdata: modalityMix.map((item) => [item.label, Math.round(item.meanRisk * 100)]).reverse(),
         marker: {
           color: modalityMix.map((item) =>
             item.meanRisk >= 0.7 ? RISK_COLORS.high : item.meanRisk >= 0.4 ? RISK_COLORS.medium : CHART_PALETTE[0],
-          ),
+          ).reverse(),
           line: { color: "rgba(40, 37, 29, 0.08)", width: 1 },
         },
-        text: modalityMix.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")),
+        text: modalityMix.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")).reverse(),
         textposition: "outside",
         cliponaxis: false,
         hovertemplate:
           lang === "es"
-            ? "<b>%{label}</b><br>%{value} contratos<extra></extra>"
-            : "<b>%{label}</b><br>%{value} contracts<extra></extra>",
+            ? "<b>%{customdata[0]}</b><br>%{x} contratos<br>Riesgo medio %{customdata[1]}/100<extra></extra>"
+            : "<b>%{customdata[0]}</b><br>%{x} contracts<br>Average risk %{customdata[1]}/100<extra></extra>",
       },
     ],
     [lang, modalityMix],
@@ -183,9 +200,10 @@ export function ContractsDashboard({
     () => [
       {
         x: topEntities.map((item) => item.count).reverse(),
-        y: topEntities.map((item) => item.label).reverse(),
+        y: topEntities.map((item) => truncateLabel(item.label, 28)).reverse(),
         type: "bar",
         orientation: "h",
+        customdata: topEntities.map((item) => [item.label, Math.round(item.meanRisk * 100)]).reverse(),
         marker: {
           color: topEntities.map((item) =>
             item.meanRisk >= 0.7
@@ -201,8 +219,8 @@ export function ContractsDashboard({
         cliponaxis: false,
         hovertemplate:
           lang === "es"
-            ? "<b>%{y}</b><br>%{x} contratos<extra></extra>"
-            : "<b>%{y}</b><br>%{x} contracts<extra></extra>",
+            ? "<b>%{customdata[0]}</b><br>%{x} contratos<br>Riesgo medio %{customdata[1]}/100<extra></extra>"
+            : "<b>%{customdata[0]}</b><br>%{x} contracts<br>Average risk %{customdata[1]}/100<extra></extra>",
       },
     ],
     [lang, topEntities],
@@ -216,12 +234,12 @@ export function ContractsDashboard({
     plot_bgcolor: "rgba(0,0,0,0)",
     font: { color: "#1e1c17", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
     hoverlabel: TOOLTIP_THEME,
-    margin: { l: 24, r: 18, t: 18, b: 34 },
+    margin: { l: 28, r: 22, t: 16, b: 40 },
   } as const;
 
   return (
     <section className="cv-dashboard surface-soft">
-      <div className="cv-block__header">
+      <div className="cv-block__header cv-dashboard__header">
         <div>
           <p className="eyebrow">{lang === "es" ? "Visualiza el corte" : "Visualize the slice"}</p>
           <h2>{lang === "es" ? "Cuatro lecturas rápidas del corte" : "Four quick reads of the slice"}</h2>
@@ -249,17 +267,23 @@ export function ContractsDashboard({
               data={territoryData as any}
               layout={{
                 ...baseLayout,
-                margin: { l: 110, r: 48, t: 8, b: 10 },
-                xaxis: { gridcolor: GRID_COLOR, zeroline: false, tickfont: { size: 11 } },
-                yaxis: { tickfont: { size: 12 } },
+                margin: { l: 158, r: 56, t: 16, b: 34 },
+                xaxis: {
+                  title: { text: lang === "es" ? "Contratos visibles" : "Visible contracts", standoff: 8 },
+                  gridcolor: GRID_COLOR,
+                  zeroline: false,
+                  tickfont: { size: 12 },
+                  automargin: true,
+                },
+                yaxis: { tickfont: { size: 12 }, automargin: true },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               onClick={(event: any) => {
                 const label = event.points?.[0]?.y;
-                const department = departments.find((item) => item.label === label);
+                const department = departments.find((item) => truncateLabel(item.label, 24) === label);
                 if (department?.geoName) onDepartmentPick?.(department.geoName);
               }}
-              style={{ width: "100%", height: 240 }}
+              style={{ width: "100%", height: 282 }}
             />
           </div>
         </article>
@@ -279,8 +303,20 @@ export function ContractsDashboard({
               data={timelineData as any}
               layout={{
                 ...baseLayout,
-                yaxis: { gridcolor: GRID_COLOR, zeroline: false, tickfont: { size: 11 } },
-                xaxis: { tickangle: -35, tickfont: { size: 11 } },
+                margin: { l: 62, r: 24, t: 16, b: 56 },
+                yaxis: {
+                  title: { text: lang === "es" ? "Contratos" : "Contracts", standoff: 8 },
+                  gridcolor: GRID_COLOR,
+                  zeroline: false,
+                  tickfont: { size: 12 },
+                  automargin: true,
+                },
+                xaxis: {
+                  tickvals: timeline.map((item) => item.month),
+                  ticktext: timeline.map((item) => formatMonthTick(item.month, lang)),
+                  tickfont: { size: 11 },
+                  automargin: true,
+                },
                 hovermode: "x unified",
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
@@ -288,7 +324,7 @@ export function ContractsDashboard({
                 const month = event.points?.[0]?.x;
                 if (month && typeof month === "string") onMonthPick?.(month);
               }}
-              style={{ width: "100%", height: 240 }}
+              style={{ width: "100%", height: 282 }}
             />
           </div>
         </article>
@@ -308,12 +344,18 @@ export function ContractsDashboard({
               data={modalityData as any}
               layout={{
                 ...baseLayout,
-                margin: { l: 18, r: 18, t: 8, b: 56 },
-                xaxis: { tickangle: -18, tickfont: { size: 10 } },
-                yaxis: { gridcolor: GRID_COLOR, zeroline: false, tickfont: { size: 11 } },
+                margin: { l: 166, r: 54, t: 16, b: 34 },
+                xaxis: {
+                  title: { text: lang === "es" ? "Contratos visibles" : "Visible contracts", standoff: 8 },
+                  gridcolor: GRID_COLOR,
+                  zeroline: false,
+                  tickfont: { size: 12 },
+                  automargin: true,
+                },
+                yaxis: { tickfont: { size: 12 }, automargin: true },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
-              style={{ width: "100%", height: 240 }}
+              style={{ width: "100%", height: 282 }}
             />
           </div>
         </article>
@@ -333,12 +375,18 @@ export function ContractsDashboard({
               data={entityData as any}
               layout={{
                 ...baseLayout,
-                margin: { l: 170, r: 50, t: 8, b: 10 },
-                xaxis: { gridcolor: GRID_COLOR, zeroline: false, tickfont: { size: 11 } },
-                yaxis: { tickfont: { size: 11 } },
+                margin: { l: 188, r: 56, t: 16, b: 34 },
+                xaxis: {
+                  title: { text: lang === "es" ? "Contratos visibles" : "Visible contracts", standoff: 8 },
+                  gridcolor: GRID_COLOR,
+                  zeroline: false,
+                  tickfont: { size: 12 },
+                  automargin: true,
+                },
+                yaxis: { tickfont: { size: 12 }, automargin: true },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
-              style={{ width: "100%", height: 240 }}
+              style={{ width: "100%", height: 282 }}
             />
           </div>
         </article>

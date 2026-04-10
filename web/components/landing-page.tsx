@@ -269,9 +269,7 @@ export function LandingPage({
 
               <h1 className="lp-story__title">
                 <span className="lp-story__title-line">
-                  {lang === "es" ? "Detecta" : "Detect"}
-                </span>
-                <span className="lp-story__title-line">
+                  {lang === "es" ? "Detecta " : "Detect "}
                   <span className="lp-story__title-accent lp-story__title-accent--tricolor">
                     {lang === "es" ? "la señal" : "the signal"}
                   </span>
@@ -348,13 +346,13 @@ export function LandingPage({
             <section className="lp-story-map">
               <div className="lp-story-map__head">
                 <div>
-                  <p className="eyebrow">{lang === "es" ? "Mapa de riesgo" : "Risk map"}</p>
-                  <h2>{lang === "es" ? "Pulso territorial del corte" : "Territorial pulse of the slice"}</h2>
+                  <p className="eyebrow">{lang === "es" ? "Entrada territorial" : "Territorial entry"}</p>
+                  <h2>{lang === "es" ? "Abre ContratoLimpio desde el territorio" : "Open ContratoLimpio from the territory"}</h2>
                 </div>
                 <p className="lp-story-map__description">
                   {lang === "es"
-                    ? "Este bloque es una entrada directa a ContratoLimpio. Resume el territorio y te lleva al módulo completo sin depender de hover."
-                    : "This block is a direct entry into ContratoLimpio. It summarizes the territory and opens the full module without relying on hover."}
+                    ? "Mapa limpio, sin cajas encima: una lectura territorial rápida y un acceso directo al módulo completo."
+                    : "A clean map with no overlays on top: quick territorial context and a direct entry into the full module."}
                 </p>
               </div>
 
@@ -363,19 +361,6 @@ export function LandingPage({
                 className="lp-story-map__frame lp-story-map__frame--link"
                 aria-label={lang === "es" ? "Abrir ContratoLimpio" : "Open ContratoLimpio"}
               >
-                <div className="lp-story-map__launch-copy surface-soft">
-                  <span className="lp-story-map__launch-kicker">{lang === "es" ? "Entrada rápida" : "Quick entry"}</span>
-                  <strong>{lang === "es" ? "Ir directo a ContratoLimpio" : "Go straight to ContratoLimpio"}</strong>
-                  <p>
-                    {lang === "es"
-                      ? "Mapa nacional, filtros, alertas y tabla priorizada en una sola vista."
-                      : "National map, filters, alerts, and a prioritized table in one view."}
-                  </p>
-                  <span className="lp-story-map__launch-cta">
-                    {lang === "es" ? "Abrir módulo" : "Open module"}
-                    <ArrowRight size={15} />
-                  </span>
-                </div>
                 {geojson ? (
                   <ColombiaMap
                     geojson={geojson}
@@ -421,11 +406,10 @@ export function LandingPage({
                       {lang === "es" ? "Riesgo bajo" : "Low risk"}
                     </span>
                   </div>
-                  <p className="lp-story-map__hint">
-                    {lang === "es"
-                      ? "Toca el recuadro para abrir ContratoLimpio."
-                      : "Tap the card to open ContratoLimpio."}
-                  </p>
+                  <Link href={contratoHref} className="lp-story-map__cta">
+                    {lang === "es" ? "Abrir ContratoLimpio" : "Open ContratoLimpio"}
+                    <ArrowRight size={15} />
+                  </Link>
                 </div>
               </div>
             </section>

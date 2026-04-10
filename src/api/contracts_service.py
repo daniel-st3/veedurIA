@@ -22,6 +22,7 @@ import pyarrow.parquet as pq
 import requests
 from src.models.isolation_forest import RED_THRESHOLD, YELLOW_THRESHOLD
 from src.models.shap_explainer import FEATURE_LABELS
+from src.utils.logger import get_logger
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_PROCESSED = PROJECT_ROOT / "data" / "processed"
@@ -29,6 +30,7 @@ DATA_REFERENCE = PROJECT_ROOT / "data" / "reference"
 DEFAULT_GEOJSON_PATH = DATA_REFERENCE / "colombia_departments.geojson"
 LAST_RUN_PATH = DATA_PROCESSED / "last_run.json"
 MODEL_META_DIR = DATA_PROCESSED / "models"
+REMOTE_SCORED_CACHE_PATH = DATA_PROCESSED / "scored_contracts.remote.parquet"
 
 PREVIEW_SIZE = 50_000
 SOCRATA_DOMAIN = "www.datos.gov.co"
@@ -102,6 +104,8 @@ BOOL_FEATURE_BASES = {
     "fiscal_year_end_rush": 0.7,
 }
 
+logger = get_logger(__name__)
+
 
 def _strip_accents(value: str) -> str:
     out: list[str] = []
@@ -122,6 +126,9 @@ def normalize_department_name(name: str) -> str:
 
 
 def _resolve_parquet_path() -> Path:
+    remote = _resolve_remote_scored_cache()
+    if remote and remote.exists():
+        return remote
     scored = DATA_PROCESSED / "scored_contracts.parquet"
     if scored.exists():
         return scored
@@ -129,6 +136,53 @@ def _resolve_parquet_path() -> Path:
     if files:
         return files[-1]
     raise FileNotFoundError("No scored contracts parquet found")
+
+
+def _download_remote_scored(remote_path: str) -> Path | None:
+    try:
+        from supabase import create_client
+
+        from src.utils.config import get_supabase_key, get_supabase_storage_bucket, get_supabase_url
+
+        supabase = create_client(get_supabase_url(), get_supabase_key())
+        bucket = get_supabase_storage_bucket()
+        payload = supabase.storage.from_(bucket).download(remote_path)
+        if not payload:
+            return None
+        tmp_path = REMOTE_SCORED_CACHE_PATH.with_suffix(".tmp")
+        tmp_path.write_bytes(payload)
+        tmp_path.replace(REMOTE_SCORED_CACHE_PATH)
+        logger.info("Downloaded remote scored parquet from Supabase: %s", remote_path)
+        return REMOTE_SCORED_CACHE_PATH
+    except Exception as exc:
+        logger.warning("Could not download remote scored parquet '%s': %s", remote_path, exc)
+        return None
+
+
+def _resolve_remote_scored_cache() -> Path | None:
+    state = load_last_run()
+    remote_path = str(state.get("scored_remote_path") or "").strip()
+    if not remote_path:
+        return None
+
+    uploaded_at = pd.to_datetime(
+        state.get("scored_uploaded_at") or state.get("last_run_ts"),
+        errors="coerce",
+        utc=True,
+    )
+    needs_refresh = not REMOTE_SCORED_CACHE_PATH.exists()
+    if not needs_refresh and pd.notna(uploaded_at):
+        cache_mtime = pd.Timestamp(REMOTE_SCORED_CACHE_PATH.stat().st_mtime, unit="s", tz="UTC")
+        needs_refresh = cache_mtime < uploaded_at
+
+    if needs_refresh:
+        downloaded = _download_remote_scored(remote_path)
+        if downloaded:
+            return downloaded
+
+    if REMOTE_SCORED_CACHE_PATH.exists():
+        return REMOTE_SCORED_CACHE_PATH
+    return None
 
 
 def _schema_names(path: Path) -> set[str]:
@@ -221,6 +275,16 @@ def _safe_ts(raw: Any) -> pd.Timestamp:
     if pd.isna(dt):
         return pd.Timestamp("1970-01-01", tz="UTC")
     return dt
+
+
+def _compute_source_gap_days(scored_latest: str | None, source_latest: str | None) -> int | None:
+    if not scored_latest or not source_latest:
+        return None
+    scored_ts = pd.to_datetime(scored_latest, errors="coerce", utc=True)
+    source_ts = pd.to_datetime(source_latest, errors="coerce", utc=True)
+    if pd.isna(scored_ts) or pd.isna(source_ts):
+        return None
+    return max(0, int((source_ts - scored_ts).days))
 
 
 @lru_cache(maxsize=1)
@@ -684,6 +748,8 @@ def get_overview_payload(
     effective_full = full or bool(date_from or date_to)
     df_all = load_contracts(effective_full)
     live_source = load_live_source_snapshot()
+    scored_latest = get_scored_latest_contract_date()
+    source_latest = live_source.get("latestDate")
     df_context = _filter_frame(
         df_all,
         risk=risk,
@@ -701,10 +767,10 @@ def get_overview_payload(
             "totalRows": get_total_row_count(),
             "shownRows": int(len(df_all)),
             "previewRows": PREVIEW_SIZE,
-            "latestContractDate": get_scored_latest_contract_date(),
-            "sourceLatestContractDate": live_source.get("latestDate"),
+            "latestContractDate": scored_latest,
+            "sourceLatestContractDate": source_latest,
             "sourceRows": live_source.get("rowsAtSource"),
-            "sourceFreshnessGapDays": None,
+            "sourceFreshnessGapDays": _compute_source_gap_days(scored_latest, source_latest),
             "dateRange": {
                 "from": date_from,
                 "to": date_to,
@@ -739,12 +805,7 @@ def get_freshness_payload() -> dict[str, Any]:
     scored_latest = get_scored_latest_contract_date()
     live_source = load_live_source_snapshot()
     source_meta = load_live_source_metadata()
-    gap_days = None
-    if scored_latest and live_source.get("latestDate"):
-        scored_ts = pd.to_datetime(scored_latest, errors="coerce", utc=True)
-        source_ts = pd.to_datetime(live_source["latestDate"], errors="coerce", utc=True)
-        if pd.notna(scored_ts) and pd.notna(source_ts):
-            gap_days = max(0, int((source_ts - scored_ts).days))
+    gap_days = _compute_source_gap_days(scored_latest, live_source.get("latestDate"))
     return {
         "latestContractDate": scored_latest,
         "sourceLatestContractDate": live_source.get("latestDate"),

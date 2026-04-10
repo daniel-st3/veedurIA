@@ -119,6 +119,10 @@ function parseOfficialCurrency(raw: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+type GeoJsonPayload = {
+  features?: Array<Record<string, unknown>>;
+};
+
 async function fetchOfficialContractsFallback(lang: Lang) {
   const [summaryResponse, latestResponse, metadataResponse] = await Promise.all([
     fetch(OFFICIAL_CONTRACTS_SUMMARY, { cache: "no-store" }),
@@ -295,7 +299,7 @@ export async function fetchContractsFreshness(): Promise<ContractsFreshnessPaylo
   }
 }
 
-export async function fetchGeoJson(): Promise<GeoJSON.GeoJSON | null> {
+export async function fetchGeoJson(): Promise<GeoJsonPayload | null> {
   try {
     const response = await fetch(`${API_BASE}/contracts/geojson`, { cache: "force-cache" });
     if (!response.ok) throw new Error("Failed to fetch geojson");

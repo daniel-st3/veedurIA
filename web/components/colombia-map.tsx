@@ -56,6 +56,9 @@ const MAP_TONES = {
   activeGlow: "rgba(1, 95, 101, 0.18)",
   activeDot: "#015f65",
 };
+const TOOLTIP_WIDTH = 310;
+const TOOLTIP_HEIGHT = 180;
+const TOOLTIP_PADDING = 18;
 
 function readPoints(value: any, bucket: [number, number][]) {
   if (!Array.isArray(value) || !value.length) return;
@@ -325,9 +328,14 @@ export function ColombiaMap({
       className={`colombia-map colombia-map--${mode} ${className ?? ""}`}
       ref={scope}
       onMouseMove={(event) => {
-        const rect = scope.current?.getBoundingClientRect();
-        if (!rect) return;
-        setMousePos({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+        if (typeof window === "undefined") return;
+        setMousePos({
+          x: Math.min(event.clientX + 18, window.innerWidth - TOOLTIP_WIDTH - TOOLTIP_PADDING),
+          y: Math.min(
+            Math.max(event.clientY + 10, TOOLTIP_PADDING),
+            window.innerHeight - TOOLTIP_HEIGHT - TOOLTIP_PADDING,
+          ),
+        });
       }}
       style={{ position: "relative" }}
     >
@@ -437,8 +445,8 @@ export function ColombiaMap({
         <div
           className="map-tooltip"
           style={{
-            left: mousePos.x + 18,
-            top: mousePos.y - 10,
+            left: mousePos.x,
+            top: mousePos.y,
           }}
         >
           <div className="map-tooltip__title">{hoveredTooltip?.label ?? hoveredSummary?.label ?? hovered}</div>

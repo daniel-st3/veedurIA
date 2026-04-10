@@ -466,12 +466,16 @@ def write_parquet(df: pd.DataFrame, label: str) -> Path:
 # Supabase upload
 # ---------------------------------------------------------------------------
 
-def upload_to_supabase(parquet_path: Path) -> None:
+def upload_to_supabase(parquet_path: Path) -> dict[str, str] | None:
     """
     Upload a Parquet file to Supabase Storage (veeduria-processed bucket).
 
     Uses src.utils.config to get Supabase credentials. Logs success/failure
     but does NOT raise on upload failure (non-blocking for the ETL pipeline).
+
+    Returns metadata about the uploaded object when successful so callers can
+    persist the remote path in last_run.json and later rehydrate the newest
+    scored parquet without committing large binaries to git.
     """
     try:
         from supabase import create_client
@@ -496,9 +500,11 @@ def upload_to_supabase(parquet_path: Path) -> None:
             remote_path=remote_path,
             size_bytes=len(file_bytes),
         )
+        return {"bucket": bucket, "remote_path": remote_path}
     except Exception as exc:
         logger.error("Supabase upload failed (non-blocking): %s", exc)
         log_etl_event("supabase_upload_failed", error=str(exc))
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -544,13 +550,16 @@ def run_incremental(client: "Socrata") -> None:
 
     label = f"incremental_{datetime.now(timezone.utc).strftime('%Y%m%d')}"
     parquet_path = write_parquet(df, label)
-    upload_to_supabase(parquet_path)
+    upload_result = upload_to_supabase(parquet_path)
 
     # Update state
     now = datetime.now(timezone.utc).isoformat()
     state["last_updated_at"] = now
     state["last_run_ts"] = now
     state["rows_fetched"] = state.get("rows_fetched", 0) + len(rows)
+    if upload_result:
+        state["latest_remote_path"] = upload_result["remote_path"]
+        state["latest_uploaded_at"] = now
     save_last_run(state)
 
     log_etl_event("etl_incremental_complete", new_rows=len(rows), total=state["rows_fetched"])
@@ -584,7 +593,10 @@ def run_backfill(client: "Socrata") -> None:
 
         label = f"backfill_{start_date[:7].replace('-', '_')}"
         parquet_path = write_parquet(df, label)
-        upload_to_supabase(parquet_path)
+        upload_result = upload_to_supabase(parquet_path)
+        if upload_result:
+            state["latest_remote_path"] = upload_result["remote_path"]
+            state["latest_uploaded_at"] = datetime.now(timezone.utc).isoformat()
 
         total_rows += len(rows)
         log_etl_event(
@@ -597,13 +609,17 @@ def run_backfill(client: "Socrata") -> None:
         )
 
     # Update last_run state after full backfill
-    state = {
-        "last_updated_at": datetime.now(timezone.utc).isoformat(),
-        "last_run_ts": datetime.now(timezone.utc).isoformat(),
+    completed_at = datetime.now(timezone.utc).isoformat()
+    final_state = {
+        "last_updated_at": completed_at,
+        "last_run_ts": completed_at,
         "rows_fetched": total_rows,
         "dataset_key": dataset_key,
     }
-    save_last_run(state)
+    if state.get("latest_remote_path"):
+        final_state["latest_remote_path"] = state["latest_remote_path"]
+        final_state["latest_uploaded_at"] = state.get("latest_uploaded_at", completed_at)
+    save_last_run(final_state)
 
     log_etl_event("etl_backfill_complete", total_rows=total_rows)
 

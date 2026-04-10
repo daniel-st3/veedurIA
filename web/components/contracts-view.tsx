@@ -656,7 +656,8 @@ export function ContractsView({
   const explorerGroups = useMemo(() => buildExplorerGroups(tableRows, explorerGroup), [tableRows, explorerGroup]);
   const selectedTone = selectedCase ? scoreTone(selectedCase.score) : "low";
   const staleScore = freshnessGap !== null && freshnessGap > 0;
-  const lastModelRun = overview?.meta.lastRunTs ? formatPortalUpdated(lang, overview.meta.lastRunTs) : null;
+  const lastPipelineRun = overview?.meta.lastRunTs ? formatPortalUpdated(lang, overview.meta.lastRunTs) : null;
+  const scoringCadence = lang === "es" ? "corrida diaria a las 10:00 p. m. (Colombia)" : "daily run at 10:00 p.m. Colombia time";
   const sliceMeanRisk = overview?.benchmarks?.sliceMeanRisk ?? leadCases.reduce((sum, item) => sum + item.score / 100, 0) / Math.max(leadCases.length, 1);
   const nationalMeanRisk = overview?.benchmarks?.nationalMeanRisk ?? sliceMeanRisk;
   const departmentMeanRisk = overview?.benchmarks?.departmentMeanRisk ?? currentDepartment?.avgRisk ?? null;
@@ -872,8 +873,8 @@ export function ContractsView({
                 </strong>
                 <span>
                   {lang === "es"
-                    ? `La brecha actual es de ${freshnessGap} días. Última corrida visible: ${lastModelRun ?? "sin hora disponible"}`
-                    : `The current gap is ${freshnessGap} days. Last visible scoring run: ${lastModelRun ?? "no visible timestamp"}`}
+                    ? `La brecha actual es de ${freshnessGap} días. Última ejecución registrada del pipeline: ${lastPipelineRun ?? "sin hora disponible"}.`
+                    : `The current gap is ${freshnessGap} days. Last recorded pipeline run: ${lastPipelineRun ?? "no visible timestamp"}.`}
                 </span>
                 <button
                   type="button"
@@ -887,12 +888,12 @@ export function ContractsView({
                 <div className="cv-gap-explanation">
                   <p>
                     {lang === "es"
-                      ? "Los contratos nuevos entran a diario desde SECOP II, pero el scoring visible se recalcula en corridas validadas para evitar lecturas apresuradas sobre datos recién publicados."
-                      : "New contracts arrive daily from SECOP II, but the visible scoring is refreshed in validated runs to avoid rushed readings over newly published data."}
+                      ? "SECOP II publica contratos antes de que el parquet puntuado vuelva a procesarse. Este tablero te muestra ambas fechas para que la diferencia sea explícita y no confunda la lectura del corte."
+                      : "SECOP II publishes contracts before the scored parquet is processed again. This board shows both dates explicitly so the gap does not blur the slice you are reading."}
                   </p>
                   <p>
-                    <strong>{lang === "es" ? "Próxima actualización visible:" : "Next visible scoring refresh:"}</strong>{" "}
-                    {lang === "es" ? "30 de abril de 2026" : "April 30, 2026"}
+                    <strong>{lang === "es" ? "Cadencia objetivo del refresh:" : "Target refresh cadence:"}</strong>{" "}
+                    {scoringCadence}
                   </p>
                 </div>
               ) : null}
@@ -998,23 +999,25 @@ export function ContractsView({
                   </select>
                 </label>
 
-                <label className="filter-field">
-                  <span className="label">{copy.filterDateFrom}</span>
-                  <input
-                    type="date"
-                    value={draft.dateFrom ?? ""}
-                    onChange={(event) => setDraft((prev) => ({ ...prev, dateFrom: event.target.value }))}
-                  />
-                </label>
+                <div className="cv-date-range cv-filter-grid__wide">
+                  <label className="filter-field">
+                    <span className="label">{copy.filterDateFrom}</span>
+                    <input
+                      type="date"
+                      value={draft.dateFrom ?? ""}
+                      onChange={(event) => setDraft((prev) => ({ ...prev, dateFrom: event.target.value }))}
+                    />
+                  </label>
 
-                <label className="filter-field">
-                  <span className="label">{copy.filterDateTo}</span>
-                  <input
-                    type="date"
-                    value={draft.dateTo ?? ""}
-                    onChange={(event) => setDraft((prev) => ({ ...prev, dateTo: event.target.value }))}
-                  />
-                </label>
+                  <label className="filter-field">
+                    <span className="label">{copy.filterDateTo}</span>
+                    <input
+                      type="date"
+                      value={draft.dateTo ?? ""}
+                      onChange={(event) => setDraft((prev) => ({ ...prev, dateTo: event.target.value }))}
+                    />
+                  </label>
+                </div>
               </div>
 
               <div className="cv-control-panel__actions">
