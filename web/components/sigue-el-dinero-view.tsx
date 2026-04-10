@@ -284,7 +284,14 @@ export function SigueElDineroView({ lang }: Props) {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="sed-page">
-      <SiteNav lang={lang} />
+      <SiteNav
+        lang={lang}
+        links={[
+          { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
+          { href: `/votometro?lang=${lang}`, label: "VotóMeter" },
+          { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
+        ]}
+      />
 
       {/* Hero */}
       <section className="sed-hero" ref={heroRef}>

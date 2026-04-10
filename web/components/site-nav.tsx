@@ -7,15 +7,24 @@ import { usePathname } from "next/navigation";
 import { LanguageSwitch } from "@/components/language-switch";
 import type { Lang } from "@/lib/types";
 
-type Props = {
+interface SiteNavProps {
   lang: Lang;
-  links: { href: string; label: string }[];
+  links?: { href: string; label: string }[];
   ctaHref?: string;
   ctaLabel?: string;
-};
+}
 
-export function SiteNav({ lang, links }: Props) {
+function defaultLinks(lang: Lang) {
+  return [
+    { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
+    { href: `/votometro?lang=${lang}`, label: "VotóMeter" },
+    { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
+  ];
+}
+
+export function SiteNav({ lang, links }: SiteNavProps) {
   const pathname = usePathname();
+  const navLinks = links ?? defaultLinks(lang);
 
   return (
     <nav className="site-nav">
@@ -34,7 +43,7 @@ export function SiteNav({ lang, links }: Props) {
       </Link>
 
       <div className="nav-links">
-        {links.map((link) => {
+        {navLinks.map((link) => {
           const targetPath = link.href.split("?")[0] || "/";
           const isActive = pathname === targetPath;
           return (
