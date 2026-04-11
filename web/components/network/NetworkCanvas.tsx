@@ -12,6 +12,15 @@ import type { Lang } from "@/lib/types";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false }) as any;
 
+/** Convert a 6-digit hex color (#rrggbb) to rgba() — Canvas API does not support 8-digit hex universally. */
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 type Props = {
   nodes: NetworkNode[];
   edges: NetworkEdge[];
@@ -75,6 +84,7 @@ export function NetworkCanvas({
 
   const renderNode = useCallback(
     (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+      try {
       const typedNode = node as NetworkNode & { x: number; y: number };
       const r = nodeRadius(typedNode);
       const isSelected = typedNode.id === selectedNodeId;
@@ -103,7 +113,7 @@ export function NetworkCanvas({
         ctx.save();
         ctx.beginPath();
         ctx.arc(typedNode.x, typedNode.y, r + 3, 0, 2 * Math.PI);
-        ctx.fillStyle = `${color}22`;
+        ctx.fillStyle = hexToRgba(color, 0.13);
         ctx.fill();
         ctx.restore();
       }
@@ -113,8 +123,8 @@ export function NetworkCanvas({
         typedNode.x - r * 0.28, typedNode.y - r * 0.28, r * 0.05,
         typedNode.x, typedNode.y, r,
       );
-      grad.addColorStop(0, `${color}ff`);
-      grad.addColorStop(1, `${color}bb`);
+      grad.addColorStop(0, color);
+      grad.addColorStop(1, hexToRgba(color, 0.73));
       ctx.fillStyle = isSelected ? "#ffd700" : grad;
       ctx.beginPath();
       ctx.arc(typedNode.x, typedNode.y, r, 0, 2 * Math.PI);
@@ -159,6 +169,9 @@ export function NetworkCanvas({
 
         ctx.fillStyle = isSelected ? "#ffd700" : typedNode.is_hub ? "rgba(255,255,255,0.96)" : "rgba(190,215,255,0.84)";
         ctx.fillText(label, lx, ly);
+      }
+      } catch {
+        // Silently swallow canvas errors so a single bad node never crashes the page
       }
     },
     [selectedNodeId, hoveredNodeId],
