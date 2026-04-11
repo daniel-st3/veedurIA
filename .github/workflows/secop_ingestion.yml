@@ -112,6 +112,11 @@ jobs:
           save_last_run(state)
           PY
 
+      - name: Upsert red+yellow contracts to Supabase Postgres
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python scripts/import_contracts_to_postgres.py --full
+
       - name: Commit last_run.json update
         if: steps.check_secrets.outputs.skip != 'true'
         run: |

@@ -12,9 +12,8 @@ data/raw/
 data/processed/*.parquet
 data/processed/**/*.parquet
 
-# ─── ML model weights — too large for git (> 50MB) ───────────────────────────
+# ─── ML model weights — committed if < 50MB (current model is ~1.7 MB) ──────
 # Note: _metadata.json files ARE committed (see below for explicit keep)
-data/processed/models/*.joblib
 data/processed/models/*.pkl
 
 # ─── Python ───────────────────────────────────────────────────────────────────

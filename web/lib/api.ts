@@ -186,10 +186,10 @@ async function fetchOfficialContractsFallback(lang: Lang) {
 }
 
 export async function fetchOverview(filters: ContractsFilters): Promise<OverviewPayload> {
+  // ── Supabase-backed Next.js API route (no external backend needed) ──────────
   try {
     const query = buildQuery({
       lang: filters.lang,
-      full: filters.full ?? false,
       department: filters.department,
       risk: filters.risk ?? "all",
       modality: filters.modality,
@@ -197,45 +197,24 @@ export async function fetchOverview(filters: ContractsFilters): Promise<Overview
       date_from: filters.dateFrom,
       date_to: filters.dateTo,
     });
-    const response = await fetch(`${API_BASE}/contracts/overview?${query}`, {
-      cache: "no-store",
-    });
-    if (!response.ok) throw new Error("Failed to fetch overview");
+    const base = typeof window === "undefined" ? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000") : "";
+    const response = await fetch(`${base}/api/contracts/overview?${query}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("overview route not ok");
     const payload = await response.json();
     if (!isValidOverviewPayload(payload)) throw new Error("Incomplete overview payload");
     if (!hasUsableOverviewCounts(payload, filters)) throw new Error("Degenerate overview payload");
     return payload;
   } catch {
+    // Fallback: mock enriched with live SECOP count
     const mock = getMockOverview(filters);
     try {
       const live = await fetchOfficialContractsFallback(filters.lang);
       const scoredDate = mock.meta.latestContractDate;
       const gap =
         scoredDate && live.latestDate
-          ? Math.max(
-              0,
-              Math.round(
-                (new Date(`${live.latestDate}T00:00:00Z`).getTime() - new Date(`${scoredDate}T00:00:00Z`).getTime()) /
-                  86_400_000,
-              ),
-            )
+          ? Math.max(0, Math.round((new Date(`${live.latestDate}T00:00:00Z`).getTime() - new Date(`${scoredDate}T00:00:00Z`).getTime()) / 86_400_000))
           : mock.meta.sourceFreshnessGapDays ?? null;
-
-      return {
-        ...mock,
-        meta: {
-          ...mock.meta,
-          sourceLatestContractDate: live.latestDate,
-          sourceRows: live.sourceRows,
-          sourceUpdatedAt: live.sourceUpdatedAt,
-          sourceFreshnessGapDays: gap,
-        },
-        liveFeed: {
-          latestDate: live.latestDate,
-          rowsAtSource: live.sourceRows,
-          contracts: live.contracts,
-        },
-      };
+      return { ...mock, meta: { ...mock.meta, sourceLatestContractDate: live.latestDate, sourceRows: live.sourceRows, sourceUpdatedAt: live.sourceUpdatedAt, sourceFreshnessGapDays: gap }, liveFeed: { latestDate: live.latestDate, rowsAtSource: live.sourceRows, contracts: live.contracts } };
     } catch {
       return mock;
     }
@@ -248,7 +227,6 @@ export async function fetchContractsTable(
   try {
     const query = buildQuery({
       lang: filters.lang,
-      full: filters.full ?? false,
       department: filters.department,
       risk: filters.risk ?? "all",
       modality: filters.modality,
@@ -258,10 +236,9 @@ export async function fetchContractsTable(
       offset: filters.offset ?? 0,
       limit: filters.limit ?? 24,
     });
-    const response = await fetch(`${API_BASE}/contracts/table?${query}`, {
-      cache: "no-store",
-    });
-    if (!response.ok) throw new Error("Failed to fetch table");
+    const base = typeof window === "undefined" ? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000") : "";
+    const response = await fetch(`${base}/api/contracts/table?${query}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("table route not ok");
     const payload = await response.json();
     if (!isValidTablePayload(payload, filters)) throw new Error("Incomplete table payload");
     return payload;
@@ -272,10 +249,9 @@ export async function fetchContractsTable(
 
 export async function fetchContractsFreshness(): Promise<ContractsFreshnessPayload> {
   try {
-    const response = await fetch(`${API_BASE}/contracts/freshness`, {
-      cache: "no-store",
-    });
-    if (!response.ok) throw new Error("Failed to fetch contracts freshness");
+    const base = typeof window === "undefined" ? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000") : "";
+    const response = await fetch(`${base}/api/contracts/freshness`, { cache: "no-store" });
+    if (!response.ok) throw new Error("freshness route not ok");
     const payload = await response.json();
     if (!isValidFreshnessPayload(payload)) throw new Error("Incomplete freshness payload");
     return payload;
