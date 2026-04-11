@@ -29,13 +29,15 @@ import { filterEdgesByConfidence } from "@/lib/network/buildEdges";
 import { sigueDineroCopy } from "@/lib/copy";
 
 import type { Lang } from "@/lib/types";
-import type { NetworkNode, NetworkEdge, NetworkNodeDetail } from "@/lib/network/types";
+import type { NetworkNode, NetworkEdge, NetworkNodeDetail, NetworkPayload } from "@/lib/network/types";
 
 type Tab = "red" | "concentracion" | "evidencia";
 
 type Props = {
   lang: Lang;
 };
+
+type NetworkMetaState = NetworkPayload["meta"] | null;
 
 export function SigueElDineroView({ lang }: Props) {
   const t = sigueDineroCopy[lang];
@@ -63,6 +65,7 @@ export function SigueElDineroView({ lang }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [dataVersion, setDataVersion] = useState<string | null>(null);
+  const [networkMeta, setNetworkMeta] = useState<NetworkMetaState>(null);
 
   // ── Canvas size ────────────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,6 +113,7 @@ export function SigueElDineroView({ lang }: Props) {
           if (cached && (!serverVersion || !isCacheStale(cached, serverVersion))) {
             setNodes(cached.nodes);
             setEdges(cached.edges);
+            setNetworkMeta(cached.meta);
             setIsLoading(false);
             return;
           }
@@ -117,12 +121,14 @@ export function SigueElDineroView({ lang }: Props) {
 
         const payload = await fetchNetworkOverview({
           lang,
+          limit: networkConfig.canvas.initialHubs,
           department: department || undefined,
           minConfidence,
         });
 
         setNodes(payload.nodes);
         setEdges(payload.edges);
+        setNetworkMeta(payload.meta);
         if (payload.meta.version) setDataVersion(payload.meta.version);
 
         // Cache it
@@ -156,6 +162,7 @@ export function SigueElDineroView({ lang }: Props) {
         const payload = await fetchNetworkSearch(q.trim(), lang, minConfidence);
         setNodes(payload.nodes);
         setEdges(payload.edges);
+        setNetworkMeta(payload.meta);
         setSearchQuery(q.trim());
         setSelectedNodeId(null);
         setSelectedEdgeId(null);
@@ -281,6 +288,26 @@ export function SigueElDineroView({ lang }: Props) {
     return Array.from(set).sort();
   }, [nodes]);
 
+  const visibleValue = useMemo(
+    () => filteredEdges.reduce((sum, edge) => sum + edge.total_monto, 0),
+    [filteredEdges],
+  );
+
+  const highConfidenceEdges = useMemo(
+    () => filteredEdges.filter((edge) => edge.confidence >= 80).length,
+    [filteredEdges],
+  );
+
+  const activeDepartmentCount = useMemo(
+    () => new Set(filteredEdges.map((edge) => edge.departamento).filter(Boolean)).size,
+    [filteredEdges],
+  );
+
+  const strongestNode = useMemo(
+    () => [...nodes].sort((left, right) => right.total_value - left.total_value)[0] ?? null,
+    [nodes],
+  );
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="sed-page">
@@ -342,11 +369,64 @@ export function SigueElDineroView({ lang }: Props) {
               <button onClick={clearSearch}><X size={12} /></button>
             </div>
           )}
+
+          <div className="sed-hero-metrics sed-hero__animate">
+            <article className="sed-hero-card">
+              <span>{lang === "es" ? "Nodos visibles" : "Visible nodes"}</span>
+              <strong>{nodes.length.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
+              <p>{lang === "es" ? "La escena actual del grafo" : "The current graph scene"}</p>
+            </article>
+            <article className="sed-hero-card">
+              <span>{lang === "es" ? "Relaciones fuertes" : "High-confidence links"}</span>
+              <strong>{highConfidenceEdges.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
+              <p>{lang === "es" ? "Con confianza alta en esta vista" : "High-confidence edges in view"}</p>
+            </article>
+            <article className="sed-hero-card">
+              <span>{lang === "es" ? "Valor visible" : "Visible value"}</span>
+              <strong>
+                {Intl.NumberFormat(lang === "es" ? "es-CO" : "en-US", {
+                  notation: "compact",
+                  maximumFractionDigits: 1,
+                }).format(visibleValue)}
+              </strong>
+              <p>{lang === "es" ? "Monto agregado en la red abierta" : "Aggregated value in the open graph"}</p>
+            </article>
+            <article className="sed-hero-card">
+              <span>{lang === "es" ? "Pivote principal" : "Primary hub"}</span>
+              <strong>{strongestNode?.label ?? "—"}</strong>
+              <p>
+                {lang === "es"
+                  ? `${activeDepartmentCount} departamentos activos en la vista`
+                  : `${activeDepartmentCount} departments active in view`}
+              </p>
+            </article>
+          </div>
         </div>
       </section>
 
       {/* Workbench */}
       <div className="sed-workbench" ref={workbenchRef}>
+        {networkMeta?.source === "mock" ? (
+          <div className="sed-status-banner is-warning" role="status">
+            <strong>{lang === "es" ? "Modo de referencia activo." : "Reference mode active."}</strong>
+            <span>
+              {lang === "es"
+                ? "Esta vista cayó a datos de referencia y no al grafo completo del backend; por eso el volumen puede verse limitado."
+                : "This view fell back to reference data instead of the full backend graph, so volume may look limited."}
+            </span>
+          </div>
+        ) : null}
+
+        {networkMeta?.partial ? (
+          <div className="sed-status-banner" role="status">
+            <strong>{lang === "es" ? "Lectura parcial." : "Partial reading."}</strong>
+            <span>
+              {lang === "es"
+                ? "El backend marcó este corte como parcial; conviene contrastarlo con la fuente antes de concluir."
+                : "The backend flagged this slice as partial; cross-check it against the source before concluding."}
+            </span>
+          </div>
+        ) : null}
 
         {/* Filter strip */}
         <div className="sed-filter-strip">
@@ -421,6 +501,37 @@ export function SigueElDineroView({ lang }: Props) {
         )}
 
         {/* Tab bar */}
+        <div className="sed-summary-strip">
+          <div className="sed-summary-chip">
+            <span>{lang === "es" ? "Grafo total" : "Full graph"}</span>
+            <strong>{networkMeta?.total_nodes?.toLocaleString(lang === "es" ? "es-CO" : "en-US") ?? "—"} {t.totalNodes}</strong>
+          </div>
+          <div className="sed-summary-chip">
+            <span>{lang === "es" ? "Relaciones totales" : "Total relationships"}</span>
+            <strong>{networkMeta?.total_edges?.toLocaleString(lang === "es" ? "es-CO" : "en-US") ?? "—"} {t.totalEdges}</strong>
+          </div>
+          <div className="sed-summary-chip">
+            <span>{lang === "es" ? "Fuente" : "Source"}</span>
+            <strong>
+              {networkMeta?.source === "mock"
+                ? lang === "es"
+                  ? "Referencia"
+                  : "Reference"
+                : networkMeta
+                  ? lang === "es"
+                    ? "Grafo vivo"
+                    : "Live graph"
+                  : lang === "es"
+                    ? "Cargando"
+                    : "Loading"}
+            </strong>
+          </div>
+          <div className="sed-summary-chip">
+            <span>{lang === "es" ? "Cómo jugarlo" : "How to play it"}</span>
+            <strong>{lang === "es" ? "Busca, filtra, abre y expande" : "Search, filter, open, expand"}</strong>
+          </div>
+        </div>
+
         <div className="sed-tab-bar" role="tablist">
           {(["red", "concentracion", "evidencia"] as Tab[]).map((tab) => (
             <button

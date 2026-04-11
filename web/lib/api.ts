@@ -398,7 +398,7 @@ export async function fetchNetworkOverview(filters: NetworkFilters): Promise<Net
   try {
     const query = buildQuery({
       lang: filters.lang,
-      limit: filters.limit ?? 30,
+      limit: filters.limit ?? 48,
       department: filters.department,
       min_confidence: filters.minConfidence ?? 40,
     });

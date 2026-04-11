@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -13,10 +14,13 @@ import {
   VOTOMETRO_LEGISLATORS,
   VOTOMETRO_PERIODS,
   type HeatmapCell,
+  type VotometroLegislator,
   type VoteCoherence,
   type VotePeriodKey,
   type VoteRecord,
 } from "@/lib/votometro-data";
+
+const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
 type TableFilters = {
   theme: string;
@@ -41,21 +45,50 @@ const DEFAULT_FILTERS: TableFilters = {
 };
 
 const PAGE_SIZE = 6;
+type ProfilePeriodFilter = "all" | VotePeriodKey;
 
 export function VotometroView({ lang }: { lang: Lang }) {
-  const [period, setPeriod] = useState<VotePeriodKey>("2022-2026");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [profilePeriod, setProfilePeriod] = useState<ProfilePeriodFilter>("all");
   const [filters, setFilters] = useState<TableFilters>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
   const [barsVisible, setBarsVisible] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [photoMap, setPhotoMap] = useState<Record<string, string>>({});
   const spotlightRef = useRef<HTMLDivElement | null>(null);
 
-  const visibleProfiles = useMemo(() => {
-    return VOTOMETRO_LEGISLATORS.filter((profile) => {
-      return profile.periods.includes(period);
-    });
-  }, [period]);
+  const visibleProfiles = VOTOMETRO_LEGISLATORS;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPhotos = async () => {
+      const candidates = VOTOMETRO_LEGISLATORS.filter((profile) => profile.wikipediaTitle && !photoMap[profile.id]);
+      await Promise.all(
+        candidates.map(async (profile) => {
+          try {
+            const response = await fetch(
+              `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(profile.wikipediaTitle ?? "")}`,
+            );
+            if (!response.ok) return;
+            const payload = (await response.json()) as { originalimage?: { source?: string }; thumbnail?: { source?: string } };
+            const image = payload.originalimage?.source ?? payload.thumbnail?.source;
+            if (!cancelled && image) {
+              setPhotoMap((current) => (current[profile.id] ? current : { ...current, [profile.id]: image }));
+            }
+          } catch {
+            // Ignore missing public portraits and fall back to initials.
+          }
+        }),
+      );
+    };
+
+    void loadPhotos();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [photoMap]);
 
   useEffect(() => {
     if (!visibleProfiles.length) {
@@ -72,6 +105,13 @@ export function VotometroView({ lang }: { lang: Lang }) {
     return visibleProfiles.find((profile) => profile.id === selectedId) ?? visibleProfiles[0] ?? null;
   }, [selectedId, visibleProfiles]);
 
+  useEffect(() => {
+    if (!selectedProfile) return;
+    if (profilePeriod !== "all" && !selectedProfile.periods.includes(profilePeriod)) {
+      setProfilePeriod("all");
+    }
+  }, [profilePeriod, selectedProfile]);
+
   const heroStats = useMemo(() => {
     const indexedVotes = visibleProfiles.reduce((sum, profile) => sum + profile.totalVotes, 0);
     const legislators = visibleProfiles.length;
@@ -82,14 +122,19 @@ export function VotometroView({ lang }: { lang: Lang }) {
     return { indexedVotes, legislators, coherenceAverage, trackedProjects };
   }, [visibleProfiles]);
 
-  const tableYears = useMemo(() => {
+  const selectedProfileRows = useMemo(() => {
     if (!selectedProfile) return [];
-    return [...new Set(selectedProfile.voteRows.map((row) => row.date.slice(0, 4)))].sort((a, b) => Number(b) - Number(a));
-  }, [selectedProfile]);
+    return selectedProfile.voteRows.filter((row) => profilePeriod === "all" || row.period === profilePeriod);
+  }, [profilePeriod, selectedProfile]);
+
+  const tableYears = useMemo(() => {
+    if (!selectedProfileRows.length) return [];
+    return [...new Set(selectedProfileRows.map((row) => row.date.slice(0, 4)))].sort((a, b) => Number(b) - Number(a));
+  }, [selectedProfileRows]);
 
   const filteredRows = useMemo(() => {
-    if (!selectedProfile) return [];
-    return selectedProfile.voteRows.filter((row) => {
+    if (!selectedProfileRows.length) return [];
+    return selectedProfileRows.filter((row) => {
       const themeMatch = filters.theme === "all" || row.theme === filters.theme;
       const resultMatch = filters.result === "all" || row.result === filters.result;
       const yearMatch = filters.year === "all" || row.date.startsWith(filters.year);
@@ -103,19 +148,24 @@ export function VotometroView({ lang }: { lang: Lang }) {
             : row.coherence === filters.coherence;
       return themeMatch && resultMatch && yearMatch && queryMatch && coherenceMatch;
     });
-  }, [filters, selectedProfile]);
+  }, [filters, selectedProfileRows]);
 
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [filters, selectedProfile?.id]);
+  }, [filters, profilePeriod, selectedProfile?.id]);
 
   const paginatedRows = filteredRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const matrixProfiles = useMemo(
+    () => (profilePeriod === "all" ? visibleProfiles : visibleProfiles.filter((profile) => profile.periods.includes(profilePeriod))),
+    [profilePeriod, visibleProfiles],
+  );
+
   const heatmapRows = useMemo(() => {
-    return [...visibleProfiles].sort((a, b) => b.coherenceScore - a.coherenceScore || b.totalVotes - a.totalVotes).slice(0, 12);
-  }, [visibleProfiles]);
+    return [...matrixProfiles].sort((a, b) => b.coherenceScore - a.coherenceScore || b.totalVotes - a.totalVotes).slice(0, 12);
+  }, [matrixProfiles]);
 
   const chamberSummary = useMemo(() => {
     const summary = new Map<string, { label: string; count: number; coherence: number; votes: number }>();
@@ -189,6 +239,83 @@ export function VotometroView({ lang }: { lang: Lang }) {
     };
   }, [visibleProfiles]);
 
+  const selectedThemeBars = useMemo(() => {
+    if (!selectedProfileRows.length) return [];
+    return HEATMAP_COLUMNS.map((column) => {
+      const relevant = selectedProfileRows.filter((row) => row.topicKey === column.key);
+      const comparable = relevant.filter((row) => typeof row.score === "number");
+      const averageScore = comparable.length
+        ? Math.round(comparable.reduce((sum, row) => sum + (row.score ?? 0), 0) / comparable.length)
+        : 0;
+      const coherentCount = comparable.filter((row) => (row.score ?? 0) >= 70).length;
+      return {
+        key: column.key,
+        label: column.label,
+        score: averageScore,
+        note:
+          profilePeriod === "all"
+            ? `${comparable.length}/${relevant.length || comparable.length} periodos comparables`
+            : `${coherentCount}/${comparable.length || relevant.length || 1} votos por encima de 70`,
+      };
+    })
+      .filter((item) => selectedProfileRows.some((row) => row.topicKey === item.key))
+      .sort((a, b) => b.score - a.score);
+  }, [profilePeriod, selectedProfileRows]);
+
+  const selectedProfileMetrics = useMemo(() => {
+    const comparable = selectedProfileRows.filter((row) => typeof row.score === "number");
+    const coherentVotes = selectedProfileRows.filter((row) => row.coherence === "coherente").length;
+    const inconsistentVotes = selectedProfileRows.filter((row) => row.coherence === "inconsistente").length;
+    const absences = selectedProfileRows.filter((row) => row.position === "Ausente").length;
+    const deviations = selectedProfileRows.filter((row) => row.deviatesFromBench).length;
+    const averageScore = comparable.length
+      ? Math.round(comparable.reduce((sum, row) => sum + (row.score ?? 0), 0) / comparable.length)
+      : 0;
+
+    return {
+      coherentVotes,
+      inconsistentVotes,
+      absences,
+      deviations,
+      comparableVotes: comparable.length,
+      visibleVotes: selectedProfileRows.length,
+      averageScore,
+    };
+  }, [selectedProfileRows]);
+
+  const scatterProfiles = useMemo(
+    () => (profilePeriod === "all" ? visibleProfiles : visibleProfiles.filter((profile) => profile.periods.includes(profilePeriod))),
+    [profilePeriod, visibleProfiles],
+  );
+  const scatterData = useMemo(
+    () => [
+      {
+        x: scatterProfiles.map((profile) => profile.coherenceScore),
+        y: scatterProfiles.map((profile) => profile.absenceRate),
+        mode: "markers+text",
+        type: "scatter",
+        text: scatterProfiles.map((profile) => profile.name),
+        textposition: "top center",
+        customdata: scatterProfiles.map((profile) => [profile.id, profile.totalVotes, profile.party]),
+        marker: {
+          size: scatterProfiles.map((profile) => Math.max(16, Math.round(profile.totalVotes / 8))),
+          color: scatterProfiles.map((profile) => partyColor(profile.party)),
+          line: { color: "rgba(255,255,255,0.9)", width: 1.5 },
+          opacity: 0.82,
+        },
+        hovertemplate:
+          "<b>%{text}</b><br>Coherencia %{x}%<br>Ausencia %{y}%<br>%{customdata[1]} votos<extra></extra>",
+      },
+    ],
+    [scatterProfiles],
+  );
+  const spotlightPeriodLabel =
+    profilePeriod === "all"
+      ? lang === "es"
+        ? "Vista global de todos los periodos visibles"
+        : "Global view across all visible periods"
+      : VOTOMETRO_PERIODS.find((item) => item.key === profilePeriod)?.label ?? profilePeriod;
+
   useEffect(() => {
     if (!selectedProfile || typeof window === "undefined") return;
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -244,8 +371,6 @@ export function VotometroView({ lang }: { lang: Lang }) {
     setTooltip((current) => (current ? { ...current, x: nextX, y: nextY } : null));
   };
 
-  const periodLabel = VOTOMETRO_PERIODS.find((item) => item.key === period)?.label ?? "2022-2026 · Activo ●";
-
   return (
     <div className="vm-shell">
       <SiteNav
@@ -261,14 +386,14 @@ export function VotometroView({ lang }: { lang: Lang }) {
         <section className="vm-hero">
           <div className="vm-hero__grid vm-container">
             <div className="vm-hero__copy">
-              <p className="vm-eyebrow">{`Votaciones · Promesas · Coherencia · ${periodLabel} · ${visibleProfiles.length} perfiles visibles`}</p>
+              <p className="vm-eyebrow">{`Votaciones · Promesas · Coherencia · ${visibleProfiles.length} perfiles visibles`}</p>
               <h1>¿Votaron como prometieron?</h1>
               <p className="vm-hero__body">
-                Vista completa del periodo para los legisladores que hoy sí tienen información conectada en la capa publicada.
-                Arranca con el pulso general, compara cámaras y temas, y luego baja al detalle por legislador y votación.
+                Arranca desde las personas disponibles, no desde un periodo fijo. Mira primero el pulso general del universo visible,
+                escoge un perfil y luego baja a los periodos concretos que sí están abiertos para esa persona.
               </p>
               <p className="vm-hero__source-note">
-                Solo aparecen perfiles con información disponible. Quité el corte por cámara para no achicar artificialmente la lectura.
+                Solo aparecen perfiles con información disponible. La cobertura por periodo sigue siendo desigual y el tablero lo deja explícito dentro de cada ficha.
               </p>
             </div>
 
@@ -287,33 +412,8 @@ export function VotometroView({ lang }: { lang: Lang }) {
               </article>
               <article className="vm-kpi-card">
                 <strong>{heroStats.trackedProjects.toLocaleString("es-CO")}</strong>
-                <span>Proyectos rastreados este período</span>
+                <span>Proyectos rastreados en la capa visible</span>
               </article>
-            </div>
-          </div>
-        </section>
-
-        <section className="vm-cycle-bar">
-          <div className="vm-container">
-            <div className="vm-cycle-bar__tabs" role="tablist" aria-label="Periodos">
-              {VOTOMETRO_PERIODS.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  role="tab"
-                  className={`vm-tab ${item.key === period ? "is-active" : ""}`}
-                  aria-selected={item.key === period}
-                  onClick={() => setPeriod(item.key)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            <div className="vm-cycle-bar__note">
-              <span className="vm-cycle-bar__note-badge">Vista completa</span>
-              <p>
-                Se muestran Senado y Cámara juntos para este periodo. La cobertura se limita a legisladores con información disponible en la capa publicada.
-              </p>
             </div>
           </div>
         </section>
@@ -322,11 +422,11 @@ export function VotometroView({ lang }: { lang: Lang }) {
           <div className="vm-container">
             <header className="vm-section__header vm-section__header--inline">
               <div>
-                <p className="vm-eyebrow">Pulso del periodo</p>
-                <h2>Lectura general antes de entrar a cada perfil</h2>
+                <p className="vm-eyebrow">Pulso visible</p>
+                <h2>Lectura general antes de abrir una persona</h2>
               </div>
               <p className="vm-section__note">
-                Cuatro paneles para entender cobertura, mezcla por cámara, temas más sólidos y perfiles que merecen abrirse primero.
+                Cuatro paneles para entender cuántas personas hay disponibles, cómo se reparte la cobertura y cuáles perfiles vale la pena abrir primero.
               </p>
             </header>
 
@@ -334,7 +434,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
               <article className="vm-analytics-card">
                 <div className="vm-analytics-card__head">
                   <p className="vm-eyebrow">Distribución</p>
-                  <strong>Coherencia visible del periodo</strong>
+                  <strong>Coherencia visible de la muestra</strong>
                 </div>
                 <div className="vm-band-grid">
                   <div className="vm-band-card is-high">
@@ -443,9 +543,56 @@ export function VotometroView({ lang }: { lang: Lang }) {
 
         <section className="vm-section">
           <div className="vm-container">
+            <header className="vm-section__header vm-section__header--inline">
+              <div>
+                <p className="vm-eyebrow">Brújula interactiva</p>
+                <h2>Coherencia vs. ausencia</h2>
+              </div>
+              <p className="vm-section__note">
+                Haz clic en cualquier punto para saltar al perfil. El tamaño de la burbuja sigue el volumen de votos indexados.
+              </p>
+            </header>
+
+            <div className="vm-panel vm-panel--plot">
+              <Plot
+                data={scatterData as any}
+                layout={{
+                  autosize: true,
+                  paper_bgcolor: "rgba(0,0,0,0)",
+                  plot_bgcolor: "rgba(0,0,0,0)",
+                  margin: { l: 52, r: 18, t: 8, b: 48 },
+                  font: { color: "#2a241b", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
+                  xaxis: {
+                    title: { text: "Coherencia (%)", standoff: 8 },
+                    range: [30, 95],
+                    gridcolor: "rgba(42, 36, 27, 0.08)",
+                    zeroline: false,
+                  },
+                  yaxis: {
+                    title: { text: "Ausencia (%)", standoff: 8 },
+                    range: [0, 22],
+                    gridcolor: "rgba(42, 36, 27, 0.08)",
+                    zeroline: false,
+                  },
+                  hovermode: "closest",
+                  showlegend: false,
+                }}
+                config={{ responsive: true, displaylogo: false, displayModeBar: false }}
+                onClick={(event: any) => {
+                  const profileId = event.points?.[0]?.customdata?.[0];
+                  if (typeof profileId === "string") setSelectedId(profileId);
+                }}
+                style={{ width: "100%", height: 360 }}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="vm-section">
+          <div className="vm-container">
             <header className="vm-section__header">
               <p className="vm-eyebrow">Explorador de legisladores</p>
-              <h2>Explora legisladores con información disponible</h2>
+              <h2>Explora personas con cobertura visible</h2>
             </header>
 
             <div className="vm-legislator-grid" role="list" aria-label="Legisladores">
@@ -459,9 +606,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                   aria-pressed={profile.id === selectedProfile?.id}
                 >
                   <div className="vm-legislator-card__head">
-                    <div className="vm-avatar" aria-hidden="true" style={{ background: partyColor(profile.party) }}>
-                      {profile.name.charAt(0)}
-                    </div>
+                    <ProfileAvatar profile={profile} photoMap={photoMap} size="small" />
                     <div>
                       <strong className="vm-legislator-card__name">{profile.name}</strong>
                       <span className="vm-legislator-card__role">{profile.roleLabel}</span>
@@ -480,7 +625,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                   <div className="vm-legislator-card__meta">
                     <span>{`${profile.totalVotes.toLocaleString("es-CO")} votos`}</span>
                     <span>{`${profile.absenceRate}% ausente`}</span>
-                    <span>{`${profile.topicCount} temas`}</span>
+                    <span>{`${profile.periods.length} periodos visibles`}</span>
                   </div>
                 </button>
               ))}
@@ -493,40 +638,58 @@ export function VotometroView({ lang }: { lang: Lang }) {
             <section className="vm-spotlight" ref={spotlightRef}>
               <div className="vm-container vm-spotlight__layout">
                 <aside className="vm-spotlight__aside">
-                  <div className="vm-avatar vm-avatar--large" aria-hidden="true" style={{ background: partyColor(selectedProfile.party) }}>
-                    {selectedProfile.name.charAt(0)}
-                  </div>
+                  <ProfileAvatar profile={selectedProfile} photoMap={photoMap} size="large" />
                   <div className="vm-spotlight__identity">
                     <h2>{selectedProfile.name}</h2>
                     <p>{`${selectedProfile.party} · ${selectedProfile.chamberLabel}`}</p>
                   </div>
 
+                  <div className="vm-period-selector" aria-label="Periodos disponibles">
+                    <button
+                      type="button"
+                      className={`vm-period-chip ${profilePeriod === "all" ? "is-active" : ""}`}
+                      onClick={() => setProfilePeriod("all")}
+                    >
+                      Global
+                    </button>
+                    {selectedProfile.periods.map((item) => (
+                      <button
+                        key={`${selectedProfile.id}-${item}`}
+                        type="button"
+                        className={`vm-period-chip ${profilePeriod === item ? "is-active" : ""}`}
+                        onClick={() => setProfilePeriod(item)}
+                      >
+                        {VOTOMETRO_PERIODS.find((periodItem) => periodItem.key === item)?.label ?? item}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="vm-kpi-stack">
                     <article className="vm-kpi-stack__item">
                       <span>Votos consistentes con promesa</span>
-                      <strong className="is-primary">{selectedProfile.consistentVotes}</strong>
+                      <strong className="is-primary">{selectedProfileMetrics.coherentVotes}</strong>
                     </article>
                     <article className="vm-kpi-stack__item">
                       <span>Votos inconsistentes con promesa</span>
-                      <strong className="is-high">{selectedProfile.inconsistentVotes}</strong>
+                      <strong className="is-high">{selectedProfileMetrics.inconsistentVotes}</strong>
                     </article>
                     <article className="vm-kpi-stack__item">
                       <span>Ausencias en votaciones de su dominio</span>
-                      <strong className="is-muted">{selectedProfile.absencesOnKeyThemes}</strong>
+                      <strong className="is-muted">{selectedProfileMetrics.absences}</strong>
                     </article>
                     <article className="vm-kpi-stack__item">
                       <span>Veces que votó distinto a su bancada</span>
-                      <strong className="is-amber">{selectedProfile.partyDeviationVotes}</strong>
+                      <strong className="is-amber">{selectedProfileMetrics.deviations}</strong>
                     </article>
                   </div>
 
                   <div className="vm-coherence">
                     <div className="vm-coherence__head">
-                      <span>Índice de coherencia</span>
-                      <strong>{selectedProfile.coherenceScore}%</strong>
+                      <span>{spotlightPeriodLabel}</span>
+                      <strong>{selectedProfileMetrics.averageScore}%</strong>
                     </div>
                     <div className="vm-coherence__bar">
-                      <span style={{ width: `${selectedProfile.coherenceScore}%` }} />
+                      <span style={{ width: `${selectedProfileMetrics.averageScore}%` }} />
                     </div>
                   </div>
                 </aside>
@@ -535,15 +698,18 @@ export function VotometroView({ lang }: { lang: Lang }) {
                   <section className="vm-panel">
                     <header className="vm-panel__header">
                       <p className="vm-eyebrow">Detalle por tema</p>
-                      <h3>Coherencia por tema</h3>
+                      <h3>{profilePeriod === "all" ? "Coherencia agregada por tema" : "Coherencia del periodo seleccionado"}</h3>
                     </header>
 
                     <div className="vm-topic-bars">
-                      {selectedProfile.themeBars.map((item) => {
+                      {selectedThemeBars.map((item) => {
                         const tone = item.score > 70 ? "is-good" : item.score >= 40 ? "is-mid" : "is-bad";
                         return (
                           <div key={item.key} className="vm-topic-bar">
-                            <span className="vm-topic-bar__label">{item.label}</span>
+                            <div>
+                              <span className="vm-topic-bar__label">{item.label}</span>
+                              <small className="vm-topic-bar__note">{item.note}</small>
+                            </div>
                             <div className="vm-topic-bar__track">
                               <span className={tone} style={{ width: barsVisible ? `${item.score}%` : "0%" }} />
                             </div>
@@ -585,7 +751,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                     <h2>Registro de votaciones</h2>
                   </div>
                   <p className="vm-section__note">
-                    La tabla se enfoca en el perfil seleccionado. Cada fila conserva la gaceta disponible y deja ver si
+                    La tabla se enfoca en el perfil seleccionado. Cada fila conserva el periodo, la gaceta disponible y deja ver si
                     el voto fue coherente, inconsistente o quedó sin promesa comparable.
                   </p>
                 </header>
@@ -593,7 +759,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                 <div className="vm-table-filters" aria-label="Filtros de tabla">
                   <select value={filters.theme} onChange={(event) => updateFilter("theme", event.target.value)}>
                     <option value="all">Tema</option>
-                    {[...new Set(selectedProfile.voteRows.map((row) => row.theme))].map((themeOption) => (
+                    {[...new Set(selectedProfileRows.map((row) => row.theme))].map((themeOption) => (
                       <option key={themeOption} value={themeOption}>
                         {themeOption}
                       </option>
@@ -638,6 +804,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                     <thead>
                       <tr>
                         <th style={{ width: "40%" }}>Proyecto de ley</th>
+                        <th style={{ width: "12%" }}>Periodo</th>
                         <th style={{ width: "10%" }}>Fecha</th>
                         <th style={{ width: "12%" }}>Tema</th>
                         <th style={{ width: "10%" }}>Posición</th>
@@ -653,7 +820,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={7} className="vm-empty-state">
+                          <td colSpan={8} className="vm-empty-state">
                             No hay votaciones que coincidan con este filtro. Ajusta el corte para abrir más proyectos.
                           </td>
                         </tr>
@@ -695,7 +862,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                   <p className="vm-eyebrow">Vista matricial</p>
                   <h2>Mapa de coherencia: legislador × tema</h2>
                   <p className="vm-section__note">
-                    Verde = lectura alta · ámbar = lectura intermedia · gris = ausencia o falta de promesa comparable en esta capa visible.
+                    La matriz respeta el lente actual del perfil abierto y recorta el resto a ese mismo periodo cuando existe cobertura comparable.
                   </p>
                 </header>
 
@@ -720,8 +887,8 @@ export function VotometroView({ lang }: { lang: Lang }) {
                       <tr>
                         <th>Legislador</th>
                         {HEATMAP_COLUMNS.map((column) => (
-                          <th key={column.key}>
-                            <span>{column.label}</span>
+                          <th key={column.key} title={column.label}>
+                            <span>{column.shortLabel}</span>
                           </th>
                         ))}
                       </tr>
@@ -730,7 +897,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                       {heatmapRows.map((profile) => (
                         <tr key={`heatmap-${profile.id}`}>
                           <th scope="row">{profile.name}</th>
-                          {profile.heatmap.map((cell) => (
+                          {buildHeatmapCells(profile, profilePeriod).map((cell) => (
                             <td key={`${profile.id}-${cell.key}`}>
                               <button
                                 type="button"
@@ -786,6 +953,7 @@ function VoteRowView({ row }: { row: VoteRecord }) {
   return (
     <tr>
       <td>{row.project}</td>
+      <td>{formatPeriodLabel(row.period)}</td>
       <td>{row.dateLabel}</td>
       <td>{row.theme}</td>
       <td>
@@ -807,6 +975,58 @@ function VoteRowView({ row }: { row: VoteRecord }) {
       </td>
     </tr>
   );
+}
+
+function ProfileAvatar({
+  profile,
+  photoMap,
+  size,
+}: {
+  profile: VotometroLegislator;
+  photoMap: Record<string, string>;
+  size: "small" | "large";
+}) {
+  const image = photoMap[profile.id];
+
+  return (
+    <div className={`vm-avatar vm-avatar--${size} ${image ? "has-photo" : ""}`}>
+      {image ? <img src={image} alt={profile.name} loading="lazy" /> : <span>{profile.initials}</span>}
+      <i className="vm-avatar__dot" style={{ backgroundColor: partyColor(profile.party) }} aria-hidden="true" />
+    </div>
+  );
+}
+
+function buildHeatmapCells(profile: VotometroLegislator, period: ProfilePeriodFilter) {
+  return HEATMAP_COLUMNS.map((column) => {
+    const relevant = profile.voteRows.filter((row) => row.topicKey === column.key && (period === "all" || row.period === period));
+    const comparable = relevant.filter((row) => typeof row.score === "number");
+    const latestRow = [...relevant].sort((a, b) => b.date.localeCompare(a.date))[0];
+    const averageScore = comparable.length
+      ? Math.round(comparable.reduce((sum, row) => sum + (row.score ?? 0), 0) / comparable.length)
+      : null;
+    const coherentCount = comparable.filter((row) => row.coherence === "coherente").length;
+    const inconsistentCount = comparable.filter((row) => row.coherence === "inconsistente").length;
+    const state = !relevant.length
+      ? "sin-dato"
+      : relevant.every((row) => row.position === "Ausente")
+        ? "ausente"
+        : comparable.length === 0
+          ? "sin-dato"
+        : coherentCount >= inconsistentCount
+          ? "coherente"
+          : "inconsistente";
+
+    return {
+      key: column.key,
+      label: column.label,
+      value: averageScore,
+      state,
+      position: latestRow?.position,
+      project: latestRow?.project,
+      dateLabel: latestRow?.dateLabel,
+      gaceta: latestRow?.gaceta,
+    } satisfies HeatmapCell;
+  });
 }
 
 function getPositionClass(position: VoteRecord["position"]) {
@@ -856,8 +1076,12 @@ function partyColor(partido: string) {
 }
 
 function getMatrixTone(cell: HeatmapCell) {
-  if (cell.value === null) return "is-matrix-low";
+  if (cell.state === "ausente" || cell.state === "sin-dato" || cell.value === null) return "is-matrix-low";
   if (cell.value >= 70) return "is-matrix-high";
   if (cell.value >= 40) return "is-matrix-mid";
   return "is-matrix-low";
+}
+
+function formatPeriodLabel(period: VotePeriodKey) {
+  return VOTOMETRO_PERIODS.find((item) => item.key === period)?.label.split("·")[0]?.trim() ?? period;
 }

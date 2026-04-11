@@ -32,7 +32,6 @@ LAST_RUN_PATH = DATA_PROCESSED / "last_run.json"
 MODEL_META_DIR = DATA_PROCESSED / "models"
 REMOTE_SCORED_CACHE_PATH = DATA_PROCESSED / "scored_contracts.remote.parquet"
 
-PREVIEW_SIZE = 50_000
 SOCRATA_DOMAIN = "www.datos.gov.co"
 SOCRATA_CONTRACTS_DATASET = "jbjy-vk9h"
 SOCRATA_METADATA_URL = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h"
@@ -106,6 +105,15 @@ BOOL_FEATURE_BASES = {
 
 logger = get_logger(__name__)
 
+MODALITY_FAMILY_RULES: list[tuple[tuple[str, ...], str]] = [
+    (("directa",), "Contratación directa"),
+    (("abreviada", "subasta inversa", "menor cuantia", "menor cuantía"), "Selección abreviada"),
+    (("licitacion", "licitación"), "Licitación pública"),
+    (("meritos", "méritos", "merito", "mérito"), "Concurso de méritos"),
+    (("minima", "mínima"), "Mínima cuantía"),
+    (("regimen especial", "régimen especial"), "Régimen especial"),
+]
+
 
 def _strip_accents(value: str) -> str:
     out: list[str] = []
@@ -123,6 +131,18 @@ def normalize_department_name(name: str) -> str:
         return ""
     normalized = _strip_accents(name.strip().upper())
     return SECOP_TO_GEOJSON.get(normalized, normalized)
+
+
+def normalize_modality_family(name: str) -> str:
+    if not isinstance(name, str) or not name.strip():
+        return "Sin modalidad"
+
+    normalized = _strip_accents(name.strip().lower())
+    for patterns, label in MODALITY_FAMILY_RULES:
+        if any(pattern in normalized for pattern in patterns):
+            return label
+
+    return name.strip().title()
 
 
 def _resolve_parquet_path() -> Path:
@@ -295,7 +315,7 @@ def load_live_source_snapshot() -> dict[str, Any]:
             f"?$select={quote('max(fecha_de_firma) as max_fecha, count(*) as total')}"
             "&$limit=1"
         )
-        max_rows = requests.get(summary_url, timeout=60).json()
+        max_rows = requests.get(summary_url, timeout=4).json()
 
         latest_date = max_rows[0].get("max_fecha") if max_rows else None
         rows_at_source = int(max_rows[0].get("total", 0)) if max_rows else None
@@ -309,7 +329,7 @@ def load_live_source_snapshot() -> dict[str, Any]:
                 "&$order=id_contrato ASC"
                 "&$limit=5"
             )
-            raw_rows = requests.get(latest_rows_url, timeout=60).json()
+            raw_rows = requests.get(latest_rows_url, timeout=4).json()
             for row in raw_rows:
                 value = _parse_cop(row.get("valor_del_contrato"))
                 latest_contracts.append(
@@ -335,7 +355,7 @@ def load_live_source_snapshot() -> dict[str, Any]:
 @lru_cache(maxsize=1)
 def load_live_source_metadata() -> dict[str, Any]:
     try:
-        payload = requests.get(SOCRATA_METADATA_URL, timeout=40).json()
+        payload = requests.get(SOCRATA_METADATA_URL, timeout=4).json()
     except Exception:
         return {"sourceUpdatedAt": None, "sourceWebUri": None}
 
@@ -396,6 +416,7 @@ def _normalize_frame(df: pd.DataFrame) -> pd.DataFrame:
     frame["nombre_entidad"] = frame.get("nombre_entidad", "").fillna("").astype(str)
     frame["proveedor_adjudicado"] = frame.get("proveedor_adjudicado", "").fillna("").astype(str)
     frame["modalidad_de_contratacion"] = frame.get("modalidad_de_contratacion", "").fillna("").astype(str)
+    frame["modalidad_family"] = frame["modalidad_de_contratacion"].apply(normalize_modality_family)
     return frame
 
 
@@ -463,7 +484,7 @@ def _filter_frame(
     date_from: str | None = None,
     date_to: str | None = None,
 ) -> pd.DataFrame:
-    frame = df.copy()
+    frame = df
     if department:
         frame = frame[frame["departamento_geo"] == department]
     if risk and risk != "all":
@@ -483,6 +504,15 @@ def _filter_frame(
         if not pd.isna(end):
             frame = frame[frame["fecha_ts"] <= end + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)]
     return frame
+
+
+def _latest_date_from_frame(df: pd.DataFrame) -> str | None:
+    if df.empty or "fecha_ts" not in df.columns:
+        return None
+    series = df["fecha_ts"]
+    if series.notna().sum() == 0:
+        return None
+    return series.max().strftime("%Y-%m-%d")
 
 
 def _build_department_summary(df: pd.DataFrame) -> list[dict[str, Any]]:
@@ -531,7 +561,7 @@ def _build_department_summary(df: pd.DataFrame) -> list[dict[str, Any]]:
             "avgRisk": 0.0,
             "contractCount": 0,
         })
-    return result
+    return sorted(result, key=lambda item: (-item["contractCount"], -item["avgRisk"], item["label"]))
 
 
 def _slice_stats(df: pd.DataFrame, lang: str) -> dict[str, Any]:
@@ -651,30 +681,85 @@ def _lead_cases(df: pd.DataFrame, lang: str, limit: int) -> list[dict[str, Any]]
     return cases
 
 
-def _entity_summary(df: pd.DataFrame) -> list[dict[str, Any]]:
+def _entity_summary(df: pd.DataFrame, limit: int = 8) -> list[dict[str, Any]]:
     if df.empty:
         return []
     grouped = (
         df.groupby("nombre_entidad")
         .agg(contracts=("risk_score", "size"), meanRisk=("risk_score", "mean"), maxRisk=("risk_score", "max"))
-        .sort_values(["maxRisk", "contracts"], ascending=[False, False])
-        .head(8)
+        .sort_values(["contracts", "meanRisk", "maxRisk"], ascending=[False, False, False])
+        .head(limit)
         .reset_index()
     )
     return grouped.to_dict(orient="records")
 
 
-def _modality_summary(df: pd.DataFrame) -> list[dict[str, Any]]:
+def _modality_summary(df: pd.DataFrame, limit: int = 8) -> list[dict[str, Any]]:
     if df.empty:
         return []
     grouped = (
-        df.groupby("modalidad_de_contratacion")
+        df.groupby("modalidad_family")
         .agg(contracts=("risk_score", "size"), meanRisk=("risk_score", "mean"))
-        .sort_values(["meanRisk", "contracts"], ascending=[False, False])
-        .head(8)
+        .sort_values(["contracts", "meanRisk"], ascending=[False, False])
+        .head(limit)
         .reset_index()
     )
+    grouped = grouped.rename(columns={"modalidad_family": "modalidad_de_contratacion"})
     return grouped.to_dict(orient="records")
+
+
+def _monthly_summary(df: pd.DataFrame, limit: int = 18) -> list[dict[str, Any]]:
+    if df.empty:
+        return []
+
+    frame = df.copy()
+    frame["month"] = frame["fecha_label"].astype(str).str.slice(0, 7)
+    frame = frame[frame["month"].str.match(r"^\d{4}-\d{2}$", na=False)]
+    if frame.empty:
+        return []
+
+    grouped = (
+        frame.groupby("month")
+        .agg(contracts=("risk_score", "size"), meanRisk=("risk_score", "mean"))
+        .reset_index()
+        .sort_values("month")
+    )
+    if len(grouped) > limit:
+        grouped = grouped.tail(limit)
+    return grouped.to_dict(orient="records")
+
+
+def _risk_band_summary(df: pd.DataFrame) -> list[dict[str, Any]]:
+    if df.empty:
+        return []
+
+    grouped = (
+        df.groupby("risk_bucket")
+        .agg(contracts=("risk_score", "size"), meanRisk=("risk_score", "mean"))
+        .reset_index()
+    )
+    order = {"high": 0, "medium": 1, "low": 2}
+    grouped["risk_order"] = grouped["risk_bucket"].map(order).fillna(99)
+    grouped = grouped.sort_values(["risk_order", "contracts"], ascending=[True, False])
+    return [
+        {
+            "riskBand": row["risk_bucket"],
+            "contracts": int(row["contracts"]),
+            "meanRisk": round(float(row["meanRisk"]), 4),
+        }
+        for _, row in grouped.iterrows()
+    ]
+
+
+def _analytics_summary(df_slice: pd.DataFrame) -> dict[str, Any]:
+    departments = _build_department_summary(df_slice)
+    return {
+        "departments": departments[:10],
+        "modalities": _modality_summary(df_slice, limit=8),
+        "entities": _entity_summary(df_slice, limit=8),
+        "months": _monthly_summary(df_slice, limit=18),
+        "riskBands": _risk_band_summary(df_slice),
+    }
 
 
 def _options(df: pd.DataFrame) -> dict[str, list[dict[str, str]]]:
@@ -747,9 +832,7 @@ def get_overview_payload(
 ) -> dict[str, Any]:
     effective_full = full or bool(date_from or date_to)
     df_all = load_contracts(effective_full)
-    live_source = load_live_source_snapshot()
-    scored_latest = get_scored_latest_contract_date()
-    source_latest = live_source.get("latestDate")
+    scored_latest = _latest_date_from_frame(df_all)
     df_context = _filter_frame(
         df_all,
         risk=risk,
@@ -764,13 +847,13 @@ def get_overview_payload(
         "meta": {
             "lang": lang,
             "fullDataset": effective_full,
-            "totalRows": get_total_row_count(),
+            "totalRows": int(len(df_all)),
             "shownRows": int(len(df_all)),
-            "previewRows": PREVIEW_SIZE,
+            "previewRows": int(len(df_all)),
             "latestContractDate": scored_latest,
-            "sourceLatestContractDate": source_latest,
-            "sourceRows": live_source.get("rowsAtSource"),
-            "sourceFreshnessGapDays": _compute_source_gap_days(scored_latest, source_latest),
+            "sourceLatestContractDate": None,
+            "sourceRows": None,
+            "sourceFreshnessGapDays": None,
             "dateRange": {
                 "from": date_from,
                 "to": date_to,
@@ -788,6 +871,7 @@ def get_overview_payload(
             "entities": _entity_summary(df_slice),
             "modalities": _modality_summary(df_slice),
         },
+        "analytics": _analytics_summary(df_slice),
         "methodology": {
             "modelType": meta.get("model_type", "IsolationForest"),
             "nEstimators": meta.get("n_estimators", 200),
@@ -797,7 +881,7 @@ def get_overview_payload(
             "redThreshold": meta.get("red_threshold", RED_THRESHOLD),
             "yellowThreshold": meta.get("yellow_threshold", YELLOW_THRESHOLD),
         },
-        "liveFeed": live_source,
+        "liveFeed": {"latestDate": None, "rowsAtSource": None, "contracts": []},
     }
 
 

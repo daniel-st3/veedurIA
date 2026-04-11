@@ -12,6 +12,8 @@ export type VoteThemeBar = {
 
 export type VoteRecord = {
   id: string;
+  period: VotePeriodKey;
+  topicKey: (typeof HEATMAP_COLUMNS)[number]["key"];
   project: string;
   date: string;
   dateLabel: string;
@@ -19,6 +21,7 @@ export type VoteRecord = {
   position: VotePosition;
   result: "Aprobado" | "Rechazado" | "Archivado";
   coherence: VoteCoherence;
+  score: number | null;
   gaceta: string;
   gacetaHref: string;
   deviatesFromBench: boolean;
@@ -39,6 +42,7 @@ export type VotometroLegislator = {
   id: string;
   name: string;
   initials: string;
+  wikipediaTitle?: string;
   chamber: Exclude<VoteChamberKey, "all">;
   chamberLabel: string;
   roleLabel: string;
@@ -74,18 +78,18 @@ export const VOTOMETRO_CHAMBERS: { key: VoteChamberKey; label: string }[] = [
 ];
 
 export const HEATMAP_COLUMNS = [
-  { key: "paz", label: "Paz total" },
-  { key: "salud", label: "Salud" },
-  { key: "justicia", label: "Justicia" },
-  { key: "pensiones", label: "Pensiones" },
-  { key: "economia", label: "Economía" },
-  { key: "ambiente", label: "Ambiente" },
-  { key: "derechos", label: "Derechos" },
-  { key: "anticorrupcion", label: "Anticorrupción" },
-  { key: "energia", label: "Energía" },
-  { key: "educacion", label: "Educación" },
-  { key: "seguridad", label: "Seguridad" },
-  { key: "presupuesto", label: "Presupuesto" },
+  { key: "paz", label: "Paz total", shortLabel: "Paz" },
+  { key: "salud", label: "Salud", shortLabel: "Salud" },
+  { key: "justicia", label: "Justicia", shortLabel: "Justicia" },
+  { key: "pensiones", label: "Pensiones", shortLabel: "Pensiones" },
+  { key: "economia", label: "Economía", shortLabel: "Economía" },
+  { key: "ambiente", label: "Ambiente", shortLabel: "Ambiente" },
+  { key: "derechos", label: "Derechos", shortLabel: "Derechos" },
+  { key: "anticorrupcion", label: "Anticorrupción", shortLabel: "Anti-corr." },
+  { key: "energia", label: "Energía", shortLabel: "Energía" },
+  { key: "educacion", label: "Educación", shortLabel: "Educación" },
+  { key: "seguridad", label: "Seguridad", shortLabel: "Seguridad" },
+  { key: "presupuesto", label: "Presupuesto", shortLabel: "Presup." },
 ] as const;
 
 const HERO_STATS: Record<
@@ -302,6 +306,7 @@ const LEGISLATOR_SEEDS: LegislatorSeed[] = [
     id: "gustavo-petro",
     name: "Gustavo Petro",
     initials: "GP",
+    wikipediaTitle: "Gustavo_Petro",
     chamber: "senado",
     chamberLabel: "Senado",
     roleLabel: "Senador · Colombia Humana",
@@ -332,6 +337,7 @@ const LEGISLATOR_SEEDS: LegislatorSeed[] = [
     id: "francia-marquez",
     name: "Francia Márquez",
     initials: "FM",
+    wikipediaTitle: "Francia_Márquez",
     chamber: "camara",
     chamberLabel: "Cámara",
     roleLabel: "Representante · Pacto Histórico",
@@ -362,6 +368,7 @@ const LEGISLATOR_SEEDS: LegislatorSeed[] = [
     id: "maria-jose-pizarro",
     name: "María José Pizarro",
     initials: "MP",
+    wikipediaTitle: "María_José_Pizarro",
     chamber: "senado",
     chamberLabel: "Senado",
     roleLabel: "Senadora · Colombia Humana",
@@ -392,6 +399,7 @@ const LEGISLATOR_SEEDS: LegislatorSeed[] = [
     id: "paloma-valencia",
     name: "Paloma Valencia",
     initials: "PV",
+    wikipediaTitle: "Paloma_Valencia_Laserna",
     chamber: "senado",
     chamberLabel: "Senado",
     roleLabel: "Senadora · Centro Democrático",
@@ -422,6 +430,7 @@ const LEGISLATOR_SEEDS: LegislatorSeed[] = [
     id: "katherine-miranda",
     name: "Katherine Miranda",
     initials: "KM",
+    wikipediaTitle: "Katherine_Miranda",
     chamber: "camara",
     chamberLabel: "Cámara",
     roleLabel: "Representante · Alianza Verde",
@@ -452,6 +461,7 @@ const LEGISLATOR_SEEDS: LegislatorSeed[] = [
     id: "inti-asprilla",
     name: "Inti Asprilla",
     initials: "IA",
+    wikipediaTitle: "Inti_Asprilla",
     chamber: "camara",
     chamberLabel: "Cámara",
     roleLabel: "Representante · Alianza Verde",
@@ -482,6 +492,7 @@ const LEGISLATOR_SEEDS: LegislatorSeed[] = [
     id: "david-luna",
     name: "David Luna",
     initials: "DL",
+    wikipediaTitle: "David_Luna_Sánchez",
     chamber: "senado",
     chamberLabel: "Senado",
     roleLabel: "Senador · Cambio Radical",
@@ -512,6 +523,7 @@ const LEGISLATOR_SEEDS: LegislatorSeed[] = [
     id: "rodrigo-lara",
     name: "Rodrigo Lara",
     initials: "RL",
+    wikipediaTitle: "Rodrigo_Lara_Restrepo",
     chamber: "senado",
     chamberLabel: "Senado",
     roleLabel: "Senador · Cambio Radical",
@@ -542,6 +554,7 @@ const LEGISLATOR_SEEDS: LegislatorSeed[] = [
     id: "angelica-lozano",
     name: "Angélica Lozano",
     initials: "AL",
+    wikipediaTitle: "Angélica_Lozano_Correa",
     chamber: "senado",
     chamberLabel: "Senado",
     roleLabel: "Senadora · Alianza Verde",
@@ -602,6 +615,7 @@ const LEGISLATOR_SEEDS: LegislatorSeed[] = [
     id: "cathy-juvinao",
     name: "Cathy Juvinao",
     initials: "CJ",
+    wikipediaTitle: "Cathy_Juvinao",
     chamber: "camara",
     chamberLabel: "Cámara",
     roleLabel: "Representante · Alianza Verde",
@@ -632,6 +646,7 @@ const LEGISLATOR_SEEDS: LegislatorSeed[] = [
     id: "andres-forero",
     name: "Andrés Forero",
     initials: "AF",
+    wikipediaTitle: "Andrés_Forero_Molina",
     chamber: "camara",
     chamberLabel: "Cámara",
     roleLabel: "Representante · Centro Democrático",
@@ -667,6 +682,8 @@ function buildVoteRows(pattern: PatternKey) {
     const topicState = themeStates[template.key];
     return {
       id: `${pattern}-${template.key}-${index + 1}`,
+      period: "2022-2026",
+      topicKey: template.key,
       project: template.project,
       date: template.date,
       dateLabel: formatDateLabel(template.date),
@@ -674,6 +691,7 @@ function buildVoteRows(pattern: PatternKey) {
       position: topicState.position,
       result: template.result,
       coherence: topicState.coherence,
+      score: topicState.score,
       gaceta: template.gaceta,
       gacetaHref: "",
       deviatesFromBench: topicState.deviates,
@@ -693,10 +711,10 @@ function clampScore(value: number) {
   return Math.max(18, Math.min(94, Math.round(value)));
 }
 
-function buildTopicState(seed: LegislatorSeed, topicKey: TopicTemplate["key"]) {
+function buildTopicState(seed: LegislatorSeed, topicKey: TopicTemplate["key"], period?: VotePeriodKey) {
   const base = PATTERNS[seed.pattern][topicKey];
   const explicit = seed.themeBars.find((item) => item.key === topicKey);
-  const hash = hashSeed(`${seed.id}:${topicKey}`);
+  const hash = hashSeed(`${seed.id}:${topicKey}:${period ?? "global"}`);
   const delta = (hash % 11) - 5;
   const score = explicit?.score ?? (base.score === null ? null : clampScore(base.score + delta));
 
@@ -707,29 +725,47 @@ function buildTopicState(seed: LegislatorSeed, topicKey: TopicTemplate["key"]) {
   };
 }
 
-function buildVoteRowsForSeed(seed: LegislatorSeed) {
-  return VOTE_TEMPLATES.map((template, index) => {
-    const topicState = buildTopicState(seed, template.key);
-    return {
-      id: `${seed.id}-${template.key}-${index + 1}`,
-      project: template.project,
-      date: template.date,
-      dateLabel: formatDateLabel(template.date),
-      theme: template.theme,
-      position: topicState.position,
-      result: template.result,
-      coherence: topicState.coherence,
-      gaceta: template.gaceta,
-      gacetaHref: "",
-      deviatesFromBench: topicState.deviates,
-    } satisfies VoteRecord;
-  });
+const PERIOD_YEAR_SHIFT: Record<VotePeriodKey, number> = {
+  "2018-2022": -4,
+  "2022-2026": 0,
+  "2026": 2,
+};
+
+function shiftDateByPeriod(date: string, period: VotePeriodKey) {
+  const [year, month, day] = date.split("-").map(Number);
+  const shiftedYear = year + PERIOD_YEAR_SHIFT[period];
+  return `${shiftedYear}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-function buildHeatmapForSeed(seed: LegislatorSeed) {
+function buildVoteRowsForSeed(seed: LegislatorSeed) {
+  return seed.periods.flatMap((period) =>
+    VOTE_TEMPLATES.map((template, index) => {
+      const topicState = buildTopicState(seed, template.key, period);
+      const shiftedDate = shiftDateByPeriod(template.date, period);
+      return {
+        id: `${seed.id}-${period}-${template.key}-${index + 1}`,
+        period,
+        topicKey: template.key,
+        project: template.project,
+        date: shiftedDate,
+        dateLabel: formatDateLabel(shiftedDate),
+        theme: template.theme,
+        position: topicState.position,
+        result: template.result,
+        coherence: topicState.coherence,
+        score: topicState.score,
+        gaceta: template.gaceta,
+        gacetaHref: "",
+        deviatesFromBench: topicState.deviates,
+      } satisfies VoteRecord;
+    }),
+  );
+}
+
+function buildHeatmapForSeed(seed: LegislatorSeed, period?: VotePeriodKey) {
   return HEATMAP_COLUMNS.map((column) => {
     const template = VOTE_TEMPLATES.find((item) => item.key === column.key);
-    const state = buildTopicState(seed, column.key);
+    const state = buildTopicState(seed, column.key, period);
     return {
       key: column.key,
       label: column.label,

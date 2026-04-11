@@ -301,12 +301,25 @@ export function LandingPage({
               </p>
 
               <div className="lp-story__actions">
-                {features.map((feature) => (
-                  <Link key={feature.title} href={feature.href} className={`lp-story__chip lp-story__chip--${feature.tone}`}>
-                    <span>{feature.title}</span>
-                    <ArrowRight size={14} />
-                  </Link>
-                ))}
+                {features.map((feature) => {
+                  const FeatureIcon = feature.icon;
+                  return (
+                    <Link key={feature.title} href={feature.href} className={`lp-story__spotlight-card lp-story__spotlight-card--${feature.tone}`}>
+                      <div className="lp-story__spotlight-top">
+                        <span className={`lp-story__spotlight-icon lp-story__spotlight-icon--${feature.tone}`}>
+                          <FeatureIcon size={18} />
+                        </span>
+                        <span className="lp-story__spotlight-kicker">{feature.kicker}</span>
+                      </div>
+                      <strong>{feature.title}</strong>
+                      <p>{feature.body}</p>
+                      <span className="lp-story__spotlight-cta">
+                        {feature.cta}
+                        <ArrowRight size={15} />
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
 
               <div className="lp-story__stats">

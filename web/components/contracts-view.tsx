@@ -10,7 +10,6 @@ import gsap from "gsap";
 import {
   ArrowUpRight,
   Bookmark,
-  Database,
   Download,
   Filter,
   LoaderCircle,
@@ -1032,33 +1031,6 @@ export function ContractsView({
                   {lang === "es" ? "Filtrar contratos →" : "Filter contracts →"}
                 </button>
 
-                <button
-                  type="button"
-                  className="btn-secondary cv-filter-action"
-                  onClick={() => {
-                    const next = { ...draft, full: !draft.full };
-                    runFilters(next, "apply");
-                  }}
-                  title={
-                    draft.full
-                      ? lang === "es"
-                        ? "Volver a la vista rápida sin salir de esta página"
-                        : "Return to the quick slice without leaving this page"
-                      : lang === "es"
-                        ? "Abrir el historial completo del corte actual dentro de esta misma vista"
-                        : "Open the full history for the current slice inside this same view"
-                  }
-                >
-                  <Database size={15} />
-                  {draft.full
-                    ? lang === "es"
-                      ? "Volver a vista rápida"
-                      : "Back to quick view"
-                    : lang === "es"
-                      ? "Activar historial completo"
-                      : "Enable full history"}
-                </button>
-
                 <button type="button" className="btn-secondary cv-filter-action" onClick={resetFilters}>
                   <RotateCcw size={15} />
                   {lang === "es" ? "Limpiar filtros" : "Clear filters"}
@@ -1126,13 +1098,9 @@ export function ContractsView({
               ) : null}
 
               <p className="cv-helper-copy cv-helper-copy--compact">
-                {draft.full
-                  ? lang === "es"
-                    ? "Historial completo activo. La consulta tarda más, pero deja de depender de la muestra rápida."
-                    : "Full history is active. The query takes longer, but no longer depends on the quick sample."
-                  : lang === "es"
-                    ? "La vista rápida usa la muestra priorizada; si necesitas ver todo el historial del corte, activa el historial completo sin salir de esta página."
-                    : "Quick view uses the prioritized sample; if you need the full history for this slice, enable full history without leaving this page."}
+                {lang === "es"
+                  ? "Los filtros recalculan el corte con el universo cargado del parquet puntuado. La tabla visible es una ventana de lectura, no el total del corte."
+                  : "Filters recalculate the slice from the loaded scored parquet universe. The visible table is a reading window, not the full slice total."}
               </p>
             </section>
 
@@ -1227,6 +1195,8 @@ export function ContractsView({
           rows={tableRows}
           summaryEntities={summaryEntities}
           summaryModalities={summaryModalities}
+          analytics={overview?.analytics}
+          activeDepartmentLabel={activeDepartmentLabel}
           onDepartmentPick={(department) => {
             const next = { ...filters, department };
             runFilters(next, "map");

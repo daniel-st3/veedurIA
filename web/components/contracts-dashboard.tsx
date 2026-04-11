@@ -66,12 +66,20 @@ function groupByLabel(rows: TableRow[], key: "modality" | "entity") {
     .sort((left, right) => right.count - left.count || right.totalValue - left.totalValue);
 }
 
+function riskBandLabel(lang: Lang, band: "high" | "medium" | "low") {
+  if (band === "high") return lang === "es" ? "Alto" : "High";
+  if (band === "medium") return lang === "es" ? "Medio" : "Medium";
+  return lang === "es" ? "Bajo" : "Low";
+}
+
 export function ContractsDashboard({
   lang,
   departments,
   rows,
   summaryEntities = [],
   summaryModalities = [],
+  analytics,
+  activeDepartmentLabel,
   onDepartmentPick,
   onMonthPick,
 }: {
@@ -80,46 +88,99 @@ export function ContractsDashboard({
   rows: TableRow[];
   summaryEntities?: OverviewPayload["summaries"]["entities"];
   summaryModalities?: OverviewPayload["summaries"]["modalities"];
+  analytics?: OverviewPayload["analytics"];
+  activeDepartmentLabel?: string | null;
   onDepartmentPick?: (department: string) => void;
   onMonthPick?: (month: string) => void;
 }) {
-  const timeline = useMemo(() => groupByMonth(rows), [rows]);
+  const timeline = useMemo(
+    () =>
+      analytics?.months?.length
+        ? analytics.months.map((item) => ({ month: item.month, count: item.contracts }))
+        : groupByMonth(rows),
+    [analytics?.months, rows],
+  );
   const topDepartments = useMemo(
     () =>
-      [...departments]
-        .sort((left, right) => right.contractCount - left.contractCount || right.avgRisk - left.avgRisk)
-        .slice(0, 8),
-    [departments],
+      analytics?.departments?.length
+        ? analytics.departments.slice(0, 8)
+        : [...departments]
+            .sort((left, right) => right.contractCount - left.contractCount || right.avgRisk - left.avgRisk)
+            .slice(0, 8),
+    [analytics?.departments, departments],
   );
   const modalityMix = useMemo(
     () =>
-      summaryModalities.length
-        ? summaryModalities.slice(0, 6).map((item) => ({
+      analytics?.modalities?.length
+        ? analytics.modalities.slice(0, 6).map((item) => ({
             label: item.modalidad_de_contratacion,
             count: item.contracts,
             meanRisk: item.meanRisk,
           }))
-        : groupByLabel(rows, "modality").slice(0, 6).map((item) => ({
-            label: item.label,
-            count: item.count,
-            meanRisk: item.peakScore / 100,
-          })),
-    [rows, summaryModalities],
+        : summaryModalities.length
+          ? summaryModalities.slice(0, 6).map((item) => ({
+            label: item.modalidad_de_contratacion,
+            count: item.contracts,
+            meanRisk: item.meanRisk,
+          }))
+          : groupByLabel(rows, "modality").slice(0, 6).map((item) => ({
+              label: item.label,
+              count: item.count,
+              meanRisk: item.peakScore / 100,
+            })),
+    [analytics?.modalities, rows, summaryModalities],
   );
   const topEntities = useMemo(
     () =>
-      summaryEntities.length
-        ? summaryEntities.slice(0, 7).map((item) => ({
+      analytics?.entities?.length
+        ? analytics.entities.slice(0, 7).map((item) => ({
             label: item.nombre_entidad,
             count: item.contracts,
             meanRisk: item.meanRisk,
           }))
-        : groupByLabel(rows, "entity").slice(0, 7).map((item) => ({
-            label: item.label,
-            count: item.count,
-            meanRisk: item.peakScore / 100,
-          })),
-    [rows, summaryEntities],
+        : summaryEntities.length
+          ? summaryEntities.slice(0, 7).map((item) => ({
+            label: item.nombre_entidad,
+            count: item.contracts,
+            meanRisk: item.meanRisk,
+          }))
+          : groupByLabel(rows, "entity").slice(0, 7).map((item) => ({
+              label: item.label,
+              count: item.count,
+              meanRisk: item.peakScore / 100,
+            })),
+    [analytics?.entities, rows, summaryEntities],
+  );
+  const riskBandMix = useMemo(
+    () =>
+      analytics?.riskBands?.length
+        ? analytics.riskBands.map((item) => ({
+            label: riskBandLabel(lang, item.riskBand),
+            count: item.contracts,
+            meanRisk: item.meanRisk,
+            band: item.riskBand,
+          }))
+        : [
+            {
+              label: riskBandLabel(lang, "high"),
+              count: rows.filter((row) => row.riskBand === "high").length,
+              meanRisk: 0.85,
+              band: "high" as const,
+            },
+            {
+              label: riskBandLabel(lang, "medium"),
+              count: rows.filter((row) => row.riskBand === "medium").length,
+              meanRisk: 0.58,
+              band: "medium" as const,
+            },
+            {
+              label: riskBandLabel(lang, "low"),
+              count: rows.filter((row) => row.riskBand === "low").length,
+              meanRisk: 0.24,
+              band: "low" as const,
+            },
+          ].filter((item) => item.count > 0),
+    [analytics?.riskBands, lang, rows],
   );
 
   const territoryData = useMemo(
@@ -205,13 +266,15 @@ export function ContractsDashboard({
         orientation: "h",
         customdata: topEntities.map((item) => [item.label, Math.round(item.meanRisk * 100)]).reverse(),
         marker: {
-          color: topEntities.map((item) =>
-            item.meanRisk >= 0.7
-              ? RISK_COLORS.high
-              : item.meanRisk >= 0.4
-                ? RISK_COLORS.medium
-                : CHART_PALETTE[0],
-          ),
+          color: topEntities
+            .map((item) =>
+              item.meanRisk >= 0.7
+                ? RISK_COLORS.high
+                : item.meanRisk >= 0.4
+                  ? RISK_COLORS.medium
+                  : CHART_PALETTE[0],
+            )
+            .reverse(),
           line: { color: "rgba(40, 37, 29, 0.08)", width: 1 },
         },
         text: topEntities.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")).reverse(),
@@ -224,6 +287,33 @@ export function ContractsDashboard({
       },
     ],
     [lang, topEntities],
+  );
+  const riskBandData = useMemo(
+    () => [
+      {
+        x: riskBandMix.map((item) => item.count).reverse(),
+        y: riskBandMix.map((item) => item.label).reverse(),
+        type: "bar",
+        orientation: "h",
+        customdata: riskBandMix.map((item) => Math.round(item.meanRisk * 100)).reverse(),
+        marker: {
+          color: riskBandMix
+            .map((item) =>
+              item.band === "high" ? RISK_COLORS.high : item.band === "medium" ? RISK_COLORS.medium : RISK_COLORS.low,
+            )
+            .reverse(),
+          line: { color: "rgba(40, 37, 29, 0.08)", width: 1 },
+        },
+        text: riskBandMix.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")).reverse(),
+        textposition: "outside",
+        cliponaxis: false,
+        hovertemplate:
+          lang === "es"
+            ? "<b>%{y}</b><br>%{x:,} contratos<br>Intensidad media %{customdata}/100<extra></extra>"
+            : "<b>%{y}</b><br>%{x:,} contracts<br>Average intensity %{customdata}/100<extra></extra>",
+      },
+    ],
+    [lang, riskBandMix],
   );
 
   const visibleCount = rows.length;
@@ -242,29 +332,45 @@ export function ContractsDashboard({
       <div className="cv-block__header cv-dashboard__header">
         <div>
           <p className="eyebrow">{lang === "es" ? "Visualiza el corte" : "Visualize the slice"}</p>
-          <h2>{lang === "es" ? "Cuatro lecturas rápidas del corte" : "Four quick reads of the slice"}</h2>
+          <h2>{lang === "es" ? "Cuatro lecturas que reaccionan al corte completo" : "Four reads that react to the full slice"}</h2>
         </div>
         <p>
           {lang === "es"
-            ? "Territorio, tiempo, modalidad y entidades con una lectura visual más limpia del corte visible."
-            : "Territory, time, modality, and entities in a cleaner visual readout of the visible slice."}
+            ? activeDepartmentLabel
+              ? `Territorio activo: ${activeDepartmentLabel}. Todo este bloque se recalcula con el corte completo, no solo con la tabla visible.`
+              : "Territorio, tiempo, modalidad y entidades recalculados con el corte completo, no con una sola página de resultados."
+            : activeDepartmentLabel
+              ? `Active territory: ${activeDepartmentLabel}. This block recalculates from the full slice, not only the visible table page.`
+              : "Territory, time, modality, and entities recalculated from the full slice, not from a single page of results."}
         </p>
       </div>
 
       <div className="cv-dashboard__grid">
         <article className="cv-dashboard-card">
           <div className="cv-dashboard-card__head">
-            <p className="cv-dashboard-card__kicker">{lang === "es" ? "Territorio" : "Territory"}</p>
-            <strong>{lang === "es" ? "Departamentos con más volumen visible" : "Departments with the most visible volume"}</strong>
+            <p className="cv-dashboard-card__kicker">{activeDepartmentLabel ? (lang === "es" ? "Riesgo" : "Risk") : lang === "es" ? "Territorio" : "Territory"}</p>
+            <strong>
+              {activeDepartmentLabel
+                ? lang === "es"
+                  ? `Bandas de riesgo dentro de ${activeDepartmentLabel}`
+                  : `Risk bands inside ${activeDepartmentLabel}`
+                : lang === "es"
+                  ? "Departamentos con más contratos del corte"
+                  : "Departments with the most contracts in the slice"}
+            </strong>
             <span>
-              {lang === "es"
-                ? "Color por intensidad media y volumen ordenado para detectar dónde conviene empezar."
-                : "Colored by average intensity and ordered by volume so you can see where to start."}
+              {activeDepartmentLabel
+                ? lang === "es"
+                  ? "Ordenado de mayor a menor para ver si el departamento está cargado arriba, mezclado o más cerca del patrón típico."
+                  : "Sorted high to low so you can tell whether the department skews high, mixed, or closer to the usual pattern."
+                : lang === "es"
+                  ? "Ordenado de mayor a menor y coloreado por intensidad media para detectar dónde conviene empezar."
+                  : "Sorted high to low and colored by average intensity so you can see where to start."}
             </span>
           </div>
           <div className="cv-dashboard-card__plot">
             <Plot
-              data={territoryData as any}
+              data={(activeDepartmentLabel ? riskBandData : territoryData) as any}
               layout={{
                 ...baseLayout,
                 margin: { l: 158, r: 56, t: 16, b: 34 },
@@ -272,13 +378,14 @@ export function ContractsDashboard({
                   title: { text: lang === "es" ? "Contratos visibles" : "Visible contracts", standoff: 8 },
                   gridcolor: GRID_COLOR,
                   zeroline: false,
-                  tickfont: { size: 12 },
+                  tickfont: { size: 13 },
                   automargin: true,
                 },
-                yaxis: { tickfont: { size: 12 }, automargin: true },
+                yaxis: { tickfont: { size: 13 }, automargin: true },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               onClick={(event: any) => {
+                if (activeDepartmentLabel) return;
                 const label = event.points?.[0]?.y;
                 const department = departments.find((item) => truncateLabel(item.label, 24) === label);
                 if (department?.geoName) onDepartmentPick?.(department.geoName);
@@ -294,8 +401,8 @@ export function ContractsDashboard({
             <strong>{lang === "es" ? "Ritmo visible por mes" : "Visible monthly pace"}</strong>
             <span>
               {lang === "es"
-                ? "Curva de la muestra actual. Haz clic en un mes para volver a ordenar el corte."
-                : "Curve of the current sample. Click a month to reorganize the slice."}
+                ? "Curva del corte completo. Haz clic en un mes para concentrar el tablero en esa ventana."
+                : "Curve of the full slice. Click a month to focus the board on that window."}
             </span>
           </div>
           <div className="cv-dashboard-card__plot">
@@ -308,13 +415,13 @@ export function ContractsDashboard({
                   title: { text: lang === "es" ? "Contratos" : "Contracts", standoff: 8 },
                   gridcolor: GRID_COLOR,
                   zeroline: false,
-                  tickfont: { size: 12 },
+                  tickfont: { size: 13 },
                   automargin: true,
                 },
                 xaxis: {
                   tickvals: timeline.map((item) => item.month),
                   ticktext: timeline.map((item) => formatMonthTick(item.month, lang)),
-                  tickfont: { size: 11 },
+                  tickfont: { size: 12 },
                   automargin: true,
                 },
                 hovermode: "x unified",
@@ -335,8 +442,8 @@ export function ContractsDashboard({
             <strong>{lang === "es" ? "Modalidades que dominan el corte" : "Modalities driving the slice"}</strong>
             <span>
               {lang === "es"
-                ? "Las barras combinan volumen visible y tono de riesgo medio por modalidad."
-                : "Bars combine visible volume and average risk tone per modality."}
+                ? "Modalidades agrupadas por familia y ordenadas de mayor a menor para evitar duplicados engañosos."
+                : "Modalities grouped by family and sorted high to low to avoid misleading duplicates."}
             </span>
           </div>
           <div className="cv-dashboard-card__plot">
@@ -349,10 +456,10 @@ export function ContractsDashboard({
                   title: { text: lang === "es" ? "Contratos visibles" : "Visible contracts", standoff: 8 },
                   gridcolor: GRID_COLOR,
                   zeroline: false,
-                  tickfont: { size: 12 },
+                  tickfont: { size: 13 },
                   automargin: true,
                 },
-                yaxis: { tickfont: { size: 12 }, automargin: true },
+                yaxis: { tickfont: { size: 13 }, automargin: true },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               style={{ width: "100%", height: 282 }}
@@ -366,8 +473,8 @@ export function ContractsDashboard({
             <strong>{lang === "es" ? "Entidades con mayor carga visible" : "Entities carrying the visible load"}</strong>
             <span>
               {lang === "es"
-                ? `${visibleCount.toLocaleString("es-CO")} filas visibles en tabla; aquí se resume quién concentra más contratos.`
-                : `${visibleCount.toLocaleString("en-US")} visible rows in the table; this summarizes who concentrates the most contracts.`}
+                ? `${visibleCount.toLocaleString("es-CO")} filas visibles en tabla, pero este ranking sale del corte completo activo.`
+                : `${visibleCount.toLocaleString("en-US")} visible table rows, but this ranking comes from the full active slice.`}
             </span>
           </div>
           <div className="cv-dashboard-card__plot">
@@ -380,10 +487,10 @@ export function ContractsDashboard({
                   title: { text: lang === "es" ? "Contratos visibles" : "Visible contracts", standoff: 8 },
                   gridcolor: GRID_COLOR,
                   zeroline: false,
-                  tickfont: { size: 12 },
+                  tickfont: { size: 13 },
                   automargin: true,
                 },
-                yaxis: { tickfont: { size: 12 }, automargin: true },
+                yaxis: { tickfont: { size: 13 }, automargin: true },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               style={{ width: "100%", height: 282 }}

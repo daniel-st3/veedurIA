@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { NetworkEdge, NetworkNode } from "@/lib/network/types";
 import { resolveNodeColor, nodeRadius } from "@/lib/network/buildNodes";
-import { edgeWidth, edgeColor, edgeParticleCount } from "@/lib/network/buildEdges";
+import { edgeWidth, edgeColor } from "@/lib/network/buildEdges";
 import { networkConfig } from "@/lib/network/config";
 import type { Lang } from "@/lib/types";
 
@@ -42,6 +42,7 @@ export function NetworkCanvas({
   height = 560,
 }: Props) {
   const graphRef = useRef<any>(null);
+  const autoFitRef = useRef(false);
   const [mounted, setMounted] = useState(false);
 
   // Only render on client (canvas requires window)
@@ -56,6 +57,19 @@ export function NetworkCanvas({
       graphRef.current.zoom(2.2, 500);
     }
   }, [selectedNodeId, nodes]);
+
+  useEffect(() => {
+    autoFitRef.current = false;
+    if (!graphRef.current) return;
+
+    const chargeForce = graphRef.current.d3Force("charge");
+    if (chargeForce) chargeForce.strength(networkConfig.canvas.physics.chargeStrength);
+
+    const linkForce = graphRef.current.d3Force("link");
+    if (linkForce) linkForce.distance(networkConfig.canvas.physics.linkDistance);
+
+    graphRef.current.d3ReheatSimulation();
+  }, [nodes.length, edges.length]);
 
   // ── Custom node rendering ────────────────────────────────────────────────
 
@@ -175,23 +189,37 @@ export function NetworkCanvas({
           edgeColor(link as NetworkEdge, selectedEdgeId, hoveredNodeId)
         }
         linkDirectionalParticles={(link: any) =>
-          edgeParticleCount(link as NetworkEdge)
+          (() => {
+            const sourceId = typeof link.source === "string" ? link.source : link.source?.id;
+            const targetId = typeof link.target === "string" ? link.target : link.target?.id;
+            const isHoveredLink = hoveredNodeId && (sourceId === hoveredNodeId || targetId === hoveredNodeId);
+            if (link.id === selectedEdgeId) return 4;
+            if (isHoveredLink && link.confidence >= 80) return 1;
+            return 0;
+          })()
         }
-        linkDirectionalParticleSpeed={0.003}
+        linkDirectionalParticleSpeed={0.0022}
         linkDirectionalParticleWidth={(link: any) =>
           (link as NetworkEdge).confidence >= 80 ? 2 : 1
         }
-        linkLabel={(link: any) => (link as NetworkEdge).typeLabel}
+        linkLabel={() => ""}
         // Events
         onNodeClick={handleNodeClick}
         onLinkClick={handleEdgeClick}
         onNodeHover={handleNodeHover}
         onBackgroundClick={onBackgroundClick}
+        onEngineStop={() => {
+          if (!selectedNodeId && !autoFitRef.current && graphRef.current && nodes.length > 0) {
+            autoFitRef.current = true;
+            graphRef.current.zoomToFit(450, 72);
+          }
+        }}
         // Physics
         d3AlphaDecay={networkConfig.canvas.physics.alphaDecay}
         d3VelocityDecay={networkConfig.canvas.physics.velocityDecay}
         cooldownTicks={networkConfig.canvas.physics.cooldownTicks}
         // Performance
+        autoPauseRedraw
         warmupTicks={20}
       />
     </div>

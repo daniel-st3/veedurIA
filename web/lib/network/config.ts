@@ -73,16 +73,16 @@ export const networkConfig = {
   },
 
   canvas: {
-    maxNodes: 200,
-    initialHubs: 28,
-    expandLimit: 15,
+    maxNodes: 260,
+    initialHubs: 48,
+    expandLimit: 24,
     backgroundColor: "#0a1120",
     physics: {
-      alphaDecay: 0.02,
-      velocityDecay: 0.4,
-      cooldownTicks: 120,
-      chargeStrength: -180,
-      linkDistance: 80,
+      alphaDecay: 0.03,
+      velocityDecay: 0.48,
+      cooldownTicks: 80,
+      chargeStrength: -140,
+      linkDistance: 92,
     },
     labelZoomThreshold: 1.2,   // only show labels when zoom > this
     labelMaxLength: 28,

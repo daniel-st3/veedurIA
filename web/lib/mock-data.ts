@@ -771,6 +771,23 @@ function buildScaledCounts(rows: typeof ALL_ROWS, scaledTotal: number) {
   return Math.max(1, Math.round(scaledTotal / rows.length));
 }
 
+function normalizeMockModalityFamily(modality: string) {
+  const normalized = modality.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (normalized.includes("directa")) return "Contratación directa";
+  if (
+    normalized.includes("abreviada") ||
+    normalized.includes("subasta inversa") ||
+    normalized.includes("menor cuantia")
+  ) {
+    return "Selección abreviada";
+  }
+  if (normalized.includes("licitacion")) return "Licitación pública";
+  if (normalized.includes("meritos") || normalized.includes("merito")) return "Concurso de méritos";
+  if (normalized.includes("minima")) return "Mínima cuantía";
+  if (normalized.includes("regimen especial")) return "Régimen especial";
+  return modality;
+}
+
 function buildMockEntitySummary(rows: typeof ALL_ROWS, scaledTotal: number) {
   if (!rows.length) return [];
   const multiplier = buildScaledCounts(rows, scaledTotal);
@@ -789,10 +806,11 @@ function buildMockModalitySummary(rows: typeof ALL_ROWS, scaledTotal: number) {
   if (!rows.length) return [];
   const grouped = new Map<string, { contracts: number; totalRisk: number }>();
   rows.forEach((row) => {
-    const current = grouped.get(row.modality) ?? { contracts: 0, totalRisk: 0 };
+    const family = normalizeMockModalityFamily(row.modality);
+    const current = grouped.get(family) ?? { contracts: 0, totalRisk: 0 };
     current.contracts += 1;
     current.totalRisk += row.score / 100;
-    grouped.set(row.modality, current);
+    grouped.set(family, current);
   });
 
   return [...grouped.entries()]
@@ -801,8 +819,44 @@ function buildMockModalitySummary(rows: typeof ALL_ROWS, scaledTotal: number) {
       contracts: scaleVisibleCount(value.contracts, rows.length, scaledTotal),
       meanRisk: value.contracts ? value.totalRisk / value.contracts : 0,
     }))
-    .sort((left, right) => right.meanRisk - left.meanRisk || right.contracts - left.contracts)
-    .slice(0, 5);
+    .sort((left, right) => right.contracts - left.contracts || right.meanRisk - left.meanRisk)
+    .slice(0, 6);
+}
+
+function buildMockTimeline(rows: typeof ALL_ROWS, scaledTotal: number) {
+  const grouped = new Map<string, number>();
+  rows.forEach((row) => {
+    const month = row.date.slice(0, 7);
+    grouped.set(month, (grouped.get(month) ?? 0) + 1);
+  });
+  return [...grouped.entries()]
+    .sort((left, right) => left[0].localeCompare(right[0]))
+    .map(([month, count]) => ({
+      month,
+      contracts: scaleVisibleCount(count, rows.length, scaledTotal),
+      meanRisk: rows.length ? rows.reduce((sum, item) => sum + item.score / 100, 0) / rows.length : 0,
+    }));
+}
+
+function buildMockRiskBands(rows: typeof ALL_ROWS, scaledTotal: number) {
+  const grouped = new Map<"high" | "medium" | "low", { contracts: number; totalRisk: number }>();
+  rows.forEach((row) => {
+    const current = grouped.get(row.riskBand) ?? { contracts: 0, totalRisk: 0 };
+    current.contracts += 1;
+    current.totalRisk += row.score / 100;
+    grouped.set(row.riskBand, current);
+  });
+
+  return (["high", "medium", "low"] as const)
+    .map((riskBand) => {
+      const current = grouped.get(riskBand);
+      return {
+        riskBand,
+        contracts: current ? scaleVisibleCount(current.contracts, rows.length, scaledTotal) : 0,
+        meanRisk: current && current.contracts ? current.totalRisk / current.contracts : 0,
+      };
+    })
+    .filter((item) => item.contracts > 0);
 }
 
 export function getMockOverview(filters: ContractsFilters): OverviewPayload {
@@ -890,6 +944,15 @@ export function getMockOverview(filters: ContractsFilters): OverviewPayload {
     summaries: {
       entities: buildMockEntitySummary(filtered.length ? filtered : ALL_ROWS, totalContracts),
       modalities: buildMockModalitySummary(filtered.length ? filtered : ALL_ROWS, totalContracts),
+    },
+    analytics: {
+      departments: [...mapDepartments]
+        .sort((left, right) => right.contractCount - left.contractCount || right.avgRisk - left.avgRisk)
+        .slice(0, 10),
+      modalities: buildMockModalitySummary(filtered.length ? filtered : ALL_ROWS, totalContracts),
+      entities: buildMockEntitySummary(filtered.length ? filtered : ALL_ROWS, totalContracts),
+      months: buildMockTimeline(filtered.length ? filtered : ALL_ROWS, totalContracts),
+      riskBands: buildMockRiskBands(filtered.length ? filtered : ALL_ROWS, totalContracts),
     },
     methodology: {
       modelType: "IsolationForest",

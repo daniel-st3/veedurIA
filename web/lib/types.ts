@@ -74,6 +74,13 @@ export type OverviewPayload = {
     entities: { nombre_entidad: string; contracts: number; meanRisk: number; maxRisk: number }[];
     modalities: { modalidad_de_contratacion: string; contracts: number; meanRisk: number }[];
   };
+  analytics: {
+    departments: DepartmentDatum[];
+    modalities: { modalidad_de_contratacion: string; contracts: number; meanRisk: number }[];
+    entities: { nombre_entidad: string; contracts: number; meanRisk: number; maxRisk: number }[];
+    months: { month: string; contracts: number; meanRisk: number }[];
+    riskBands: { riskBand: "high" | "medium" | "low"; contracts: number; meanRisk: number }[];
+  };
   methodology: {
     modelType: string;
     nEstimators: number;

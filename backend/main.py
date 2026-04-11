@@ -145,7 +145,7 @@ def network_version() -> dict:
 @app.get("/network/overview")
 def network_overview(
     lang: Literal["es", "en"] = "es",
-    limit: int = Query(30, ge=5, le=50),
+    limit: int = Query(48, ge=5, le=80),
     department: str | None = None,
     min_confidence: int = Query(40, ge=0, le=100),
 ) -> dict:

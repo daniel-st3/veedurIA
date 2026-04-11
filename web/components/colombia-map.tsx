@@ -196,9 +196,9 @@ export function ColombiaMap({
   const currentDatum = currentDepartment ? summary.get(currentDepartment) : undefined;
   const currentFeature = currentDepartment ? features.find((feature) => feature.key === currentDepartment) : null;
   const currentTooltip = currentDepartment ? tooltipData?.[currentDepartment] : undefined;
-  const viewportScale = mode === "hero" ? 1.12 : 1;
+  const viewportScale = mode === "hero" ? 0.96 : 1;
   const viewportTranslateX = ((1 - viewportScale) * VIEWBOX_WIDTH) / 2;
-  const viewportTranslateY = ((1 - viewportScale) * VIEWBOX_HEIGHT) / 2 - (mode === "hero" ? 10 : 0);
+  const viewportTranslateY = ((1 - viewportScale) * VIEWBOX_HEIGHT) / 2;
 
   useGSAP(
     () => {

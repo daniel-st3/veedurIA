@@ -31,8 +31,8 @@ from src.utils.logger import get_logger
 
 log = get_logger(__name__)
 
-MAX_NODES = 200
-EXPAND_LIMIT = 15
+MAX_NODES = 260
+EXPAND_LIMIT = 24
 ERROR_REPORTS_PATH = os.path.join(DATA_PROCESSED, "error_reports.jsonl")
 
 
@@ -108,7 +108,7 @@ def _edges_touching(node_id: str, edges: list[dict]) -> list[dict]:
 
 def get_overview_payload(
     lang: str = "es",
-    limit: int = 30,
+    limit: int = 48,
     department: str | None = None,
     min_confidence: int = 40,
 ) -> dict[str, Any]:
