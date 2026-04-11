@@ -76,16 +76,16 @@ export const networkConfig = {
     maxNodes: 260,
     initialHubs: 48,
     expandLimit: 24,
-    backgroundColor: "#0a1120",
+    backgroundColor: "#070d1a",
     physics: {
-      alphaDecay: 0.03,
-      velocityDecay: 0.48,
-      cooldownTicks: 80,
-      chargeStrength: -140,
-      linkDistance: 92,
+      alphaDecay: 0.022,       // slower cool-down → nodes settle into better positions
+      velocityDecay: 0.38,     // less friction → more organic spread
+      cooldownTicks: 140,      // more time to stabilize before freeze
+      chargeStrength: -320,    // stronger repulsion → nodes spread out like a web
+      linkDistance: 130,       // longer edges → more spider-web spacing
     },
-    labelZoomThreshold: 1.2,   // only show labels when zoom > this
-    labelMaxLength: 28,
+    labelZoomThreshold: 0.7,   // show labels at a lower zoom so names are always visible
+    labelMaxLength: 22,        // tighter truncation avoids overlapping long names
   },
 
   cache: {

@@ -284,31 +284,71 @@ export function VotometroView({ lang }: { lang: Lang }) {
   }, [selectedProfileRows]);
 
   const scatterProfiles = useMemo(
-    () => (profilePeriod === "all" ? visibleProfiles : visibleProfiles.filter((profile) => profile.periods.includes(profilePeriod))),
+    () =>
+      (profilePeriod === "all" ? visibleProfiles : visibleProfiles.filter((profile) => profile.periods.includes(profilePeriod)))
+        .slice()
+        .sort((a, b) => b.coherenceScore - a.coherenceScore),
     [profilePeriod, visibleProfiles],
   );
-  const scatterData = useMemo(
-    () => [
+
+  // Diverging bar: coherent votes (right, %) vs inconsistent+absent (left, %)
+  const divergingData = useMemo(() => {
+    const names = scatterProfiles.map((p) => p.name);
+    const coherentPct = scatterProfiles.map((p) => {
+      const total = p.consistentVotes + p.inconsistentVotes + p.absencesOnKeyThemes || 1;
+      return Math.round((p.consistentVotes / total) * 100);
+    });
+    const inconsistentPct = scatterProfiles.map((p) => {
+      const total = p.consistentVotes + p.inconsistentVotes + p.absencesOnKeyThemes || 1;
+      return -Math.round((p.inconsistentVotes / total) * 100);
+    });
+    const absentPct = scatterProfiles.map((p) => {
+      const total = p.consistentVotes + p.inconsistentVotes + p.absencesOnKeyThemes || 1;
+      return -Math.round((p.absencesOnKeyThemes / total) * 100);
+    });
+
+    return [
       {
-        x: scatterProfiles.map((profile) => profile.coherenceScore),
-        y: scatterProfiles.map((profile) => profile.absenceRate),
-        mode: "markers+text",
-        type: "scatter",
-        text: scatterProfiles.map((profile) => profile.name),
-        textposition: "top center",
-        customdata: scatterProfiles.map((profile) => [profile.id, profile.totalVotes, profile.party]),
-        marker: {
-          size: scatterProfiles.map((profile) => Math.max(16, Math.round(profile.totalVotes / 8))),
-          color: scatterProfiles.map((profile) => partyColor(profile.party)),
-          line: { color: "rgba(255,255,255,0.9)", width: 1.5 },
-          opacity: 0.82,
-        },
+        name: lang === "es" ? "Coherente" : "Coherent",
+        x: coherentPct,
+        y: names,
+        type: "bar",
+        orientation: "h",
+        marker: { color: "rgba(16,185,129,0.78)", line: { color: "rgba(16,185,129,0.3)", width: 1 } },
+        customdata: scatterProfiles.map((p) => [p.id, p.coherenceScore, p.totalVotes]),
         hovertemplate:
-          "<b>%{text}</b><br>Coherencia %{x}%<br>Ausencia %{y}%<br>%{customdata[1]} votos<extra></extra>",
+          lang === "es"
+            ? "<b>%{y}</b><br>%{x}% votos coherentes · coherencia %{customdata[1]}%<extra></extra>"
+            : "<b>%{y}</b><br>%{x}% coherent votes · score %{customdata[1]}%<extra></extra>",
       },
-    ],
-    [scatterProfiles],
-  );
+      {
+        name: lang === "es" ? "Inconsistente" : "Inconsistent",
+        x: inconsistentPct,
+        y: names,
+        type: "bar",
+        orientation: "h",
+        marker: { color: "rgba(220,38,38,0.72)", line: { color: "rgba(220,38,38,0.3)", width: 1 } },
+        customdata: scatterProfiles.map((p) => [p.id, p.inconsistentVotes]),
+        hovertemplate:
+          lang === "es"
+            ? "<b>%{y}</b><br>%{customdata[1]} votos inconsistentes<extra></extra>"
+            : "<b>%{y}</b><br>%{customdata[1]} inconsistent votes<extra></extra>",
+      },
+      {
+        name: lang === "es" ? "Ausencias clave" : "Key absences",
+        x: absentPct,
+        y: names,
+        type: "bar",
+        orientation: "h",
+        marker: { color: "rgba(100,116,139,0.55)", line: { color: "rgba(100,116,139,0.2)", width: 1 } },
+        customdata: scatterProfiles.map((p) => [p.id, p.absencesOnKeyThemes]),
+        hovertemplate:
+          lang === "es"
+            ? "<b>%{y}</b><br>%{customdata[1]} ausencias en temas clave<extra></extra>"
+            : "<b>%{y}</b><br>%{customdata[1]} absences on key themes<extra></extra>",
+      },
+    ];
+  }, [scatterProfiles, lang]);
   const spotlightPeriodLabel =
     profilePeriod === "all"
       ? lang === "es"
@@ -545,44 +585,55 @@ export function VotometroView({ lang }: { lang: Lang }) {
           <div className="vm-container">
             <header className="vm-section__header vm-section__header--inline">
               <div>
-                <p className="vm-eyebrow">Brújula interactiva</p>
-                <h2>Coherencia vs. ausencia</h2>
+                <p className="vm-eyebrow">{lang === "es" ? "Mapa de coherencia" : "Coherence map"}</p>
+                <h2>{lang === "es" ? "Coherente · Inconsistente · Ausencias" : "Coherent · Inconsistent · Absences"}</h2>
               </div>
               <p className="vm-section__note">
-                Haz clic en cualquier punto para saltar al perfil. El tamaño de la burbuja sigue el volumen de votos indexados.
+                {lang === "es"
+                  ? "Cada barra muestra cómo se distribuyen los votos de cada legislador. Verde = alineado con su promesa, rojo = contrario, gris = ausente en temas clave. Haz clic para ir al perfil."
+                  : "Each bar shows how a legislator's votes break down. Green = aligned with their pledge, red = contrary, grey = absent on key themes. Click to jump to the profile."}
               </p>
             </header>
 
             <div className="vm-panel vm-panel--plot">
               <Plot
-                data={scatterData as any}
+                data={divergingData as any}
                 layout={{
                   autosize: true,
                   paper_bgcolor: "rgba(0,0,0,0)",
                   plot_bgcolor: "rgba(0,0,0,0)",
-                  margin: { l: 52, r: 18, t: 8, b: 48 },
-                  font: { color: "#2a241b", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
+                  barmode: "relative",
+                  margin: { l: 148, r: 32, t: 16, b: 48 },
+                  font: { color: "#2a241b", family: "Inter, ui-sans-serif, system-ui, sans-serif", size: 12 },
                   xaxis: {
-                    title: { text: "Coherencia (%)", standoff: 8 },
-                    range: [30, 95],
+                    title: { text: lang === "es" ? "← Inconsistente / Ausente   |   Coherente →" : "← Inconsistent / Absent   |   Coherent →", standoff: 10 },
                     gridcolor: "rgba(42, 36, 27, 0.08)",
-                    zeroline: false,
+                    zeroline: true,
+                    zerolinecolor: "rgba(42,36,27,0.25)",
+                    zerolinewidth: 1.5,
+                    ticksuffix: "%",
+                    tickfont: { size: 11 },
                   },
                   yaxis: {
-                    title: { text: "Ausencia (%)", standoff: 8 },
-                    range: [0, 22],
-                    gridcolor: "rgba(42, 36, 27, 0.08)",
-                    zeroline: false,
+                    automargin: true,
+                    tickfont: { size: 11 },
                   },
                   hovermode: "closest",
-                  showlegend: false,
+                  showlegend: true,
+                  legend: {
+                    orientation: "h",
+                    x: 0,
+                    y: -0.18,
+                    font: { size: 11 },
+                    bgcolor: "rgba(0,0,0,0)",
+                  },
                 }}
                 config={{ responsive: true, displaylogo: false, displayModeBar: false }}
                 onClick={(event: any) => {
                   const profileId = event.points?.[0]?.customdata?.[0];
                   if (typeof profileId === "string") setSelectedId(profileId);
                 }}
-                style={{ width: "100%", height: 360 }}
+                style={{ width: "100%", height: Math.max(320, scatterProfiles.length * 28 + 80) }}
               />
             </div>
           </div>

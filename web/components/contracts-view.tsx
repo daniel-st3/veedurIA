@@ -604,20 +604,17 @@ export function ContractsView({
   );
 
   const headlineContracts = useMemo(() => {
-    if (!hasStrongFilters) {
-      return (
-        firstPositiveNumber(
-          freshness?.sourceRows,
-          overview?.meta.sourceRows,
-          overview?.meta.totalRows,
-          overview?.meta.shownRows,
-          overview?.slice.totalContracts,
-          table?.total,
-        ) ?? 0
-      );
-    }
-    return firstPositiveNumber(overview?.slice.totalContracts, overview?.meta.shownRows, table?.total) ?? 0;
-  }, [freshness?.sourceRows, hasStrongFilters, overview, table?.total]);
+    // Always prioritize the scored-parquet count so the KPI matches what the rest
+    // of the UI shows. sourceRows (full SECOP ~5 M) is shown only as a footnote.
+    return (
+      firstPositiveNumber(
+        overview?.slice.totalContracts,
+        overview?.meta.shownRows,
+        overview?.meta.totalRows,
+        table?.total,
+      ) ?? 0
+    );
+  }, [hasStrongFilters, overview, table?.total]);
   const visibleContracts = useMemo(() => {
     const bestVisible = firstPositiveNumber(table?.total, overview?.slice.totalContracts, overview?.meta.shownRows);
     if (bestVisible !== null) return bestVisible;
@@ -842,16 +839,16 @@ export function ContractsView({
 
             <div className="cv-hero-kpis">
               <article className="cv-hero-kpi cv-hero-kpi--yellow">
-                <span>{hasStrongFilters ? (lang === "es" ? "Corte actual" : "Current slice") : lang === "es" ? "Fuente oficial" : "Official source"}</span>
+                <span>{hasStrongFilters ? (lang === "es" ? "Corte actual" : "Current slice") : lang === "es" ? "Contratos puntuados" : "Scored contracts"}</span>
                 <strong>{(hasStrongFilters ? visibleContracts : headlineContracts).toLocaleString("es-CO")}</strong>
                 <p>
                   {hasStrongFilters
                     ? lang === "es"
-                      ? `${filteredContractsNote}; el total oficial sigue en ${sourceContracts.toLocaleString("es-CO")}`
-                      : `${filteredContractsNote}; official source remains ${sourceContracts.toLocaleString("en-US")}`
+                      ? `${filteredContractsNote}; fuente SECOP: ${sourceContracts.toLocaleString("es-CO")}`
+                      : `${filteredContractsNote}; SECOP source: ${sourceContracts.toLocaleString("en-US")}`
                     : lang === "es"
-                      ? "registros disponibles en la fuente nacional"
-                      : "records available in the national source"}
+                      ? `contratos con puntuación de riesgo activa · fuente SECOP: ${sourceContracts.toLocaleString("es-CO")}`
+                      : `contracts with active risk scoring · SECOP source: ${sourceContracts.toLocaleString("en-US")}`}
                 </p>
               </article>
               <article className="cv-hero-kpi cv-hero-kpi--red">
@@ -998,7 +995,7 @@ export function ContractsView({
                   </select>
                 </label>
 
-                <div className="cv-date-range cv-filter-grid__wide">
+                <div className="cv-date-range">
                   <label className="filter-field">
                     <span className="label">{copy.filterDateFrom}</span>
                     <input

@@ -32,9 +32,10 @@
 
 .notice-stack {
   position: fixed;
-  top: 1.15rem;
+  /* Push below the sticky nav (~68px) so toasts are never hidden behind it */
+  top: calc(68px + 0.75rem);
   right: 1.15rem;
-  z-index: 80;
+  z-index: 120;
   display: grid;
   gap: 0.75rem;
   width: min(360px, calc(100vw - 2rem));
@@ -166,9 +167,9 @@
 
 .colombia-map__shape:hover,
 .colombia-map__shape.is-active {
-  stroke: rgba(255, 255, 255, 0.58);
-  stroke-width: 1.8px;
-  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.14));
+  stroke: rgba(255, 255, 255, 0.72);
+  stroke-width: 2px;
+  opacity: 0.92;
 }
 
 .colombia-map__shape.is-hot {
@@ -1441,7 +1442,7 @@ textarea:focus-visible {
 }
 
 .cv-filter-grid--tight {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Keep the same 4-column parent grid from .cv-filter-grid */
   gap: 0.65rem;
   margin-top: 0.85rem;
 }
@@ -1450,6 +1451,14 @@ textarea:focus-visible {
 .cv-filter-grid--tight select {
   min-height: 46px;
   font-size: 0.92rem;
+}
+
+/* Date range takes 3 of 4 cols so modality(1) + dates(3) = one full symmetric row */
+.cv-filter-grid--tight .cv-date-range {
+  grid-column: span 3;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
 }
 
 .cv-control-panel__actions {
@@ -7388,46 +7397,83 @@ input[type="date"] {
   padding: clamp(1.8rem, 4vw, 3.4rem) clamp(0.5rem, 1vw, 0.8rem) clamp(2.6rem, 5vw, 4rem);
   border-radius: 0;
   border: 0;
-  background: transparent;
+  /* Subtle inner vignette to focus on content */
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(1, 95, 101, 0.06) 0%, transparent 100%),
+    transparent;
   box-shadow: none;
+}
+
+/* Bottom separator — thin tricolor line */
+.lp-story::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 8%;
+  right: 8%;
+  height: 1.5px;
+  background: linear-gradient(90deg,
+    rgba(211, 162, 26, 0) 0%,
+    rgba(211, 162, 26, 0.5) 18%,
+    rgba(13, 91, 215, 0.4) 50%,
+    rgba(198, 40, 57, 0.4) 82%,
+    rgba(198, 40, 57, 0) 100%
+  );
+  border-radius: 999px;
 }
 
 .lp-story__backdrop {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* subtle dot-grid gives the "data layer" feel */
+  background-image:
+    radial-gradient(circle, rgba(23, 32, 51, 0.055) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 40%, black 40%, transparent 100%);
 }
 
 .lp-story__glow {
   position: absolute;
   display: block;
   border-radius: 999px;
-  filter: blur(30px);
-  opacity: 0.52;
+  filter: blur(72px);
+  opacity: 0.72;
+  animation: lp-glow-breathe 7s ease-in-out infinite;
+}
+
+@keyframes lp-glow-breathe {
+  0%, 100% { opacity: 0.68; transform: scale(1); }
+  50%       { opacity: 0.88; transform: scale(1.08); }
 }
 
 .lp-story__glow--yellow {
-  top: 8%;
-  left: 10%;
-  width: 240px;
-  height: 240px;
-  background: rgba(211, 162, 26, 0.16);
+  top: -4%;
+  left: 4%;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(211, 162, 26, 0.32) 0%, rgba(211, 162, 26, 0) 70%);
+  animation-duration: 8s;
 }
 
 .lp-story__glow--blue {
-  top: 12%;
-  right: 12%;
-  width: 280px;
-  height: 280px;
-  background: rgba(13, 91, 215, 0.12);
+  top: 2%;
+  right: 4%;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(13, 91, 215, 0.24) 0%, rgba(13, 91, 215, 0) 70%);
+  animation-duration: 10s;
+  animation-delay: -3s;
 }
 
 .lp-story__glow--red {
-  bottom: 8%;
-  right: 18%;
-  width: 220px;
-  height: 220px;
-  background: rgba(198, 40, 57, 0.08);
+  bottom: 2%;
+  right: 12%;
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle, rgba(198, 40, 57, 0.18) 0%, rgba(198, 40, 57, 0) 70%);
+  animation-duration: 12s;
+  animation-delay: -5s;
 }
 
 .lp-story__gridline {
@@ -7435,17 +7481,53 @@ input[type="date"] {
   left: 0;
   right: 0;
   height: 1px;
-  opacity: 0.34;
-  background: linear-gradient(90deg, rgba(211, 162, 26, 0), rgba(211, 162, 26, 0.45), rgba(13, 91, 215, 0.35), rgba(198, 40, 57, 0));
+  background: linear-gradient(90deg, rgba(211, 162, 26, 0), rgba(211, 162, 26, 0.55), rgba(13, 91, 215, 0.45), rgba(198, 40, 57, 0.28), rgba(198, 40, 57, 0));
+  animation: lp-gridline-sweep 6s ease-in-out infinite;
+}
+
+@keyframes lp-gridline-sweep {
+  0%, 100% { opacity: 0.32; transform: scaleX(0.92); }
+  50%       { opacity: 0.58; transform: scaleX(1); }
 }
 
 .lp-story__gridline--left {
-  top: 24%;
+  top: 22%;
 }
 
 .lp-story__gridline--right {
-  top: 78%;
-  opacity: 0.28;
+  top: 76%;
+  opacity: 0.22;
+  animation-delay: -2s;
+}
+
+/* Live-data pulse indicator */
+.lp-story__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.28rem 0.75rem 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  background: rgba(16, 185, 129, 0.08);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(16, 185, 129, 0.9);
+}
+
+.lp-story__live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: lp-live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes lp-live-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  50%       { box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
 }
 
 .lp-story__inner,
@@ -7484,13 +7566,28 @@ input[type="date"] {
 }
 
 .lp-story__flagbar span {
-  height: 6px;
+  height: 8px;
   border-radius: 999px;
+  animation: lp-flag-load 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-.lp-story__flagbar .is-yellow { background: #d3a21a; }
-.lp-story__flagbar .is-blue { background: #0d5bd7; }
-.lp-story__flagbar .is-red { background: #c62839; }
+@keyframes lp-flag-load {
+  from { transform: scaleX(0); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+
+.lp-story__flagbar .is-yellow {
+  background: linear-gradient(90deg, #c89610, #f0c040);
+  animation-delay: 0.1s;
+}
+.lp-story__flagbar .is-blue {
+  background: linear-gradient(90deg, #0d5bd7, #4d96ff);
+  animation-delay: 0.22s;
+}
+.lp-story__flagbar .is-red {
+  background: linear-gradient(90deg, #c62839, #f04555);
+  animation-delay: 0.32s;
+}
 
 .lp-story__title {
   width: min(100%, 14ch);
@@ -15380,26 +15477,38 @@ input[type="date"] {
   display: grid;
   gap: 0.8rem;
   min-height: 100%;
-  padding: 1.1rem 1.15rem 1.05rem;
+  padding: 1.25rem 1.3rem 1.15rem;
   text-decoration: none;
   color: var(--text);
-  border-radius: 22px;
+  border-radius: 24px;
   border: 1px solid rgba(23, 32, 51, 0.08);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 242, 234, 0.94)),
-    radial-gradient(circle at top right, rgba(23, 32, 51, 0.05), transparent 45%);
-  box-shadow: 0 18px 40px rgba(20, 30, 50, 0.06);
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    linear-gradient(160deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 244, 236, 0.95) 100%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 20px 48px rgba(20, 30, 50, 0.07);
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 220ms ease, border-color 220ms ease, background 220ms ease;
 }
 
 .lp-story__spotlight-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 24px 46px rgba(20, 30, 50, 0.1);
+  transform: translateY(-6px) scale(1.012);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 28px 56px rgba(20, 30, 50, 0.13);
 }
 
-.lp-story__spotlight-card--yellow:hover { border-color: rgba(211, 162, 26, 0.28); }
-.lp-story__spotlight-card--blue:hover { border-color: rgba(13, 91, 215, 0.24); }
-.lp-story__spotlight-card--red:hover { border-color: rgba(198, 40, 57, 0.24); }
+.lp-story__spotlight-card--yellow:hover {
+  border-color: rgba(211, 162, 26, 0.36);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 248, 220, 0.9) 100%);
+}
+.lp-story__spotlight-card--blue:hover {
+  border-color: rgba(13, 91, 215, 0.30);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98) 0%, rgba(220, 232, 255, 0.88) 100%);
+}
+.lp-story__spotlight-card--red:hover {
+  border-color: rgba(198, 40, 57, 0.30);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 228, 228, 0.88) 100%);
+}
 
 .lp-story__spotlight-top {
   display: flex;

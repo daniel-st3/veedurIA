@@ -267,6 +267,11 @@ export function LandingPage({
                 <span className="is-red" />
               </div>
 
+              <div className="lp-story__live" aria-label={lang === "es" ? "Datos en vivo" : "Live data"}>
+                <span className="lp-story__live-dot" aria-hidden="true" />
+                {lang === "es" ? "Datos públicos en tiempo real" : "Live public data"}
+              </div>
+
               <h1 className="lp-story__title">
                 <span className="lp-story__title-line">
                   {lang === "es" ? "Detecta " : "Detect "}

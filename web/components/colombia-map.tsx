@@ -305,8 +305,8 @@ export function ColombiaMap({
       if (featureNode) {
         gsap.fromTo(
           featureNode,
-          { scale: 0.96, transformBox: "fill-box", transformOrigin: "50% 50%" },
-          { scale: 1.02, duration: 0.42, yoyo: true, repeat: 1, ease: "power2.out" },
+          { opacity: 0.55 },
+          { opacity: 1, duration: 0.32, ease: "power2.out" },
         );
       }
       if (marker && introReady) {

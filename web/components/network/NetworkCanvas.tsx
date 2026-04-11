@@ -81,41 +81,63 @@ export function NetworkCanvas({
       const isHovered = typedNode.id === hoveredNodeId;
       const color = resolveNodeColor(typedNode, selectedNodeId, hoveredNodeId);
 
-      // Glow effect on selected node
+      // Outer glow ring — selected node: gold, hovered: white, hub: subtle
       if (isSelected) {
         ctx.save();
-        ctx.shadowBlur = 22;
-        ctx.shadowColor = "#ffd700";
-        ctx.fillStyle = "#ffd700";
+        ctx.beginPath();
+        ctx.arc(typedNode.x, typedNode.y, r + 6, 0, 2 * Math.PI);
+        const glowGrad = ctx.createRadialGradient(typedNode.x, typedNode.y, r, typedNode.x, typedNode.y, r + 10);
+        glowGrad.addColorStop(0, "rgba(255,215,0,0.45)");
+        glowGrad.addColorStop(1, "rgba(255,215,0,0)");
+        ctx.fillStyle = glowGrad;
+        ctx.fill();
+        ctx.restore();
+      } else if (isHovered) {
+        ctx.save();
         ctx.beginPath();
         ctx.arc(typedNode.x, typedNode.y, r + 4, 0, 2 * Math.PI);
+        ctx.fillStyle = "rgba(255,255,255,0.12)";
+        ctx.fill();
+        ctx.restore();
+      } else if (typedNode.is_hub) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(typedNode.x, typedNode.y, r + 3, 0, 2 * Math.PI);
+        ctx.fillStyle = `${color}22`;
         ctx.fill();
         ctx.restore();
       }
 
-      // Node circle
-      ctx.fillStyle = color;
+      // Node fill with subtle radial sheen
+      const grad = ctx.createRadialGradient(
+        typedNode.x - r * 0.28, typedNode.y - r * 0.28, r * 0.05,
+        typedNode.x, typedNode.y, r,
+      );
+      grad.addColorStop(0, `${color}ff`);
+      grad.addColorStop(1, `${color}bb`);
+      ctx.fillStyle = isSelected ? "#ffd700" : grad;
       ctx.beginPath();
       ctx.arc(typedNode.x, typedNode.y, r, 0, 2 * Math.PI);
       ctx.fill();
 
-      // Hub ring
-      if (typedNode.is_hub && !isSelected) {
-        ctx.strokeStyle = "rgba(255,255,255,0.18)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(typedNode.x, typedNode.y, r + 2, 0, 2 * Math.PI);
-        ctx.stroke();
-      }
+      // Thin border ring
+      ctx.strokeStyle = isSelected
+        ? "rgba(255,235,100,0.9)"
+        : typedNode.is_hub
+          ? "rgba(255,255,255,0.28)"
+          : "rgba(255,255,255,0.10)";
+      ctx.lineWidth = isSelected ? 1.8 : 0.8;
+      ctx.stroke();
 
-      // Label: only for hubs or selected node, only when zoomed in enough
-      const showLabel =
-        (typedNode.is_hub || isSelected || isHovered) &&
-        globalScale > networkConfig.canvas.labelZoomThreshold;
+      // Label: show for all nodes at threshold, always for hubs/selected/hovered
+      const forceShow = isSelected || isHovered || typedNode.is_hub;
+      const showLabel = forceShow || globalScale > networkConfig.canvas.labelZoomThreshold;
 
       if (showLabel) {
-        const fontSize = Math.min(12, 9 / globalScale + 2);
-        ctx.font = `${isSelected ? "bold " : ""}${fontSize}px Inter,sans-serif`;
+        const baseSize = typedNode.is_hub ? 11 : 9.5;
+        const fontSize = Math.min(baseSize, baseSize / globalScale + 1.5);
+        const isBold = isSelected || typedNode.is_hub;
+        ctx.font = `${isBold ? "600 " : ""}${fontSize}px Inter,ui-sans-serif,sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         const maxLen = networkConfig.canvas.labelMaxLength;
@@ -124,11 +146,21 @@ export function NetworkCanvas({
             ? typedNode.label.slice(0, maxLen - 1) + "…"
             : typedNode.label;
 
-        // Label shadow for readability
-        ctx.fillStyle = "rgba(8,15,30,0.7)";
-        ctx.fillText(label, typedNode.x, typedNode.y + r + 3.5);
-        ctx.fillStyle = isSelected ? "#ffd700" : "rgba(224,236,255,0.9)";
-        ctx.fillText(label, typedNode.x, typedNode.y + r + 3);
+        // Background pill for readability
+        const metrics = ctx.measureText(label);
+        const tw = metrics.width;
+        const th = fontSize * 1.1;
+        const px = 3.5;
+        const py = 2;
+        const lx = typedNode.x;
+        const ly = typedNode.y + r + 4;
+        ctx.fillStyle = "rgba(7,13,26,0.72)";
+        ctx.beginPath();
+        ctx.roundRect(lx - tw / 2 - px, ly - py, tw + px * 2, th + py * 2, 3);
+        ctx.fill();
+
+        ctx.fillStyle = isSelected ? "#ffd700" : typedNode.is_hub ? "rgba(255,255,255,0.96)" : "rgba(190,215,255,0.84)";
+        ctx.fillText(label, lx, ly);
       }
     },
     [selectedNodeId, hoveredNodeId],

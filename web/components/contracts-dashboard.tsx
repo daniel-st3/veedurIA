@@ -45,20 +45,35 @@ function groupByMonth(rows: TableRow[]) {
     .map(([month, count]) => ({ month, count }));
 }
 
+/** Normalize a modality/entity label for deduplication (case + accent insensitive) */
+function normalizeLabel(label: string) {
+  return label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, " ");
+}
+
 function groupByLabel(rows: TableRow[], key: "modality" | "entity") {
+  // Use a normalized key for bucketing so case/accent variants are merged.
+  // Keep the first-seen display label for each bucket.
+  const displayLabel = new Map<string, string>();
   const buckets = new Map<string, { count: number; totalValue: number; peakScore: number }>();
   rows.forEach((row) => {
-    const label = key === "modality" ? row.modality : row.entity;
-    const current = buckets.get(label) ?? { count: 0, totalValue: 0, peakScore: 0 };
+    const raw = key === "modality" ? row.modality : row.entity;
+    const norm = normalizeLabel(raw ?? "Sin dato");
+    if (!displayLabel.has(norm)) displayLabel.set(norm, raw ?? "Sin dato");
+    const current = buckets.get(norm) ?? { count: 0, totalValue: 0, peakScore: 0 };
     current.count += 1;
     current.totalValue += row.value;
     current.peakScore = Math.max(current.peakScore, row.score);
-    buckets.set(label, current);
+    buckets.set(norm, current);
   });
 
   return [...buckets.entries()]
-    .map(([label, value]) => ({
-      label,
+    .map(([norm, value]) => ({
+      label: displayLabel.get(norm) ?? norm,
       count: value.count,
       totalValue: value.totalValue,
       peakScore: value.peakScore,
@@ -109,27 +124,41 @@ export function ContractsDashboard({
             .slice(0, 8),
     [analytics?.departments, departments],
   );
-  const modalityMix = useMemo(
-    () =>
-      analytics?.modalities?.length
-        ? analytics.modalities.slice(0, 6).map((item) => ({
+  const modalityMix = useMemo(() => {
+    const raw = analytics?.modalities?.length
+      ? analytics.modalities.map((item) => ({
+          label: item.modalidad_de_contratacion,
+          count: item.contracts,
+          meanRisk: item.meanRisk,
+        }))
+      : summaryModalities.length
+        ? summaryModalities.map((item) => ({
             label: item.modalidad_de_contratacion,
             count: item.contracts,
             meanRisk: item.meanRisk,
           }))
-        : summaryModalities.length
-          ? summaryModalities.slice(0, 6).map((item) => ({
-            label: item.modalidad_de_contratacion,
-            count: item.contracts,
-            meanRisk: item.meanRisk,
-          }))
-          : groupByLabel(rows, "modality").slice(0, 6).map((item) => ({
-              label: item.label,
-              count: item.count,
-              meanRisk: item.peakScore / 100,
-            })),
-    [analytics?.modalities, rows, summaryModalities],
-  );
+        : groupByLabel(rows, "modality").map((item) => ({
+            label: item.label,
+            count: item.count,
+            meanRisk: item.peakScore / 100,
+          }));
+
+    // Deduplicate by normalized label, summing counts
+    const seen = new Map<string, { label: string; count: number; meanRisk: number }>();
+    raw.forEach((item) => {
+      const key = normalizeLabel(item.label);
+      const existing = seen.get(key);
+      if (existing) {
+        existing.count += item.count;
+        existing.meanRisk = Math.max(existing.meanRisk, item.meanRisk);
+      } else {
+        seen.set(key, { ...item });
+      }
+    });
+    return [...seen.values()]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [analytics?.modalities, rows, summaryModalities]);
   const topEntities = useMemo(
     () =>
       analytics?.entities?.length
@@ -317,6 +346,7 @@ export function ContractsDashboard({
   );
 
   const visibleCount = rows.length;
+  const tooFewRows = rows.length < 4 && (modalityMix.length + topEntities.length) < 4;
 
   const baseLayout = {
     autosize: true,
@@ -326,6 +356,24 @@ export function ContractsDashboard({
     hoverlabel: TOOLTIP_THEME,
     margin: { l: 28, r: 22, t: 16, b: 40 },
   } as const;
+
+  if (tooFewRows) {
+    return (
+      <section className="cv-dashboard surface-soft">
+        <div className="cv-block__header cv-dashboard__header">
+          <div>
+            <p className="eyebrow">{lang === "es" ? "Visualiza el corte" : "Visualize the slice"}</p>
+            <h2>{lang === "es" ? "Datos insuficientes para gráficas" : "Not enough data for charts"}</h2>
+          </div>
+          <p>
+            {lang === "es"
+              ? `Solo hay ${rows.length} contrato${rows.length === 1 ? "" : "s"} visibles con el filtro activo${activeDepartmentLabel ? ` en ${activeDepartmentLabel}` : ""}. Amplía el corte para ver las gráficas de distribución.`
+              : `Only ${rows.length} contract${rows.length === 1 ? "" : "s"} visible under the current filter${activeDepartmentLabel ? ` in ${activeDepartmentLabel}` : ""}. Widen the slice to see distribution charts.`}
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="cv-dashboard surface-soft">
