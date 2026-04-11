@@ -1231,6 +1231,24 @@ export function getMockNetwork(): NetworkPayload {
     n("p_data", "DATATECH COLOMBIA", "provider", 2_300_000_000, 2, null),
     n("p_build", "BUILDCO SAS", "provider", 5_200_000_000, 1, null),
     n("p_med", "MEDICAMENTOS ESPECIALIZADOS SA", "provider", 3_400_000_000, 1, null),
+    // Extended mock nodes — more hubs and providers for richer graph
+    n("e_min_trans", "MINISTERIO DE TRANSPORTE", "entity", 8_100_000_000, 5, 0.44, true),
+    n("e_min_trab", "MINISTERIO DE TRABAJO", "entity", 2_700_000_000, 3, 0.35, true),
+    n("e_colpen", "COLPENSIONES", "entity", 6_200_000_000, 4, 0.49, true),
+    n("e_ansv", "AGENCIA NACIONAL DE SEGURIDAD VIAL", "entity", 1_400_000_000, 2, 0.62, false),
+    n("e_uaesp", "UNIDAD EJECUTIVA DE SERVICIOS PUBLICOS", "entity", 1_100_000_000, 2, 0.58, false),
+    n("e_idu", "INSTITUTO DE DESARROLLO URBANO", "entity", 4_800_000_000, 3, 0.41, false),
+    n("e_sdis", "SECRETARIA DISTRITAL INTEGRACION SOCIAL", "entity", 2_300_000_000, 3, 0.39, false),
+    n("p_vial", "CONSTRUCTORA VIAL S.A.", "provider", 7_800_000_000, 3, null),
+    n("p_sof", "SOFTTEC COLOMBIA SAS", "provider", 1_500_000_000, 4, null),
+    n("p_ali", "ALIMENTOS NUTRICIONALES SA", "provider", 2_200_000_000, 3, null),
+    n("p_ase", "ASESORES EN GESTION PUBLICA SAS", "provider", 900_000_000, 3, null),
+    n("p_trans", "TRANSPORTES BOGOTA SAS", "provider", 1_800_000_000, 4, null),
+    n("p_equip", "EQUIPOS INDUSTRIALES LTDA", "provider", 3_600_000_000, 2, null),
+    n("p_seg", "SEGURIDAD NACIONAL LTDA", "provider", 1_200_000_000, 3, null),
+    n("p_print", "IMPRESION Y PUBLICIDAD SAS", "provider", 600_000_000, 2, null),
+    n("p_clean", "SERVICIOS DE ASEO INTEGRAL SAS", "provider", 800_000_000, 3, null),
+    n("p_arch", "ARCHIVOS Y GESTION DOCUMENTAL SAS", "provider", 450_000_000, 2, null),
   ];
 
   const edges = [
@@ -1259,6 +1277,27 @@ export function getMockNetwork(): NetworkPayload {
     mockEdge("ed23", "e_sena", "p_inf", 1_900_000_000, 6, 100, "SENA", "INFRAESTRUCTURA MODERNA LTDA"),
     mockEdge("ed24", "e_pdet", "p_inf", 1_000_000_000, 4, 80, "AGENCIA DE RENOVACION DEL TERRITORIO", "INFRAESTRUCTURA MODERNA LTDA"),
     mockEdge("ed25", "e_pdet", "p_cons", 200_000_000, 2, 40, "AGENCIA DE RENOVACION DEL TERRITORIO", "CONSULTORES ANDINOS SAS"),
+    // Extended mock edges
+    mockEdge("ed26", "e_min_trans", "p_vial", 7_800_000_000, 9, 100, "MINISTERIO DE TRANSPORTE", "CONSTRUCTORA VIAL S.A.", "CUNDINAMARCA"),
+    mockEdge("ed27", "e_min_trans", "p_trans", 1_200_000_000, 5, 80, "MINISTERIO DE TRANSPORTE", "TRANSPORTES BOGOTA SAS"),
+    mockEdge("ed28", "e_min_trans", "p_equip", 1_900_000_000, 4, 80, "MINISTERIO DE TRANSPORTE", "EQUIPOS INDUSTRIALES LTDA"),
+    mockEdge("ed29", "e_min_trans", "p_sof", 600_000_000, 3, 60, "MINISTERIO DE TRANSPORTE", "SOFTTEC COLOMBIA SAS"),
+    mockEdge("ed30", "e_min_trab", "p_ase", 900_000_000, 6, 80, "MINISTERIO DE TRABAJO", "ASESORES EN GESTION PUBLICA SAS"),
+    mockEdge("ed31", "e_min_trab", "p_print", 400_000_000, 3, 50, "MINISTERIO DE TRABAJO", "IMPRESION Y PUBLICIDAD SAS"),
+    mockEdge("ed32", "e_colpen", "p_sof", 800_000_000, 5, 80, "COLPENSIONES", "SOFTTEC COLOMBIA SAS"),
+    mockEdge("ed33", "e_colpen", "p_seg", 1_200_000_000, 4, 80, "COLPENSIONES", "SEGURIDAD NACIONAL LTDA"),
+    mockEdge("ed34", "e_colpen", "p_arch", 450_000_000, 3, 50, "COLPENSIONES", "ARCHIVOS Y GESTION DOCUMENTAL SAS"),
+    mockEdge("ed35", "e_ansv", "p_trans", 600_000_000, 3, 60, "AGENCIA NACIONAL DE SEGURIDAD VIAL", "TRANSPORTES BOGOTA SAS"),
+    mockEdge("ed36", "e_idu", "p_vial", 4_800_000_000, 6, 100, "INSTITUTO DE DESARROLLO URBANO", "CONSTRUCTORA VIAL S.A.", "BOGOTA D.C."),
+    mockEdge("ed37", "e_idu", "p_equip", 1_700_000_000, 4, 80, "INSTITUTO DE DESARROLLO URBANO", "EQUIPOS INDUSTRIALES LTDA"),
+    mockEdge("ed38", "e_sdis", "p_ali", 2_200_000_000, 7, 100, "SECRETARIA DISTRITAL INTEGRACION SOCIAL", "ALIMENTOS NUTRICIONALES SA"),
+    mockEdge("ed39", "e_sdis", "p_clean", 800_000_000, 5, 80, "SECRETARIA DISTRITAL INTEGRACION SOCIAL", "SERVICIOS DE ASEO INTEGRAL SAS"),
+    mockEdge("ed40", "e_uaesp", "p_clean", 600_000_000, 4, 80, "UNIDAD EJECUTIVA DE SERVICIOS PUBLICOS", "SERVICIOS DE ASEO INTEGRAL SAS"),
+    mockEdge("ed41", "e_uaesp", "p_seg", 500_000_000, 3, 60, "UNIDAD EJECUTIVA DE SERVICIOS PUBLICOS", "SEGURIDAD NACIONAL LTDA"),
+    mockEdge("ed42", "e_sena", "p_ali", 700_000_000, 3, 60, "SENA", "ALIMENTOS NUTRICIONALES SA"),
+    mockEdge("ed43", "e_icbf", "p_ali", 1_400_000_000, 6, 100, "ICBF", "ALIMENTOS NUTRICIONALES SA"),
+    mockEdge("ed44", "e_edu", "p_print", 300_000_000, 2, 40, "MINISTERIO DE EDUCACION NACIONAL", "IMPRESION Y PUBLICIDAD SAS"),
+    mockEdge("ed45", "e_dnp", "p_sof", 900_000_000, 4, 80, "DEPARTAMENTO NACIONAL DE PLANEACION", "SOFTTEC COLOMBIA SAS"),
   ];
 
   return {

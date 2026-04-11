@@ -73,9 +73,9 @@ export const networkConfig = {
   },
 
   canvas: {
-    maxNodes: 260,
-    initialHubs: 48,
-    expandLimit: 24,
+    maxNodes: 300,
+    initialHubs: 96,
+    expandLimit: 48,
     backgroundColor: "#070d1a",
     physics: {
       alphaDecay: 0.022,       // slower cool-down → nodes settle into better positions

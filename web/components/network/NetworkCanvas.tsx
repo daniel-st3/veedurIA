@@ -144,8 +144,9 @@ export function NetworkCanvas({
       const showLabel = forceShow || globalScale > networkConfig.canvas.labelZoomThreshold;
 
       if (showLabel) {
-        const baseSize = typedNode.is_hub ? 11 : 9.5;
-        const fontSize = Math.min(baseSize, baseSize / globalScale + 1.5);
+        // Keep labels at a fixed on-screen pixel size regardless of zoom level
+        const targetPx = typedNode.is_hub ? 13 : 11;
+        const fontSize = Math.max(targetPx / globalScale, 6);
         const isBold = isSelected || typedNode.is_hub;
         ctx.font = `${isBold ? "600 " : ""}${fontSize}px Inter,ui-sans-serif,sans-serif`;
         ctx.textAlign = "center";

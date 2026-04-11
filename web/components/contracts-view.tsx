@@ -861,6 +861,20 @@ export function ContractsView({
                 <p>{lang === "es" ? "casos priorizados para revisar" : "prioritized cases to review"}</p>
               </article>
             </div>
+
+            {/* 181K vs 5M explanation */}
+            {overview?.meta.totalRows ? (
+              <div className="cv-model-universe-note">
+                <strong>
+                  {lang === "es" ? "¿Por qué no aparecen los 5M de SECOP?" : "Why not all 5M SECOP contracts?"}
+                </strong>
+                <span>
+                  {lang === "es"
+                    ? `El modelo analizó los ${sourceContracts > 0 ? sourceContracts.toLocaleString("es-CO") : "~5M"} contratos del universo SECOP II y marcó ${overview.meta.totalRows.toLocaleString("es-CO")} con señal de riesgo (rojo o amarillo — el ~5% con mayor anomalía). Los restantes no generaron alerta y no aparecen en este tablero.`
+                    : `The model analyzed the ${sourceContracts > 0 ? sourceContracts.toLocaleString("en-US") : "~5M"} contracts in the SECOP II universe and flagged ${overview.meta.totalRows.toLocaleString("en-US")} with a risk signal (red or yellow — the top ~5% anomalies). The rest produced no alert and are not shown here.`}
+                </span>
+              </div>
+            ) : null}
           </div>
 
           {staleScore ? (

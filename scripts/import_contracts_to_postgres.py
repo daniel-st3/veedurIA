@@ -271,6 +271,8 @@ def main(full: bool = False) -> None:
     flagged["single_bidder"] = flagged["single_bidder"].fillna(0).astype(bool)
     flagged["object_desc"] = flagged["objeto_del_contrato"].fillna("").str[:512]
     flagged = flagged[flagged["id_contrato"].notna() & (flagged["id_contrato"].astype(str) != "")]
+    # Drop duplicate IDs — keep highest risk_score per contract
+    flagged = flagged.sort_values("risk_score", ascending=False).drop_duplicates(subset=["id_contrato"])
 
     records = (
         flagged.rename(columns={
