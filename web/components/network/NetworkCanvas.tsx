@@ -146,7 +146,7 @@ export function NetworkCanvas({
             ? typedNode.label.slice(0, maxLen - 1) + "…"
             : typedNode.label;
 
-        // Background pill for readability
+        // Background pill for readability (use plain rect — roundRect is not in all browsers)
         const metrics = ctx.measureText(label);
         const tw = metrics.width;
         const th = fontSize * 1.1;
@@ -155,9 +155,7 @@ export function NetworkCanvas({
         const lx = typedNode.x;
         const ly = typedNode.y + r + 4;
         ctx.fillStyle = "rgba(7,13,26,0.72)";
-        ctx.beginPath();
-        ctx.roundRect(lx - tw / 2 - px, ly - py, tw + px * 2, th + py * 2, 3);
-        ctx.fill();
+        ctx.fillRect(lx - tw / 2 - px, ly - py, tw + px * 2, th + py * 2);
 
         ctx.fillStyle = isSelected ? "#ffd700" : typedNode.is_hub ? "rgba(255,255,255,0.96)" : "rgba(190,215,255,0.84)";
         ctx.fillText(label, lx, ly);
