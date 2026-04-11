@@ -315,7 +315,7 @@ def load_live_source_snapshot() -> dict[str, Any]:
             f"?$select={quote('max(fecha_de_firma) as max_fecha, count(*) as total')}"
             "&$limit=1"
         )
-        max_rows = requests.get(summary_url, timeout=4).json()
+        max_rows = requests.get(summary_url, timeout=8).json()
 
         latest_date = max_rows[0].get("max_fecha") if max_rows else None
         rows_at_source = int(max_rows[0].get("total", 0)) if max_rows else None
@@ -349,7 +349,9 @@ def load_live_source_snapshot() -> dict[str, Any]:
             "contracts": latest_contracts,
         }
     except Exception:
-        return {"latestDate": None, "rowsAtSource": None, "contracts": []}
+        # Fall back to the last ingestion count so the UI always shows a real number
+        fallback_rows = load_last_run().get("rows_fetched") or None
+        return {"latestDate": None, "rowsAtSource": fallback_rows, "contracts": []}
 
 
 @lru_cache(maxsize=1)
@@ -852,7 +854,7 @@ def get_overview_payload(
             "previewRows": int(len(df_all)),
             "latestContractDate": scored_latest,
             "sourceLatestContractDate": None,
-            "sourceRows": None,
+            "sourceRows": load_last_run().get("rows_fetched") or None,
             "sourceFreshnessGapDays": None,
             "dateRange": {
                 "from": date_from,
