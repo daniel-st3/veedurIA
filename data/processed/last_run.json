@@ -2,5 +2,6 @@
   "last_updated_at": "2026-01-01T00:00:00.000000+00:00",
   "last_run_ts": "2026-03-12T03:53:47.489558+00:00",
   "rows_fetched": 2735211,
-  "dataset_key": "contratos"
+  "dataset_key": "contratos",
+  "last_pg_sync": "2026-04-11T18:54:45.393964+00:00"
 }
