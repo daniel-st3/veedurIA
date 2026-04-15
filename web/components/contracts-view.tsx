@@ -954,7 +954,7 @@ export function ContractsView({
               <div className="cv-filter-grid cv-filter-grid--tight">
                 <label className="filter-field cv-filter-grid__wide">
                   <span className="label">
-                    <Search size={13} style={{ verticalAlign: "middle", marginRight: 5 }} />
+                    <Search size={13} style={{ verticalAlign: "middle", marginRight: 5 }} aria-hidden={true} />
                     {copy.searchLabel}
                   </span>
                   <input
@@ -1042,12 +1042,12 @@ export function ContractsView({
                     runFilters(draft, "apply");
                   }}
                 >
-                  {actionPending || loading || tableLoading ? <LoaderCircle size={15} className="is-spinning" /> : <Filter size={15} />}
+                  {actionPending || loading || tableLoading ? <LoaderCircle size={15} className="is-spinning" aria-hidden={true} /> : <Filter size={15} aria-hidden={true} />}
                   {lang === "es" ? "Filtrar contratos →" : "Filter contracts →"}
                 </button>
 
                 <button type="button" className="btn-secondary cv-filter-action" onClick={resetFilters}>
-                  <RotateCcw size={15} />
+                  <RotateCcw size={15} aria-hidden={true} />
                   {lang === "es" ? "Limpiar filtros" : "Clear filters"}
                 </button>
 
@@ -1300,7 +1300,7 @@ export function ContractsView({
                     : null}
                 </p>
                 <Link href={selectedCase.secopUrl || "#"} target="_blank" className="btn-secondary">
-                  {copy.verify} <ArrowUpRight size={16} />
+                  {copy.verify} <ArrowUpRight size={16} aria-hidden={true} />
                 </Link>
               </div>
 
@@ -1380,7 +1380,7 @@ export function ContractsView({
         <section className="cv-block surface">
           <details className="cv-collapsible cv-collapsible--desktop-open">
             <summary>
-              <span>{lang === "es" ? "Resumen ejecutivo — Hallazgos concretos del corte" : "Executive summary — Concrete findings from this slice"}</span>
+              <span>{lang === "es" ? "Resumen ejecutivo: hallazgos concretos del corte" : "Executive summary: concrete findings from this slice"}</span>
             </summary>
 
             <div className="cv-summary-grid cv-summary-grid--compact">
@@ -1458,7 +1458,7 @@ export function ContractsView({
 
           <details open className="cv-collapsible">
             <summary>
-              <span>{lang === "es" ? "Sandbox — agrupa y descarga" : "Sandbox — group and download"}</span>
+              <span>{lang === "es" ? "Sandbox: agrupa y descarga" : "Sandbox: group and download"}</span>
             </summary>
 
             <div className="cv-sandbox-toolbar">
@@ -1488,7 +1488,7 @@ export function ContractsView({
                   downloadRows(tableRows, lang);
                 }}
               >
-                <Download size={15} />
+                <Download size={15} aria-hidden={true} />
                 {lang === "es" ? "Descargar datos ↓" : "Download data ↓"}
               </button>
             </div>
@@ -1549,7 +1549,7 @@ export function ContractsView({
                   <div className="explorer-card__footer">
                     <span>{row.modality}</span>
                     <Link href={row.secopUrl || "#"} target="_blank" className="btn-secondary">
-                      {copy.verify} <ArrowUpRight size={14} />
+                      {copy.verify} <ArrowUpRight size={14} aria-hidden={true} />
                     </Link>
                   </div>
                 </article>
@@ -1591,7 +1591,7 @@ export function ContractsView({
         <section className="cv-block surface-soft">
           <details className="cv-collapsible">
             <summary>
-              <span>{lang === "es" ? "ℹ Metodología del scoring — clic para expandir" : "ℹ Scoring methodology — click to expand"}</span>
+              <span>{lang === "es" ? "ℹ Metodología del scoring: clic para expandir" : "ℹ Scoring methodology: click to expand"}</span>
             </summary>
 
             <div className="cv-methodology-groups">
