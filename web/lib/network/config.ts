@@ -74,18 +74,18 @@ export const networkConfig = {
 
   canvas: {
     maxNodes: 300,
-    initialHubs: 96,
+    initialHubs: 55,           // fewer initial nodes → less label crowding at default zoom
     expandLimit: 48,
     backgroundColor: "#070d1a",
     physics: {
-      alphaDecay: 0.022,       // slower cool-down → nodes settle into better positions
-      velocityDecay: 0.38,     // less friction → more organic spread
-      cooldownTicks: 140,      // more time to stabilize before freeze
-      chargeStrength: -320,    // stronger repulsion → nodes spread out like a web
-      linkDistance: 130,       // longer edges → more spider-web spacing
+      alphaDecay: 0.013,       // very slow cool-down → nodes spread further before freezing
+      velocityDecay: 0.26,     // less friction → more organic spread
+      cooldownTicks: 260,      // more ticks → better final layout
+      chargeStrength: -680,    // strong repulsion → nodes push apart like a web
+      linkDistance: 195,       // longer edges → more readable spider-web spacing
     },
-    labelZoomThreshold: 0.7,   // show labels at a lower zoom so names are always visible
-    labelMaxLength: 22,        // tighter truncation avoids overlapping long names
+    labelZoomThreshold: 2.0,   // only show non-hub labels when zoomed in to 2× or more
+    labelMaxLength: 14,        // aggressive truncation to avoid label collision
   },
 
   cache: {

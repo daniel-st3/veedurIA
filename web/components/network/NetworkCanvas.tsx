@@ -141,36 +141,61 @@ export function NetworkCanvas({
       ctx.lineWidth = isSelected ? 1.8 : 0.8;
       ctx.stroke();
 
-      // Label: show for all nodes at threshold, always for hubs/selected/hovered
-      const forceShow = isSelected || isHovered || typedNode.is_hub;
-      const showLabel = forceShow || globalScale > networkConfig.canvas.labelZoomThreshold;
+      // Label visibility strategy:
+      //   • Always show for selected and hovered nodes
+      //   • Hubs: show always but with tighter truncation
+      //   • Other nodes: only show when zoomed in past threshold (2×)
+      const forceShow = isSelected || isHovered;
+      const showLabel = forceShow || typedNode.is_hub || globalScale > networkConfig.canvas.labelZoomThreshold;
 
       if (showLabel) {
-        // Keep labels at a fixed on-screen pixel size regardless of zoom level
-        const targetPx = typedNode.is_hub ? 13 : 11;
-        const fontSize = Math.max(targetPx / globalScale, 6);
+        // Fixed on-screen pixel size regardless of zoom
+        const targetPx = isSelected ? 13 : typedNode.is_hub ? 11.5 : 10;
+        const fontSize = Math.max(targetPx / globalScale, 5.5);
         const isBold = isSelected || typedNode.is_hub;
         ctx.font = `${isBold ? "600 " : ""}${fontSize}px Inter,ui-sans-serif,sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
-        const maxLen = networkConfig.canvas.labelMaxLength;
+
+        // Hub labels truncate more aggressively to avoid collision
+        const maxLen = isHovered || isSelected
+          ? networkConfig.canvas.labelMaxLength + 6
+          : typedNode.is_hub
+            ? networkConfig.canvas.labelMaxLength
+            : 10;
         const label =
           typedNode.label.length > maxLen
             ? typedNode.label.slice(0, maxLen - 1) + "…"
             : typedNode.label;
 
-        // Background pill for readability (use plain rect — roundRect is not in all browsers)
         const metrics = ctx.measureText(label);
         const tw = metrics.width;
-        const th = fontSize * 1.1;
-        const px = 3.5;
-        const py = 2;
+        const th = fontSize * 1.15;
+        const px = isSelected ? 5 : 3;
+        const py = 1.5;
         const lx = typedNode.x;
-        const ly = typedNode.y + r + 4;
-        ctx.fillStyle = "rgba(7,13,26,0.72)";
+        const ly = typedNode.y + r + 3.5;
+
+        // Pill background — darker and more opaque for selected/hubs
+        const pillAlpha = isSelected ? 0.92 : typedNode.is_hub ? 0.80 : 0.68;
+        ctx.fillStyle = `rgba(4,9,20,${pillAlpha})`;
         ctx.fillRect(lx - tw / 2 - px, ly - py, tw + px * 2, th + py * 2);
 
-        ctx.fillStyle = isSelected ? "#ffd700" : typedNode.is_hub ? "rgba(255,255,255,0.96)" : "rgba(190,215,255,0.84)";
+        // Thin top border on pill to lift it from node
+        ctx.strokeStyle = isSelected
+          ? "rgba(255,215,0,0.5)"
+          : typedNode.is_hub
+            ? "rgba(100,160,255,0.3)"
+            : "rgba(100,160,255,0.15)";
+        ctx.lineWidth = 0.5 / globalScale;
+        ctx.strokeRect(lx - tw / 2 - px, ly - py, tw + px * 2, th + py * 2);
+
+        // Label text
+        ctx.fillStyle = isSelected
+          ? "#ffd700"
+          : typedNode.is_hub
+            ? "rgba(220,235,255,0.97)"
+            : "rgba(160,200,255,0.82)";
         ctx.fillText(label, lx, ly);
       }
       } catch {
