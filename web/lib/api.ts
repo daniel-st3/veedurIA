@@ -398,9 +398,11 @@ export async function fetchNetworkSearch(query: string, lang: Lang, minConfidenc
     return payload;
   } catch {
     const mock = getMockNetwork();
-    // Simulate a filtered result
-    const q = query.toUpperCase();
-    const matched = mock.nodes.filter((n) => n.label.toUpperCase().includes(q));
+    // Normalize both query and labels: strip diacritics, uppercase
+    const normalizeSearch = (s: string) =>
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    const q = normalizeSearch(query);
+    const matched = mock.nodes.filter((n) => normalizeSearch(n.label).includes(q));
     if (!matched.length) return { ...mock, nodes: [], edges: [], meta: { ...mock.meta, found: false, query } };
     return { ...mock, meta: { ...mock.meta, found: true, query, match_label: matched[0].label } };
   }

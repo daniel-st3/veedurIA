@@ -411,8 +411,8 @@ export function SigueElDineroView({ lang }: Props) {
             <strong>{lang === "es" ? "Modo de referencia activo." : "Reference mode active."}</strong>
             <span>
               {lang === "es"
-                ? "Esta vista cayó a datos de referencia y no al grafo completo del backend; por eso el volumen puede verse limitado."
-                : "This view fell back to reference data instead of the full backend graph, so volume may look limited."}
+                ? "Vista de referencia cargada. Busca una entidad o contratista para explorar su red real."
+                : "Reference view loaded. Search for an entity or contractor to explore their real network."}
             </span>
           </div>
         ) : null}
@@ -440,7 +440,9 @@ export function SigueElDineroView({ lang }: Props) {
 
           {dataVersion && (
             <span className="sed-version-tag">
-              {lang === "es" ? "Grafo" : "Graph"} v{dataVersion}
+              {networkMeta?.source === "mock"
+                ? lang === "es" ? "Vista de referencia · 2026" : "Reference view · 2026"
+                : `${lang === "es" ? "Grafo" : "Graph"} v${dataVersion}`}
             </span>
           )}
 
@@ -568,7 +570,15 @@ export function SigueElDineroView({ lang }: Props) {
                       {!isLoading && nodes.length === 0 && !error && (
                         <div className="sed-canvas-empty">
                           <Network size={32} strokeWidth={1} style={{ opacity: 0.2 }} />
-                          <p>{lang === "es" ? "Sin datos en la red" : "No network data"}</p>
+                          {searchQuery ? (
+                            <p>
+                              {lang === "es"
+                                ? `Sin resultados para "${searchQuery}". Intenta sin tildes o con el nombre oficial.`
+                                : `No results for "${searchQuery}". Try without accents or use the official name.`}
+                            </p>
+                          ) : (
+                            <p>{lang === "es" ? "Sin datos en la red" : "No network data"}</p>
+                          )}
                         </div>
                       )}
                       {nodes.length > 0 && (

@@ -895,9 +895,9 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(13, 91, 215, 0.28);
+  outline: 3px solid rgba(13, 91, 215, 0.72);
   outline-offset: 3px;
-  box-shadow: 0 0 0 6px rgba(13, 91, 215, 0.12);
+  box-shadow: 0 0 0 6px rgba(13, 91, 215, 0.18);
 }
 
 .brand {
@@ -7680,10 +7680,10 @@ input[type="date"] {
 
 .lp-story-stat span {
   font-size: 0.73rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(23, 32, 51, 0.54);
+  color: rgba(23, 32, 51, 0.72);
 }
 
 .lp-story-stat strong {
@@ -12475,6 +12475,7 @@ html[data-theme="dark"] .vm-shell {
   border-radius: var(--vm-r-lg);
   text-align: left;
   box-shadow: var(--vm-shadow-sm);
+  cursor: pointer;
 }
 
 .vm-legislator-card:hover {

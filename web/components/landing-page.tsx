@@ -118,45 +118,83 @@ export function LandingPage({
     };
   }, []);
 
+  // Remove GSAP inline styles on page hide so bfcache restore doesn't leave elements invisible
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handlePageHide = () => {
+      gsap.set(
+        ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__actions, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-story-map, .lp-module-link, .lp-portfolio-card",
+        { clearProps: "all" },
+      );
+    };
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        // Page restored from bfcache — ensure elements are visible
+        gsap.set(
+          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__actions, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-story-map, .lp-module-link, .lp-portfolio-card",
+          { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
+        );
+      }
+    };
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, []);
+
   useGSAP(
     () => {
       const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (reduceMotion) return;
+      if (reduceMotion) {
+        // Immediately show all animated elements — never leave them invisible
+        gsap.set(
+          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__actions, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-story-map, .lp-module-link, .lp-portfolio-card",
+          { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
+        );
+        return;
+      }
 
       gsap.fromTo(
         ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__actions, .lp-story__stats",
         { autoAlpha: 0, y: 18 },
-        { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.05, ease: "power3.out" },
+        { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.04, ease: "power3.out",
+          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility" }); } },
       );
 
       gsap.fromTo(
         ".lp-story__title-line",
-        { autoAlpha: 0, y: 68, rotateX: -70, transformOrigin: "left bottom" },
-        { autoAlpha: 1, y: 0, rotateX: 0, duration: 0.96, stagger: 0.08, ease: "back.out(1.45)" },
+        { autoAlpha: 0, y: 52, rotateX: -60, transformOrigin: "left bottom" },
+        { autoAlpha: 1, y: 0, rotateX: 0, duration: 0.82, stagger: 0.07, ease: "back.out(1.45)",
+          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); } },
       );
 
       gsap.fromTo(
         ".lp-story-stat",
         { autoAlpha: 0, y: 20 },
-        { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.08, ease: "power3.out" },
+        { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.07, ease: "power3.out",
+          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility" }); } },
       );
 
       gsap.fromTo(
         ".lp-story-map",
-        { autoAlpha: 0, y: 34, scale: 0.985 },
-        { autoAlpha: 1, y: 0, scale: 1, duration: 0.9, ease: "power3.out", delay: 0.12 },
+        { autoAlpha: 0, y: 28, scale: 0.985 },
+        { autoAlpha: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out", delay: 0.08,
+          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); } },
       );
 
       gsap.fromTo(
         ".lp-module-link",
-        { autoAlpha: 0, y: 28 },
+        { autoAlpha: 0, y: 22 },
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.78,
-          stagger: 0.1,
+          duration: 0.65,
+          stagger: 0.08,
           ease: "power3.out",
-          delay: 0.2,
+          delay: 0.1,
+          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility" }); },
         },
       );
 
@@ -168,6 +206,7 @@ export function LandingPage({
           y: 0,
           duration: 0.74,
           ease: "power3.out",
+          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility" }); },
           scrollTrigger: {
             trigger: ".lp-portfolio",
             start: "top 82%",
@@ -387,7 +426,7 @@ export function LandingPage({
                     onHoverChange={setHoveredDepartment}
                     mode="hero"
                     showCaption={false}
-                    showTooltip={false}
+                    showTooltip={true}
                     className="lp-story-map__visual"
                   />
                 ) : (

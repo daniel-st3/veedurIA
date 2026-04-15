@@ -19,6 +19,7 @@ import {
   type VotePeriodKey,
   type VoteRecord,
 } from "@/lib/votometro-data";
+import { votoMetroCopy } from "@/lib/copy";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
@@ -48,6 +49,7 @@ const PAGE_SIZE = 6;
 type ProfilePeriodFilter = "all" | VotePeriodKey;
 
 export function VotometroView({ lang }: { lang: Lang }) {
+  const t = votoMetroCopy[lang];
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [profilePeriod, setProfilePeriod] = useState<ProfilePeriodFilter>("all");
   const [filters, setFilters] = useState<TableFilters>(DEFAULT_FILTERS);
@@ -426,33 +428,28 @@ export function VotometroView({ lang }: { lang: Lang }) {
         <section className="vm-hero">
           <div className="vm-hero__grid vm-container">
             <div className="vm-hero__copy">
-              <p className="vm-eyebrow">{`Votaciones · Promesas · Coherencia · ${visibleProfiles.length} perfiles visibles`}</p>
-              <h1>¿Votaron como prometieron?</h1>
-              <p className="vm-hero__body">
-                Arranca desde las personas disponibles, no desde un periodo fijo. Mira primero el pulso general del universo visible,
-                escoge un perfil y luego baja a los periodos concretos que sí están abiertos para esa persona.
-              </p>
-              <p className="vm-hero__source-note">
-                Solo aparecen perfiles con información disponible. La cobertura por periodo sigue siendo desigual y el tablero lo deja explícito dentro de cada ficha.
-              </p>
+              <p className="vm-eyebrow">{t.eyebrowTemplate(visibleProfiles.length)}</p>
+              <h1>{t.heroTitle}</h1>
+              <p className="vm-hero__body">{t.heroBody}</p>
+              <p className="vm-hero__source-note">{t.heroSourceNote}</p>
             </div>
 
             <div className="vm-hero__stats" aria-label="Indicadores principales">
               <article className="vm-kpi-card">
-                <strong>{heroStats.indexedVotes.toLocaleString("es-CO")}</strong>
-                <span>Total votaciones nominales indexadas</span>
+                <strong>{heroStats.indexedVotes.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
+                <span>{t.kpiVotes}</span>
               </article>
               <article className="vm-kpi-card">
-                <strong>{heroStats.legislators.toLocaleString("es-CO")}</strong>
-                <span>Legisladores con perfil completo</span>
+                <strong>{heroStats.legislators.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
+                <span>{t.kpiLegislators}</span>
               </article>
               <article className="vm-kpi-card">
                 <strong>{`${heroStats.coherenceAverage}%`}</strong>
-                <span>Índice promedio coherencia voto-promesa</span>
+                <span>{t.kpiCoherence}</span>
               </article>
               <article className="vm-kpi-card">
-                <strong>{heroStats.trackedProjects.toLocaleString("es-CO")}</strong>
-                <span>Proyectos rastreados en la capa visible</span>
+                <strong>{heroStats.trackedProjects.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
+                <span>{t.kpiProjects}</span>
               </article>
             </div>
           </div>
@@ -462,55 +459,53 @@ export function VotometroView({ lang }: { lang: Lang }) {
           <div className="vm-container">
             <header className="vm-section__header vm-section__header--inline">
               <div>
-                <p className="vm-eyebrow">Pulso visible</p>
-                <h2>Lectura general antes de abrir una persona</h2>
+                <p className="vm-eyebrow">{t.sectionOverviewEyebrow}</p>
+                <h2>{t.sectionOverviewTitle}</h2>
               </div>
-              <p className="vm-section__note">
-                Cuatro paneles para entender cuántas personas hay disponibles, cómo se reparte la cobertura y cuáles perfiles vale la pena abrir primero.
-              </p>
+              <p className="vm-section__note">{t.sectionOverviewNote}</p>
             </header>
 
             <div className="vm-overview-grid">
               <article className="vm-analytics-card">
                 <div className="vm-analytics-card__head">
-                  <p className="vm-eyebrow">Distribución</p>
-                  <strong>Coherencia visible de la muestra</strong>
+                  <p className="vm-eyebrow">{t.distributionEyebrow}</p>
+                  <strong>{t.distributionTitle}</strong>
                 </div>
                 <div className="vm-band-grid">
                   <div className="vm-band-card is-high">
-                    <span>Alta</span>
+                    <span>{t.bandHigh}</span>
                     <strong>{coherenceBands.high}</strong>
-                    <p>Perfiles con 75% o más de coherencia visible.</p>
+                    <p>{t.bandHighDesc}</p>
                   </div>
                   <div className="vm-band-card is-mid">
-                    <span>Media</span>
+                    <span>{t.bandMid}</span>
                     <strong>{coherenceBands.mid}</strong>
-                    <p>Lecturas mezcladas que necesitan contraste por tema.</p>
+                    <p>{t.bandMidDesc}</p>
                   </div>
                   <div className="vm-band-card is-watch">
-                    <span>En revisión</span>
+                    <span>{t.bandWatch}</span>
                     <strong>{coherenceBands.watch}</strong>
-                    <p>Perfiles donde pesan más ausencias, desvíos o rupturas.</p>
+                    <p>{t.bandWatchDesc}</p>
                   </div>
                 </div>
               </article>
 
               <article className="vm-analytics-card">
                 <div className="vm-analytics-card__head">
-                  <p className="vm-eyebrow">Cobertura</p>
-                  <strong>Mezcla por cámara</strong>
+                  <p className="vm-eyebrow">{t.coverageEyebrow}</p>
+                  <strong>{t.coverageTitle}</strong>
                 </div>
                 <div className="vm-analytics-bars">
                   {chamberSummary.map((item) => (
                     <div key={item.label} className="vm-analytics-bar">
                       <div className="vm-analytics-bar__meta">
                         <span>{item.label}</span>
-                        <strong>{item.count} perfiles</strong>
+                        <strong>{item.count} {t.profilesLabel}</strong>
                       </div>
                       <div className="vm-analytics-bar__track">
                         <span style={{ width: `${(item.count / Math.max(visibleProfiles.length, 1)) * 100}%` }} />
                       </div>
-                      <p>{item.coherence}% de coherencia media · {item.votes.toLocaleString("es-CO")} votos indexados</p>
+                      <p>{t.coherenceMediaLabel(item.coherence, item.votes)}</p>
                     </div>
                   ))}
                 </div>
@@ -518,8 +513,8 @@ export function VotometroView({ lang }: { lang: Lang }) {
 
               <article className="vm-analytics-card">
                 <div className="vm-analytics-card__head">
-                  <p className="vm-eyebrow">Temas</p>
-                  <strong>Temas con mejor lectura colectiva</strong>
+                  <p className="vm-eyebrow">{t.themesEyebrow}</p>
+                  <strong>{t.themesTitle}</strong>
                 </div>
                 <div className="vm-topic-overview">
                   {themeOverview.slice(0, 5).map((item) => (
@@ -531,7 +526,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                       <div className="vm-topic-overview__track">
                         <span style={{ width: `${item.average}%` }} />
                       </div>
-                      <p>{item.coherent}/{item.count} perfiles por encima de 70 · {item.alerts} alertas bajas</p>
+                      <p>{t.themeProfiles(item.coherent, item.count, item.alerts)}</p>
                     </div>
                   ))}
                 </div>
@@ -539,12 +534,12 @@ export function VotometroView({ lang }: { lang: Lang }) {
 
               <article className="vm-analytics-card">
                 <div className="vm-analytics-card__head">
-                  <p className="vm-eyebrow">Aperturas rápidas</p>
-                  <strong>Quiénes abrir primero</strong>
+                  <p className="vm-eyebrow">{t.quickOpenEyebrow}</p>
+                  <strong>{t.quickOpenTitle}</strong>
                 </div>
                 <div className="vm-watch-grid">
                   <div>
-                    <span className="vm-watch-grid__label">Mejor consistencia</span>
+                    <span className="vm-watch-grid__label">{t.bestConsistency}</span>
                     <div className="vm-watch-list">
                       {topProfiles.map((profile) => (
                         <button
@@ -560,7 +555,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                     </div>
                   </div>
                   <div>
-                    <span className="vm-watch-grid__label">Más tensión visible</span>
+                    <span className="vm-watch-grid__label">{t.mostTension}</span>
                     <div className="vm-watch-list">
                       {tensionProfiles.map((profile) => (
                         <button
@@ -570,7 +565,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                           onClick={() => setSelectedId(profile.id)}
                         >
                           <span>{profile.name}</span>
-                          <strong>{profile.absenceRate}% ausente</strong>
+                          <strong>{t.absenceLabel(profile.absenceRate)}</strong>
                         </button>
                       ))}
                     </div>
@@ -585,14 +580,10 @@ export function VotometroView({ lang }: { lang: Lang }) {
           <div className="vm-container">
             <header className="vm-section__header vm-section__header--inline">
               <div>
-                <p className="vm-eyebrow">{lang === "es" ? "Mapa de coherencia" : "Coherence map"}</p>
-                <h2>{lang === "es" ? "Coherente · Inconsistente · Ausencias" : "Coherent · Inconsistent · Absences"}</h2>
+                <p className="vm-eyebrow">{t.coherenceMapEyebrow}</p>
+                <h2>{t.coherenceMapTitle}</h2>
               </div>
-              <p className="vm-section__note">
-                {lang === "es"
-                  ? "Cada barra muestra cómo se distribuyen los votos de cada legislador. Verde = alineado con su promesa, rojo = contrario, gris = ausente en temas clave. Haz clic para ir al perfil."
-                  : "Each bar shows how a legislator's votes break down. Green = aligned with their pledge, red = contrary, grey = absent on key themes. Click to jump to the profile."}
-              </p>
+              <p className="vm-section__note">{t.coherenceMapNote}</p>
             </header>
 
             <div className="vm-panel vm-panel--plot">
@@ -642,8 +633,8 @@ export function VotometroView({ lang }: { lang: Lang }) {
         <section className="vm-section">
           <div className="vm-container">
             <header className="vm-section__header">
-              <p className="vm-eyebrow">Explorador de legisladores</p>
-              <h2>Explora personas con cobertura visible</h2>
+              <p className="vm-eyebrow">{t.legislatorExplorerEyebrow}</p>
+              <h2>{t.legislatorExplorerTitle}</h2>
             </header>
 
             <div className="vm-legislator-grid" role="list" aria-label="Legisladores">
@@ -674,9 +665,9 @@ export function VotometroView({ lang }: { lang: Lang }) {
                   <p className="vm-legislator-card__topics">{profile.topTopics.join(" · ")}</p>
 
                   <div className="vm-legislator-card__meta">
-                    <span>{`${profile.totalVotes.toLocaleString("es-CO")} votos`}</span>
-                    <span>{`${profile.absenceRate}% ausente`}</span>
-                    <span>{`${profile.periods.length} periodos visibles`}</span>
+                    <span>{t.votesLabel(profile.totalVotes)}</span>
+                    <span>{t.absenceLabel(profile.absenceRate)}</span>
+                    <span>{t.periodsLabel(profile.periods.length)}</span>
                   </div>
                 </button>
               ))}
@@ -717,19 +708,19 @@ export function VotometroView({ lang }: { lang: Lang }) {
 
                   <div className="vm-kpi-stack">
                     <article className="vm-kpi-stack__item">
-                      <span>Votos consistentes con promesa</span>
+                      <span>{t.consistentVotes}</span>
                       <strong className="is-primary">{selectedProfileMetrics.coherentVotes}</strong>
                     </article>
                     <article className="vm-kpi-stack__item">
-                      <span>Votos inconsistentes con promesa</span>
+                      <span>{t.inconsistentVotes}</span>
                       <strong className="is-high">{selectedProfileMetrics.inconsistentVotes}</strong>
                     </article>
                     <article className="vm-kpi-stack__item">
-                      <span>Ausencias en votaciones de su dominio</span>
+                      <span>{t.absencesLabel}</span>
                       <strong className="is-muted">{selectedProfileMetrics.absences}</strong>
                     </article>
                     <article className="vm-kpi-stack__item">
-                      <span>Veces que votó distinto a su bancada</span>
+                      <span>{t.deviationsLabel}</span>
                       <strong className="is-amber">{selectedProfileMetrics.deviations}</strong>
                     </article>
                   </div>
@@ -748,8 +739,8 @@ export function VotometroView({ lang }: { lang: Lang }) {
                 <div className="vm-spotlight__main">
                   <section className="vm-panel">
                     <header className="vm-panel__header">
-                      <p className="vm-eyebrow">Detalle por tema</p>
-                      <h3>{profilePeriod === "all" ? "Coherencia agregada por tema" : "Coherencia del periodo seleccionado"}</h3>
+                      <p className="vm-eyebrow">{t.spotlightDetailEyebrow}</p>
+                      <h3>{profilePeriod === "all" ? t.spotlightDetailTitleAll : t.spotlightDetailTitlePeriod}</h3>
                     </header>
 
                     <div className="vm-topic-bars">
@@ -773,11 +764,11 @@ export function VotometroView({ lang }: { lang: Lang }) {
 
                   <section className="vm-contract-badge">
                     <div>
-                      <p className="vm-eyebrow">Conexión con ContratoLimpio</p>
+                      <p className="vm-eyebrow">{t.connectionEyebrow}</p>
                       <p>
                         {selectedProfile.contractsCount > 0
-                          ? `Este legislador tiene ${selectedProfile.contractsCount} contratos registrados en ContratoLimpio.`
-                          : "Este legislador no tiene contratos registrados en ContratoLimpio para este corte visible."}
+                          ? t.contractsFound(selectedProfile.contractsCount)
+                          : t.contractsNone}
                       </p>
                     </div>
                     {selectedProfile.contractsCount > 0 ? (
@@ -785,7 +776,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                         href={`/contrato-limpio?lang=${lang}&q=${encodeURIComponent(selectedProfile.contractsQuery)}`}
                         className="vm-button vm-button--ghost"
                       >
-                        Ver contratos
+                        {t.viewContracts}
                         <ArrowRight size={16} />
                       </Link>
                     ) : null}
@@ -798,18 +789,15 @@ export function VotometroView({ lang }: { lang: Lang }) {
               <div className="vm-container">
                 <header className="vm-section__header vm-section__header--inline">
                   <div>
-                    <p className="vm-eyebrow">Votaciones nominales</p>
-                    <h2>Registro de votaciones</h2>
+                    <p className="vm-eyebrow">{t.votesTableEyebrow}</p>
+                    <h2>{t.votesTableTitle}</h2>
                   </div>
-                  <p className="vm-section__note">
-                    La tabla se enfoca en el perfil seleccionado. Cada fila conserva el periodo, la gaceta disponible y deja ver si
-                    el voto fue coherente, inconsistente o quedó sin promesa comparable.
-                  </p>
+                  <p className="vm-section__note">{t.votesTableNote}</p>
                 </header>
 
-                <div className="vm-table-filters" aria-label="Filtros de tabla">
+                <div className="vm-table-filters" aria-label={t.filterCoherence}>
                   <select value={filters.theme} onChange={(event) => updateFilter("theme", event.target.value)}>
-                    <option value="all">Tema</option>
+                    <option value="all">{t.filterTheme}</option>
                     {[...new Set(selectedProfileRows.map((row) => row.theme))].map((themeOption) => (
                       <option key={themeOption} value={themeOption}>
                         {themeOption}
@@ -818,22 +806,22 @@ export function VotometroView({ lang }: { lang: Lang }) {
                   </select>
 
                   <select value={filters.result} onChange={(event) => updateFilter("result", event.target.value)}>
-                    <option value="all">Resultado</option>
-                    <option value="Aprobado">Aprobado</option>
-                    <option value="Rechazado">Rechazado</option>
-                    <option value="Archivado">Archivado</option>
+                    <option value="all">{t.filterResult}</option>
+                    <option value="Aprobado">{t.resultApproved}</option>
+                    <option value="Rechazado">{t.resultRejected}</option>
+                    <option value="Archivado">{t.resultArchived}</option>
                   </select>
 
                   <select value={filters.coherence} onChange={(event) => updateFilter("coherence", event.target.value)}>
-                    <option value="all">Coherencia</option>
-                    <option value="coherente">Coherente ✓</option>
-                    <option value="inconsistente">Inconsistente ✗</option>
-                    <option value="sin-promesa">Sin promesa —</option>
-                    <option value="ausente">Ausente —</option>
+                    <option value="all">{t.filterCoherence}</option>
+                    <option value="coherente">{t.coherentLabel}</option>
+                    <option value="inconsistente">{t.inconsistentLabel}</option>
+                    <option value="sin-promesa">{t.noPromiseLabel}</option>
+                    <option value="ausente">{t.absentLabel}</option>
                   </select>
 
                   <select value={filters.year} onChange={(event) => updateFilter("year", event.target.value)}>
-                    <option value="all">Fecha</option>
+                    <option value="all">{t.filterDate}</option>
                     {tableYears.map((yearOption) => (
                       <option key={yearOption} value={yearOption}>
                         {yearOption}
@@ -845,8 +833,8 @@ export function VotometroView({ lang }: { lang: Lang }) {
                     type="search"
                     value={filters.query}
                     onChange={(event) => updateFilter("query", event.target.value)}
-                    placeholder="Buscar proyecto..."
-                    aria-label="Buscar proyecto"
+                    placeholder={t.filterSearchPlaceholder}
+                    aria-label={t.filterSearchPlaceholder}
                   />
                 </div>
 
@@ -854,25 +842,25 @@ export function VotometroView({ lang }: { lang: Lang }) {
                   <table className="vm-votes-table">
                     <thead>
                       <tr>
-                        <th style={{ width: "40%" }}>Proyecto de ley</th>
-                        <th style={{ width: "12%" }}>Periodo</th>
-                        <th style={{ width: "10%" }}>Fecha</th>
-                        <th style={{ width: "12%" }}>Tema</th>
-                        <th style={{ width: "10%" }}>Posición</th>
-                        <th style={{ width: "10%" }}>Resultado</th>
-                        <th style={{ width: "10%" }}>Coherencia</th>
-                        <th style={{ width: "8%" }}>Gaceta</th>
+                        <th style={{ width: "40%" }}>{t.colProject}</th>
+                        <th style={{ width: "12%" }}>{t.colPeriod}</th>
+                        <th style={{ width: "10%" }}>{t.colDate}</th>
+                        <th style={{ width: "12%" }}>{t.colTheme}</th>
+                        <th style={{ width: "10%" }}>{t.colPosition}</th>
+                        <th style={{ width: "10%" }}>{t.colResult}</th>
+                        <th style={{ width: "10%" }}>{t.colCoherence}</th>
+                        <th style={{ width: "8%" }}>{t.colGaceta}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {paginatedRows.length ? (
                         paginatedRows.map((row) => (
-                          <VoteRowView key={`${selectedProfile.id}-${row.id}`} row={row} />
+                          <VoteRowView key={`${selectedProfile.id}-${row.id}`} row={row} lang={lang} />
                         ))
                       ) : (
                         <tr>
                           <td colSpan={8} className="vm-empty-state">
-                            No hay votaciones que coincidan con este filtro. Ajusta el corte para abrir más proyectos.
+                            {t.noVotesMatch}
                           </td>
                         </tr>
                       )}
@@ -882,7 +870,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
 
                 <div className="vm-pagination">
                   <button type="button" className="vm-page-button" onClick={() => setPage((current) => Math.max(1, current - 1))}>
-                    ← Anterior
+                    {t.prevPage}
                   </button>
 
                   {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
@@ -901,7 +889,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                     className="vm-page-button"
                     onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
                   >
-                    Siguiente →
+                    {t.nextPage}
                   </button>
                 </div>
               </div>
@@ -910,25 +898,23 @@ export function VotometroView({ lang }: { lang: Lang }) {
             <section className="vm-section">
               <div className="vm-container">
                 <header className="vm-section__header">
-                  <p className="vm-eyebrow">Vista matricial</p>
-                  <h2>Mapa de coherencia: legislador × tema</h2>
-                  <p className="vm-section__note">
-                    La matriz respeta el lente actual del perfil abierto y recorta el resto a ese mismo periodo cuando existe cobertura comparable.
-                  </p>
+                  <p className="vm-eyebrow">{t.matrixEyebrow}</p>
+                  <h2>{t.matrixTitle}</h2>
+                  <p className="vm-section__note">{t.matrixNote}</p>
                 </header>
 
                 <div className="vm-legend">
                   <span className="vm-legend__item">
                     <i className="is-good" />
-                    Coherente
+                    {t.legendCoherent}
                   </span>
                   <span className="vm-legend__item">
                     <i className="is-bad" />
-                    Inconsistente
+                    {t.legendInconsistent}
                   </span>
                   <span className="vm-legend__item">
                     <i className="is-muted" />
-                    Ausente o sin promesa
+                    {t.legendAbsent}
                   </span>
                 </div>
 
@@ -936,7 +922,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                   <table className="vm-heatmap vm-matrix-table">
                     <thead>
                       <tr>
-                        <th>Legislador</th>
+                        <th>{t.colLegislator}</th>
                         {HEATMAP_COLUMNS.map((column) => (
                           <th key={column.key} title={column.label}>
                             <span>{column.shortLabel}</span>
@@ -958,7 +944,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                                 onMouseLeave={() => setTooltip(null)}
                                 aria-label={`${profile.name} · ${cell.label}`}
                               >
-                                {cell.state === "ausente" ? "—" : cell.value ?? "·"}
+                                {cell.state === "ausente" ? t.cellAbsent : cell.value ?? "·"}
                               </button>
                             </td>
                           ))}
@@ -973,16 +959,16 @@ export function VotometroView({ lang }: { lang: Lang }) {
             <section className="vm-methods">
               <div className="vm-container vm-methods__grid">
                 <article>
-                  <h3>Capa visible actual</h3>
-                  <p>Esta versión pública muestra solo legisladores y votaciones donde hoy sí hay información disponible y comparable dentro del periodo seleccionado.</p>
+                  <h3>{t.methodsLayer}</h3>
+                  <p>{t.methodsLayerBody}</p>
                 </article>
                 <article>
-                  <h3>Conexión de backend</h3>
-                  <p>La arquitectura ya separa perfiles, coherencia y fuentes para conectar la siguiente iteración sin volver a partir la experiencia por cámara.</p>
+                  <h3>{t.methodsBackend}</h3>
+                  <p>{t.methodsBackendBody}</p>
                 </article>
                 <article>
-                  <h3>Fuente y contraste</h3>
-                  <p>La lectura cruza tema, voto y rastro documental. Cuando una gaceta ya está enlazada, puedes abrir la referencia; cuando no, el tablero deja explícito que sigue pendiente.</p>
+                  <h3>{t.methodsSource}</h3>
+                  <p>{t.methodsSourceBody}</p>
                 </article>
               </div>
             </section>
@@ -1000,7 +986,8 @@ export function VotometroView({ lang }: { lang: Lang }) {
   );
 }
 
-function VoteRowView({ row }: { row: VoteRecord }) {
+function VoteRowView({ row, lang }: { row: VoteRecord; lang: Lang }) {
+  const t = votoMetroCopy[lang];
   return (
     <tr>
       <td>{row.project}</td>
@@ -1011,7 +998,7 @@ function VoteRowView({ row }: { row: VoteRecord }) {
         <span className={`vm-status-badge ${getPositionClass(row.position)}`}>{row.position}</span>
       </td>
       <td>{row.result}</td>
-      <td className={`vm-coherence-cell ${getCoherenceClass(row.coherence)}`}>{getCoherenceLabel(row.coherence)}</td>
+      <td className={`vm-coherence-cell ${getCoherenceClass(row.coherence)}`}>{getCoherenceLabel(row.coherence, t)}</td>
       <td>
         {row.gacetaHref && row.gacetaHref !== "#" ? (
           <a href={row.gacetaHref} target="_blank" rel="noopener noreferrer" className="vm-gaceta-link">
@@ -1019,7 +1006,7 @@ function VoteRowView({ row }: { row: VoteRecord }) {
             <ArrowUpRight size={14} />
           </a>
         ) : (
-          <span className="vm-gaceta-link vm-gaceta-link--pending" title="URL de gaceta en construcción">
+          <span className="vm-gaceta-link vm-gaceta-link--pending" title={t.gacetaPendingTitle}>
             {row.gaceta}
           </span>
         )}
@@ -1104,14 +1091,14 @@ function getCoherenceClass(coherence: VoteCoherence) {
   }
 }
 
-function getCoherenceLabel(coherence: VoteCoherence) {
+function getCoherenceLabel(coherence: VoteCoherence, t: { coherentLabel: string; inconsistentLabel: string; noPromiseLabel: string }) {
   switch (coherence) {
     case "coherente":
-      return "Coherente ✓";
+      return t.coherentLabel;
     case "inconsistente":
-      return "Inconsistente ✗";
+      return t.inconsistentLabel;
     default:
-      return "Sin promesa —";
+      return t.noPromiseLabel;
   }
 }
 
