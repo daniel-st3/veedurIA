@@ -53,6 +53,8 @@ export function NetworkCanvas({
   const graphRef = useRef<any>(null);
   const autoFitRef = useRef(false);
   const [mounted, setMounted] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   // Only render on client (canvas requires window)
   useEffect(() => { setMounted(true); }, []);
@@ -178,6 +180,41 @@ export function NetworkCanvas({
     [selectedNodeId, hoveredNodeId],
   );
 
+  // ── Zoom controls (keeps page scroll intact) ─────────────────────────────
+
+  const handleZoomIn = useCallback(() => {
+    if (graphRef.current) {
+      const current = graphRef.current.zoom() ?? 1;
+      const next = Math.min(current * 1.4, 12);
+      graphRef.current.zoom(next, 350);
+      setZoomLevel(next);
+    }
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    if (graphRef.current) {
+      const current = graphRef.current.zoom() ?? 1;
+      const next = Math.max(current / 1.4, 0.2);
+      graphRef.current.zoom(next, 350);
+      setZoomLevel(next);
+    }
+  }, []);
+
+  const handleZoomReset = useCallback(() => {
+    if (graphRef.current) {
+      graphRef.current.zoomToFit(450, 72);
+      setZoomLevel(1);
+    }
+  }, []);
+
+  // Prevent wheel events from scrolling the page ONLY when pointer is over canvas
+  // and user is actively interacting (no modifier key needed)
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    // Allow page scroll when holding shift
+    if (e.shiftKey) return;
+    e.stopPropagation();
+  }, []);
+
   // ── Event handlers ────────────────────────────────────────────────────────
 
   const handleNodeClick = useCallback(
@@ -216,7 +253,12 @@ export function NetworkCanvas({
   }
 
   return (
-    <div className="sed-canvas-inner" style={{ height }}>
+    <div
+      className="sed-canvas-inner"
+      style={{ height, position: "relative" }}
+      ref={wrapRef}
+      onWheel={handleWheel}
+    >
       <ForceGraph2D
         ref={graphRef}
         graphData={graphData}
@@ -238,13 +280,13 @@ export function NetworkCanvas({
             const targetId = typeof link.target === "string" ? link.target : link.target?.id;
             const isHoveredLink = hoveredNodeId && (sourceId === hoveredNodeId || targetId === hoveredNodeId);
             if (link.id === selectedEdgeId) return 4;
-            if (isHoveredLink && link.confidence >= 80) return 1;
+            if (isHoveredLink && link.confidence >= 80) return 2;
             return 0;
           })()
         }
-        linkDirectionalParticleSpeed={0.0022}
+        linkDirectionalParticleSpeed={0.003}
         linkDirectionalParticleWidth={(link: any) =>
-          (link as NetworkEdge).confidence >= 80 ? 2 : 1
+          (link as NetworkEdge).confidence >= 80 ? 2.5 : 1.5
         }
         linkLabel={() => ""}
         // Events
@@ -252,6 +294,7 @@ export function NetworkCanvas({
         onLinkClick={handleEdgeClick}
         onNodeHover={handleNodeHover}
         onBackgroundClick={onBackgroundClick}
+        onZoom={({ k }: { k: number }) => setZoomLevel(k)}
         onEngineStop={() => {
           if (!selectedNodeId && !autoFitRef.current && graphRef.current && nodes.length > 0) {
             autoFitRef.current = true;
@@ -262,10 +305,25 @@ export function NetworkCanvas({
         d3AlphaDecay={networkConfig.canvas.physics.alphaDecay}
         d3VelocityDecay={networkConfig.canvas.physics.velocityDecay}
         cooldownTicks={networkConfig.canvas.physics.cooldownTicks}
+        // Interaction — keep wheel sensitivity low so page scroll is not hijacked
         // Performance
         autoPauseRedraw
-        warmupTicks={20}
+        warmupTicks={30}
       />
+
+      {/* Zoom controls — always visible overlay */}
+      <div className="sed-canvas-controls" aria-label={lang === "es" ? "Controles de zoom" : "Zoom controls"}>
+        <button className="sed-canvas-ctrl-btn" onClick={handleZoomIn} title={lang === "es" ? "Acercar" : "Zoom in"} aria-label={lang === "es" ? "Acercar" : "Zoom in"}>+</button>
+        <button className="sed-canvas-ctrl-btn sed-canvas-ctrl-btn--reset" onClick={handleZoomReset} title={lang === "es" ? "Ajustar" : "Fit"} aria-label={lang === "es" ? "Ajustar" : "Fit"}>⤢</button>
+        <button className="sed-canvas-ctrl-btn" onClick={handleZoomOut} title={lang === "es" ? "Alejar" : "Zoom out"} aria-label={lang === "es" ? "Alejar" : "Zoom out"}>−</button>
+      </div>
+
+      {/* Hint shown when zoom is near default */}
+      {zoomLevel <= 1.05 && nodes.length > 0 && (
+        <div className="sed-canvas-hint" aria-hidden="true">
+          {lang === "es" ? "Arrastra para explorar · Usa + para acercar" : "Drag to explore · Use + to zoom"}
+        </div>
+      )}
     </div>
   );
 }
