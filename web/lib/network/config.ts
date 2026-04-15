@@ -21,27 +21,27 @@ export const networkConfig = {
     {
       type: "entity" as NodeType,
       label: { es: "Entidad pública", en: "Public entity" },
-      color: "#1e6fff",
-      selectedColor: "#FCD116",
-      hoverColor: "#6eb4ff",
+      color: "#0d5bd7",
+      selectedColor: "#c62839",
+      hoverColor: "#2f7cff",
       minRadiusPx: 5,
       maxRadiusPx: 22,
     },
     {
       type: "provider" as NodeType,
       label: { es: "Proveedor", en: "Provider" },
-      color: "#00c896",
-      selectedColor: "#FCD116",
-      hoverColor: "#5de8c8",
+      color: "#0a7a4e",
+      selectedColor: "#c62839",
+      hoverColor: "#0fa869",
       minRadiusPx: 4,
       maxRadiusPx: 17,
     },
     {
       type: "cluster" as NodeType,
       label: { es: "Grupo por departamento", en: "Department cluster" },
-      color: "#9d6fff",
-      selectedColor: "#FCD116",
-      hoverColor: "#c4a8ff",
+      color: "#6d28d9",
+      selectedColor: "#c62839",
+      hoverColor: "#8b5cf6",
       minRadiusPx: 8,
       maxRadiusPx: 24,
     },
@@ -74,19 +74,19 @@ export const networkConfig = {
 
   canvas: {
     maxNodes: 300,
-    initialHubs: 32,           // small default scene → clean, no label crowding
+    initialHubs: 28,           // slightly smaller first scene keeps the spiderweb readable
     expandLimit: 48,
-    backgroundColor: "#050b18",
+    backgroundColor: "rgba(0,0,0,0)",
     physics: {
-      alphaDecay: 0.010,       // very slow cool-down → nodes spread further before freezing
-      velocityDecay: 0.22,     // less friction → organic spread
-      cooldownTicks: 320,      // more ticks → better final layout
-      chargeStrength: -1100,   // very strong repulsion → wide spider-web
-      linkDistance: 260,       // long edges → spacious layout
+      alphaDecay: 0.018,       // let the layout settle faster after first render
+      velocityDecay: 0.28,     // enough damping to avoid jitter when expanding
+      cooldownTicks: 220,      // stabilize quickly so clicks feel fixed
+      chargeStrength: -820,    // wide spread without sending nodes to the edges
+      linkDistance: 190,       // cleaner web with shorter dead air between groups
     },
-    labelZoomThreshold: 2.8,   // labels visible only at 2.8× zoom (hub labels at 1.6×)
-    hubLabelZoomThreshold: 1.6, // hub labels appear at 1.6× zoom
-    labelMaxLength: 16,
+    labelZoomThreshold: 1.55,  // reveal more labels without overcrowding the default view
+    hubLabelZoomThreshold: 1.08,
+    labelMaxLength: 20,
   },
 
   cache: {

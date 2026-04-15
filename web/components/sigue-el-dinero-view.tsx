@@ -214,6 +214,7 @@ export function SigueElDineroView({ lang }: Props) {
   }, []);
 
   const handleBackgroundClick = useCallback(() => {
+    setHoveredNodeId(null);
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
     setSelectedEdge(null);
