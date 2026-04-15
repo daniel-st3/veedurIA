@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { Network, Search, SlidersHorizontal, X } from "lucide-react";
+import { Network, Search, SlidersHorizontal, X, ChevronRight } from "lucide-react";
 
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -70,18 +70,21 @@ export function SigueElDineroView({ lang }: Props) {
   // ── Canvas size ────────────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasWidth, setCanvasWidth] = useState<number | undefined>(undefined);
-  const CANVAS_HEIGHT = 560;
+  const [canvasHeight, setCanvasHeight] = useState(660);
 
   useEffect(() => {
-    const update = () => {
+    const updateSize = () => {
       if (containerRef.current) {
         setCanvasWidth(containerRef.current.clientWidth);
       }
+      const vh = window.innerHeight;
+      setCanvasHeight(Math.max(520, Math.min(vh - 260, 860)));
     };
-    update();
-    const ro = new ResizeObserver(update);
+    updateSize();
+    const ro = new ResizeObserver(updateSize);
     if (containerRef.current) ro.observe(containerRef.current);
-    return () => ro.disconnect();
+    window.addEventListener("resize", updateSize);
+    return () => { ro.disconnect(); window.removeEventListener("resize", updateSize); };
   }, []);
 
   // ── Filtered edges (confidence slider) ────────────────────────────────────
@@ -320,93 +323,98 @@ export function SigueElDineroView({ lang }: Props) {
         ]}
       />
 
-      {/* Hero */}
+      {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="sed-hero" ref={heroRef}>
         <div className="sed-hero__inner">
-          <div className="sed-hero__badge sed-hero__animate">
-            <Network size={14} />
-            <span>{t.eyebrow}</span>
+          <div className="sed-hero__top sed-hero__animate">
+            <div className="sed-hero__badge">
+              <Network size={13} aria-hidden="true" />
+              <span>{t.eyebrow}</span>
+            </div>
+            <h1 className="sed-hero__title">{t.title}</h1>
+            <p className="sed-hero__desc">{t.subtitle}</p>
           </div>
-          <h1 className="sed-hero__title sed-hero__animate">{t.title}</h1>
-          <p className="sed-hero__desc sed-hero__animate">{t.subtitle}</p>
+
+          {/* Search + filters row */}
+          <div className="sed-hero__search-row sed-hero__animate">
+            <form className="sed-search-bar" onSubmit={handleSearchSubmit}>
+              <Search size={15} className="sed-search-bar__icon" aria-hidden="true" />
+              <input
+                type="text"
+                className="sed-search-bar__input"
+                placeholder={t.searchPlaceholder}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                aria-label={t.searchPlaceholder}
+              />
+              {searchQuery && (
+                <button type="button" className="sed-search-bar__clear" onClick={clearSearch} aria-label="Limpiar búsqueda">
+                  <X size={13} aria-hidden="true" />
+                </button>
+              )}
+              <button type="submit" className="sed-search-bar__btn" disabled={isSearching}>
+                {isSearching ? (lang === "es" ? "Buscando…" : "Searching…") : t.searchButton}
+              </button>
+            </form>
+
+            <button
+              className={`sed-filter-toggle${filterOpen ? " sed-filter-toggle--active" : ""}`}
+              onClick={() => setFilterOpen((p) => !p)}
+            >
+              <SlidersHorizontal size={14} aria-hidden="true" />
+              {t.filterToggle}
+            </button>
+
+            <button
+              className={`sed-legend-toggle${legendOpen ? " sed-legend-toggle--active" : ""}`}
+              onClick={() => setLegendOpen((p) => !p)}
+            >
+              {t.legendTitle}
+            </button>
+          </div>
+
+          {searchQuery && (
+            <div className="sed-search-tag sed-hero__animate">
+              <span>{lang === "es" ? "Red para:" : "Network for:"}</span>
+              <strong>{searchQuery}</strong>
+              <button onClick={clearSearch} aria-label="Limpiar"><X size={11} aria-hidden="true" /></button>
+            </div>
+          )}
+
+          {/* Metric chips */}
+          <div className="sed-hero-chips sed-hero__animate">
+            <div className="sed-hero-chip">
+              <span className="sed-hero-chip__val">{nodes.length.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</span>
+              <span className="sed-hero-chip__lbl">{lang === "es" ? "nodos" : "nodes"}</span>
+            </div>
+            <div className="sed-hero-chip">
+              <span className="sed-hero-chip__val">{highConfidenceEdges.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</span>
+              <span className="sed-hero-chip__lbl">{lang === "es" ? "vínculos fuertes" : "strong links"}</span>
+            </div>
+            <div className="sed-hero-chip">
+              <span className="sed-hero-chip__val">
+                {Intl.NumberFormat(lang === "es" ? "es-CO" : "en-US", { notation: "compact", maximumFractionDigits: 1 }).format(visibleValue)}
+              </span>
+              <span className="sed-hero-chip__lbl">{lang === "es" ? "valor visible" : "visible value"}</span>
+            </div>
+            <div className="sed-hero-chip">
+              <span className="sed-hero-chip__val">{activeDepartmentCount}</span>
+              <span className="sed-hero-chip__lbl">{lang === "es" ? "departamentos" : "departments"}</span>
+            </div>
+          </div>
 
           {/* Ethical note */}
           <div className="sed-ethical-banner sed-hero__animate" role="note">
             <span>{t.disclaimer}</span>
           </div>
-
-          {/* Search bar */}
-          <form className="sed-search-bar sed-hero__animate" onSubmit={handleSearchSubmit}>
-            <Search size={16} className="sed-search-bar__icon" />
-            <input
-              type="text"
-              className="sed-search-bar__input"
-              placeholder={t.searchPlaceholder}
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              aria-label={t.searchPlaceholder}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                className="sed-search-bar__clear"
-                onClick={clearSearch}
-                aria-label="Limpiar búsqueda"
-              >
-                <X size={14} />
-              </button>
-            )}
-            <button type="submit" className="sed-search-bar__btn" disabled={isSearching}>
-              {isSearching ? (lang === "es" ? "Buscando…" : "Searching…") : t.searchButton}
-            </button>
-          </form>
-
-          {/* Active search tag */}
-          {searchQuery && (
-            <div className="sed-search-tag">
-              <span>{lang === "es" ? "Mostrando red para:" : "Showing network for:"}</span>
-              <strong>{searchQuery}</strong>
-              <button onClick={clearSearch}><X size={12} /></button>
-            </div>
-          )}
-
-          <div className="sed-hero-metrics sed-hero__animate">
-            <article className="sed-hero-card">
-              <span>{lang === "es" ? "Nodos visibles" : "Visible nodes"}</span>
-              <strong>{nodes.length.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
-              <p>{lang === "es" ? "La escena actual del grafo" : "The current graph scene"}</p>
-            </article>
-            <article className="sed-hero-card">
-              <span>{lang === "es" ? "Relaciones fuertes" : "High-confidence links"}</span>
-              <strong>{highConfidenceEdges.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
-              <p>{lang === "es" ? "Con confianza alta en esta vista" : "High-confidence edges in view"}</p>
-            </article>
-            <article className="sed-hero-card">
-              <span>{lang === "es" ? "Valor visible" : "Visible value"}</span>
-              <strong>
-                {Intl.NumberFormat(lang === "es" ? "es-CO" : "en-US", {
-                  notation: "compact",
-                  maximumFractionDigits: 1,
-                }).format(visibleValue)}
-              </strong>
-              <p>{lang === "es" ? "Monto agregado en la red abierta" : "Aggregated value in the open graph"}</p>
-            </article>
-            <article className="sed-hero-card">
-              <span>{lang === "es" ? "Pivote principal" : "Primary hub"}</span>
-              <strong>{strongestNode?.label ?? "—"}</strong>
-              <p>
-                {lang === "es"
-                  ? `${activeDepartmentCount} departamentos activos en la vista`
-                  : `${activeDepartmentCount} departments active in view`}
-              </p>
-            </article>
-          </div>
         </div>
       </section>
 
-      {/* Workbench */}
+      {/* ── Workbench ──────────────────────────────────────────────────── */}
       <div className="sed-workbench" ref={workbenchRef}>
-        {networkMeta?.source === "mock" ? (
+
+        {/* Status banners */}
+        {networkMeta?.source === "mock" && (
           <div className="sed-status-banner is-warning" role="status">
             <strong>{lang === "es" ? "Modo de referencia activo." : "Reference mode active."}</strong>
             <span>
@@ -415,9 +423,8 @@ export function SigueElDineroView({ lang }: Props) {
                 : "Reference view loaded. Search for an entity or contractor to explore their real network."}
             </span>
           </div>
-        ) : null}
-
-        {networkMeta?.partial ? (
+        )}
+        {networkMeta?.partial && (
           <div className="sed-status-banner" role="status">
             <strong>{lang === "es" ? "Lectura parcial." : "Partial reading."}</strong>
             <span>
@@ -426,44 +433,16 @@ export function SigueElDineroView({ lang }: Props) {
                 : "The backend flagged this slice as partial; cross-check it against the source before concluding."}
             </span>
           </div>
-        ) : null}
+        )}
 
-        {/* Filter strip */}
-        <div className="sed-filter-strip">
-          <button
-            className={`sed-filter-toggle${filterOpen ? " sed-filter-toggle--active" : ""}`}
-            onClick={() => setFilterOpen((p) => !p)}
-          >
-            <SlidersHorizontal size={14} />
-            {t.filterToggle}
-          </button>
-
-          {dataVersion && (
-            <span className="sed-version-tag">
-              {networkMeta?.source === "mock"
-                ? lang === "es" ? "Vista de referencia · 2026" : "Reference view · 2026"
-                : `${lang === "es" ? "Grafo" : "Graph"} v${dataVersion}`}
-            </span>
-          )}
-
-          <button
-            className={`sed-legend-toggle${legendOpen ? " sed-legend-toggle--active" : ""}`}
-            onClick={() => setLegendOpen((p) => !p)}
-          >
-            {t.legendTitle}
-          </button>
-        </div>
-
+        {/* Filter panel (collapsible) */}
         {filterOpen && (
           <div className="sed-filter-panel">
             <div className="sed-filter-group">
               <label className="sed-filter-label">{t.filterConfidence}</label>
               <div className="sed-confidence-filter">
                 <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={10}
+                  type="range" min={0} max={100} step={10}
                   value={minConfidence}
                   onChange={(e) => setMinConfidence(Number(e.target.value))}
                   className="sed-confidence-slider"
@@ -476,7 +455,6 @@ export function SigueElDineroView({ lang }: Props) {
                 <span className="sed-confidence-value">≥ {minConfidence}%</span>
               </div>
             </div>
-
             {departments.length > 0 && (
               <div className="sed-filter-group">
                 <label className="sed-filter-label">{t.filterDepartment}</label>
@@ -486,54 +464,17 @@ export function SigueElDineroView({ lang }: Props) {
                   onChange={(e) => setDepartment(e.target.value)}
                 >
                   <option value="">{lang === "es" ? "Todos los departamentos" : "All departments"}</option>
-                  {departments.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
+                  {departments.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
             )}
-
-            <button
-              className="sed-filter-apply"
-              onClick={() => { setFilterOpen(false); loadOverview(true); }}
-            >
+            <button className="sed-filter-apply" onClick={() => { setFilterOpen(false); loadOverview(true); }}>
               {lang === "es" ? "Aplicar filtros" : "Apply filters"}
             </button>
           </div>
         )}
 
         {/* Tab bar */}
-        <div className="sed-summary-strip">
-          <div className="sed-summary-chip">
-            <span>{lang === "es" ? "Grafo total" : "Full graph"}</span>
-            <strong>{networkMeta?.total_nodes?.toLocaleString(lang === "es" ? "es-CO" : "en-US") ?? "—"} {t.totalNodes}</strong>
-          </div>
-          <div className="sed-summary-chip">
-            <span>{lang === "es" ? "Relaciones totales" : "Total relationships"}</span>
-            <strong>{networkMeta?.total_edges?.toLocaleString(lang === "es" ? "es-CO" : "en-US") ?? "—"} {t.totalEdges}</strong>
-          </div>
-          <div className="sed-summary-chip">
-            <span>{lang === "es" ? "Fuente" : "Source"}</span>
-            <strong>
-              {networkMeta?.source === "mock"
-                ? lang === "es"
-                  ? "Referencia"
-                  : "Reference"
-                : networkMeta
-                  ? lang === "es"
-                    ? "Grafo vivo"
-                    : "Live graph"
-                  : lang === "es"
-                    ? "Cargando"
-                    : "Loading"}
-            </strong>
-          </div>
-          <div className="sed-summary-chip">
-            <span>{lang === "es" ? "Cómo jugarlo" : "How to play it"}</span>
-            <strong>{lang === "es" ? "Busca, filtra, abre y expande" : "Search, filter, open, expand"}</strong>
-          </div>
-        </div>
-
         <div className="sed-tab-bar" role="tablist">
           {(["red", "concentracion", "evidencia"] as Tab[]).map((tab) => (
             <button
@@ -546,22 +487,25 @@ export function SigueElDineroView({ lang }: Props) {
               {tab === "red" ? t.tabNetwork : tab === "concentracion" ? t.tabConcentration : t.tabEvidence}
             </button>
           ))}
+          {dataVersion && (
+            <span className="sed-version-tag">
+              {networkMeta?.source === "mock"
+                ? lang === "es" ? "Referencia · 2026" : "Reference · 2026"
+                : `v${dataVersion}`}
+            </span>
+          )}
         </div>
 
-        {/* Main content area */}
+        {/* ── Content area ───────────────────────────────────────────── */}
         <div className="sed-content-area">
 
-          {/* Network tab */}
+          {/* Network tab — full-width canvas */}
           {activeTab === "red" && (
             <div className="sed-network-layout">
-              {/* Canvas column */}
               <div className="sed-canvas-col">
                 <div className="sed-canvas-wrap" ref={containerRef}>
                   {error ? (
-                    <NetworkError
-                      message={error}
-                      onRetry={() => loadOverview(true)}
-                    />
+                    <NetworkError message={error} onRetry={() => loadOverview(true)} />
                   ) : (
                     <>
                       {(isLoading || isExpanding || isSearching) && (
@@ -569,7 +513,7 @@ export function SigueElDineroView({ lang }: Props) {
                       )}
                       {!isLoading && nodes.length === 0 && !error && (
                         <div className="sed-canvas-empty">
-                          <Network size={32} strokeWidth={1} style={{ opacity: 0.2 }} />
+                          <Network size={36} strokeWidth={1} style={{ opacity: 0.15 }} />
                           {searchQuery ? (
                             <p>
                               {lang === "es"
@@ -594,19 +538,15 @@ export function SigueElDineroView({ lang }: Props) {
                           onNodeHover={handleNodeHover}
                           onBackgroundClick={handleBackgroundClick}
                           width={canvasWidth}
-                          height={CANVAS_HEIGHT}
+                          height={canvasHeight}
                         />
                       )}
                     </>
                   )}
                 </div>
 
-                {/* Legend (below canvas, collapsible) */}
-                {legendOpen && (
-                  <NetworkLegend lang={lang} />
-                )}
+                {legendOpen && <NetworkLegend lang={lang} />}
 
-                {/* Stats bar */}
                 {!isLoading && nodes.length > 0 && (
                   <div className="sed-stats-bar">
                     <span>{nodes.length} {lang === "es" ? "nodos" : "nodes"}</span>
@@ -618,40 +558,63 @@ export function SigueElDineroView({ lang }: Props) {
                         <span>{lang === "es" ? "Confianza" : "Confidence"} ≥{minConfidence}%</span>
                       </>
                     )}
+                    {!selectedNodeId && (
+                      <>
+                        <span className="sed-stats-bar__sep">·</span>
+                        <span className="sed-stats-bar__hint">
+                          {lang === "es" ? "Haz clic en un nodo para ver detalles" : "Click a node to see details"}
+                        </span>
+                      </>
+                    )}
                   </div>
                 )}
-              </div>
-
-              {/* Node panel column */}
-              <div className="sed-panel-col">
-                <NodePanel
-                  node={selectedNode}
-                  detail={selectedNodeDetail}
-                  isLoading={isLoadingDetail}
-                  lang={lang}
-                  onExpand={handleExpand}
-                  isExpanding={isExpanding}
-                />
               </div>
             </div>
           )}
 
-          {/* Concentration tab */}
-          {activeTab === "concentracion" && (
-            <ConcentrationView nodes={nodes} lang={lang} />
-          )}
-
-          {/* Evidence tab */}
+          {activeTab === "concentracion" && <ConcentrationView nodes={nodes} lang={lang} />}
           {activeTab === "evidencia" && (
-            <EvidenceTable
-              edges={filteredEdges}
-              nodes={nodes}
-              lang={lang}
-              selectedNodeId={selectedNodeId}
-            />
+            <EvidenceTable edges={filteredEdges} nodes={nodes} lang={lang} selectedNodeId={selectedNodeId} />
           )}
         </div>
       </div>
+
+      {/* ── Sliding node detail drawer ──────────────────────────────── */}
+      {/* Backdrop */}
+      {selectedNodeId && (
+        <div
+          className="sed-drawer-backdrop"
+          onClick={handleBackgroundClick}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`sed-node-drawer${selectedNodeId ? " sed-node-drawer--open" : ""}`}
+        aria-label={lang === "es" ? "Detalle del nodo" : "Node detail"}
+      >
+        <div className="sed-drawer-header">
+          <span className="sed-drawer-eyebrow">
+            <ChevronRight size={13} aria-hidden="true" />
+            {lang === "es" ? "Detalle del nodo" : "Node detail"}
+          </span>
+          <button
+            className="sed-drawer-close"
+            onClick={handleBackgroundClick}
+            aria-label={lang === "es" ? "Cerrar panel" : "Close panel"}
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+        <NodePanel
+          node={selectedNode}
+          detail={selectedNodeDetail}
+          isLoading={isLoadingDetail}
+          lang={lang}
+          onExpand={handleExpand}
+          isExpanding={isExpanding}
+        />
+      </aside>
 
       {/* Edge modal */}
       <EdgeModal

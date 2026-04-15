@@ -21,29 +21,29 @@ export const networkConfig = {
     {
       type: "entity" as NodeType,
       label: { es: "Entidad pública", en: "Public entity" },
-      color: "#2d6cdf",
-      selectedColor: "#ffd700",
-      hoverColor: "#6eadff",
+      color: "#1e6fff",
+      selectedColor: "#FCD116",
+      hoverColor: "#6eb4ff",
       minRadiusPx: 5,
-      maxRadiusPx: 20,
+      maxRadiusPx: 22,
     },
     {
       type: "provider" as NodeType,
       label: { es: "Proveedor", en: "Provider" },
-      color: "#20c997",
-      selectedColor: "#ffd700",
-      hoverColor: "#5de0c0",
+      color: "#00c896",
+      selectedColor: "#FCD116",
+      hoverColor: "#5de8c8",
       minRadiusPx: 4,
-      maxRadiusPx: 16,
+      maxRadiusPx: 17,
     },
     {
       type: "cluster" as NodeType,
       label: { es: "Grupo por departamento", en: "Department cluster" },
-      color: "#6366f1",
-      selectedColor: "#ffd700",
-      hoverColor: "#a5b4fc",
+      color: "#9d6fff",
+      selectedColor: "#FCD116",
+      hoverColor: "#c4a8ff",
       minRadiusPx: 8,
-      maxRadiusPx: 22,
+      maxRadiusPx: 24,
     },
     // Future node types — add here without touching UI components:
     // { type: "politician", label: { es: "Político", en: "Politician" }, color: "#f97316", ... },
@@ -74,18 +74,19 @@ export const networkConfig = {
 
   canvas: {
     maxNodes: 300,
-    initialHubs: 55,           // fewer initial nodes → less label crowding at default zoom
+    initialHubs: 32,           // small default scene → clean, no label crowding
     expandLimit: 48,
-    backgroundColor: "#070d1a",
+    backgroundColor: "#050b18",
     physics: {
-      alphaDecay: 0.013,       // very slow cool-down → nodes spread further before freezing
-      velocityDecay: 0.26,     // less friction → more organic spread
-      cooldownTicks: 260,      // more ticks → better final layout
-      chargeStrength: -680,    // strong repulsion → nodes push apart like a web
-      linkDistance: 195,       // longer edges → more readable spider-web spacing
+      alphaDecay: 0.010,       // very slow cool-down → nodes spread further before freezing
+      velocityDecay: 0.22,     // less friction → organic spread
+      cooldownTicks: 320,      // more ticks → better final layout
+      chargeStrength: -1100,   // very strong repulsion → wide spider-web
+      linkDistance: 260,       // long edges → spacious layout
     },
-    labelZoomThreshold: 2.0,   // only show non-hub labels when zoomed in to 2× or more
-    labelMaxLength: 14,        // aggressive truncation to avoid label collision
+    labelZoomThreshold: 2.8,   // labels visible only at 2.8× zoom (hub labels at 1.6×)
+    hubLabelZoomThreshold: 1.6, // hub labels appear at 1.6× zoom
+    labelMaxLength: 16,
   },
 
   cache: {
