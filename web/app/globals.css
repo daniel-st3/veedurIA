@@ -635,6 +635,29 @@
   overflow-x: clip;
 }
 
+.cv-page--loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.cv-page--loading::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(247, 242, 234, 0.6);
+  backdrop-filter: blur(1px);
+  animation: cv-spin 0.8s linear infinite;
+  animation-name: none; /* reset — the spinner is on the button */
+}
+
+.cv-page--loading .cv-block,
+.cv-page--loading .cv-hero-kpis,
+.cv-page--loading .cv-map-stage {
+  opacity: 0.45;
+  transition: opacity 0.2s ease;
+}
+
 .lp-page > *,
 .cv-page > *,
 .pmr-page > * {
@@ -3915,6 +3938,13 @@ select:focus {
   border: 1px solid rgba(23, 32, 51, 0.06);
   background: rgba(255,255,255,0.66);
   padding: 1rem;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.explorer-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(23, 32, 51, 0.1);
+  border-color: rgba(13, 91, 215, 0.16);
 }
 
 .explorer-card__top,
@@ -7762,6 +7792,7 @@ input[type="date"] {
   display: block;
   width: min(100%, 560px);
   height: auto;
+  aspect-ratio: 540 / 640;
   min-height: 0;
   aspect-ratio: 1 / 1;
   margin-inline: auto;
@@ -7924,9 +7955,9 @@ input[type="date"] {
   filter: none;
 }
 
-.lp-module-link--yellow::after { background: rgba(211, 162, 26, 0.9); }
-.lp-module-link--blue::after { background: rgba(13, 91, 215, 0.9); }
-.lp-module-link--red::after { background: rgba(198, 40, 57, 0.86); }
+.lp-module-link--yellow::after { background: #003893; }
+.lp-module-link--blue::after { background: #FCD116; }
+.lp-module-link--red::after { background: #CE1126; }
 
 .lp-module-link:hover {
   transform: translateX(6px);
@@ -9890,7 +9921,7 @@ h2,
 
 .site-nav__meta,
 .brand-caption {
-  color: var(--text-muted);
+  color: #4a4944;
 }
 
 .nav-link-pill {
@@ -10928,6 +10959,12 @@ textarea {
 
 .cv-map-insight-row {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  animation: cv-insight-fade 0.28s ease both;
+}
+
+@keyframes cv-insight-fade {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .cv-map-frame {

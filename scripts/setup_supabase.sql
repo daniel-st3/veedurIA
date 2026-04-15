@@ -23,8 +23,14 @@ create table if not exists contracts (
     object_desc   text
 );
 
--- Public civic data — no RLS needed
-alter table contracts disable row level security;
+-- RLS: enable security, allow public read-only access.
+-- The anon key can SELECT; INSERT/UPDATE/DELETE require the service_role key
+-- (which bypasses RLS and is only used by the server-side import script).
+alter table contracts enable row level security;
+
+drop policy if exists "public_read_contracts" on contracts;
+create policy "public_read_contracts" on contracts
+  for select using (true);
 
 -- Query indexes
 create index if not exists idx_c_risk    on contracts (risk_bucket);
@@ -40,4 +46,9 @@ create table if not exists contracts_stats (
     updated_at timestamptz default now()
 );
 
-alter table contracts_stats disable row level security;
+-- RLS: enable security, allow public read-only access.
+alter table contracts_stats enable row level security;
+
+drop policy if exists "public_read_contracts_stats" on contracts_stats;
+create policy "public_read_contracts_stats" on contracts_stats
+  for select using (true);

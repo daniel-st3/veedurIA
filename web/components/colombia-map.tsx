@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -196,6 +196,24 @@ export function ColombiaMap({
   const currentDatum = currentDepartment ? summary.get(currentDepartment) : undefined;
   const currentFeature = currentDepartment ? features.find((feature) => feature.key === currentDepartment) : null;
   const currentTooltip = currentDepartment ? tooltipData?.[currentDepartment] : undefined;
+  // On bfcache restore (back navigation), GSAP inline opacity:0 can persist on
+  // shapes that were mid-animation when the user navigated away. Force-show all
+  // shapes so the map is always visible after back navigation.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted && scope.current) {
+        const shapes = scope.current.querySelectorAll<SVGPathElement>(".colombia-map__shape");
+        shapes.forEach((shape) => {
+          shape.style.opacity = "1";
+          shape.style.visibility = "visible";
+        });
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   const viewportScale = mode === "hero" ? 0.96 : 1;
   const viewportTranslateX = ((1 - viewportScale) * VIEWBOX_WIDTH) / 2;
   const viewportTranslateY = ((1 - viewportScale) * VIEWBOX_HEIGHT) / 2;

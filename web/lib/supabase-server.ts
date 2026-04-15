@@ -2,7 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 
 /**
  * Server-only Supabase client for Next.js API routes.
- * Uses the anon key — RLS is disabled on public civic-data tables.
+ * Uses the anon key — RLS is enabled with a public SELECT policy so anyone
+ * can read civic data, but INSERT/UPDATE/DELETE require the service_role key.
  */
 export function createServerSupabase() {
   const url = process.env.SUPABASE_URL;

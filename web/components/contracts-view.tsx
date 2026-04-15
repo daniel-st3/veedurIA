@@ -828,7 +828,7 @@ export function ContractsView({
       />
       <NoticeStack notices={notices} onDismiss={(id) => setNotices((current) => current.filter((item) => item.id !== id))} />
 
-      <main className="page cv-page">
+      <main className={`page cv-page${actionPending ? " cv-page--loading" : ""}`}>
         <section className="cv-hero-panel surface stripe-flag">
           <div className="cv-hero-panel__top">
             <div>
@@ -1132,7 +1132,7 @@ export function ContractsView({
                 </p>
               </div>
 
-              <div className="cv-map-insight-row">
+              <div className="cv-map-insight-row" key={filters.department ?? "all"}>
                 <article className="cv-map-insight">
                   <span>{lang === "es" ? "Departamento activo" : "Active department"}</span>
                   <strong>{currentDepartment?.label ?? (lang === "es" ? "Colombia completa" : "Whole Colombia")}</strong>

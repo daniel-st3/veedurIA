@@ -777,7 +777,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
                         className="vm-button vm-button--ghost"
                       >
                         {t.viewContracts}
-                        <ArrowRight size={16} />
+                        <ArrowRight size={16} aria-hidden={true} />
                       </Link>
                     ) : null}
                   </section>
@@ -1003,7 +1003,7 @@ function VoteRowView({ row, lang }: { row: VoteRecord; lang: Lang }) {
         {row.gacetaHref && row.gacetaHref !== "#" ? (
           <a href={row.gacetaHref} target="_blank" rel="noopener noreferrer" className="vm-gaceta-link">
             {row.gaceta}
-            <ArrowUpRight size={14} />
+            <ArrowUpRight size={14} aria-hidden={true} />
           </a>
         ) : (
           <span className="vm-gaceta-link vm-gaceta-link--pending" title={t.gacetaPendingTitle}>

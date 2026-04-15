@@ -359,7 +359,7 @@ export function LandingPage({
                       <p>{feature.body}</p>
                       <span className="lp-story__spotlight-cta">
                         {feature.cta}
-                        <ArrowRight size={15} />
+                        <ArrowRight size={15} aria-hidden={true} />
                       </span>
                     </Link>
                   );
@@ -465,7 +465,7 @@ export function LandingPage({
                   </div>
                   <Link href={contratoHref} className="lp-story-map__cta">
                     {lang === "es" ? "Abrir ContratoLimpio" : "Open ContratoLimpio"}
-                    <ArrowRight size={15} />
+                    <ArrowRight size={15} aria-hidden={true} />
                   </Link>
                 </div>
               </div>
@@ -510,7 +510,7 @@ export function LandingPage({
                     </span>
                     <span className="lp-module-link__arrow">
                       {feature.cta}
-                      <ArrowRight size={16} />
+                      <ArrowRight size={16} aria-hidden={true} />
                     </span>
                   </div>
                 </Link>
@@ -538,7 +538,7 @@ export function LandingPage({
               rel="noopener noreferrer"
             >
               {lang === "es" ? "Ver más proyectos" : "See more projects"}
-              <ArrowRight size={16} />
+              <ArrowRight size={16} aria-hidden={true} />
             </a>
           </div>
         </section>
