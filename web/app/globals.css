@@ -7622,39 +7622,42 @@ input[type="date"] {
   gap: clamp(1.2rem, 2.5vw, 2.4rem);
 }
 
+/* Andes hills — full-width behind the hero section, breathes freely */
+.lp-story__hills-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 32%;          /* covers approx the intro/stat area */
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.30;
+  will-change: transform;
+}
+
+/* Soft vignette so text stays readable over the terrain */
+.lp-story__hills-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 28%, rgba(248,249,250,0.78) 0%, transparent 58%),
+    linear-gradient(180deg,
+      rgba(248,249,250,0.52) 0%,
+      transparent 30%,
+      transparent 70%,
+      rgba(248,249,250,0.72) 100%
+    );
+  pointer-events: none;
+}
+
 .lp-story__intro {
-  position: relative;
-  overflow: hidden;
   display: grid;
   gap: 0.85rem;
   max-width: 62rem;
   margin-inline: auto;
   justify-items: center;
   text-align: center;
-  border-radius: 24px;
-  padding: clamp(1.8rem, 3.5vw, 3rem) clamp(1rem, 3vw, 2rem);
-}
-
-/* Andes hills WebGL backdrop — only covers the intro/hero area */
-.lp-story__hills-bg {
-  position: absolute !important;
-  inset: -22% -8% !important;
-  z-index: 0 !important;
-  pointer-events: none !important;
-  opacity: 0.26;
-  will-change: transform;
-}
-
-/* Gradient overlay so text stays crisp over the hills */
-.lp-story__intro::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 75% 55% at 50% 35%, rgba(248,249,250,0.82) 0%, transparent 55%),
-    linear-gradient(180deg, rgba(248,249,250,0.68) 0%, transparent 30%, transparent 70%, rgba(248,249,250,0.55) 100%);
 }
 
 .lp-story__eyebrow {
@@ -7694,11 +7697,12 @@ input[type="date"] {
 }
 
 .lp-story__title {
-  width: min(100%, 16ch);
+  width: min(100%, 22ch);
   margin: 0;
   font-size: clamp(2.4rem, 5.5vw, 4.2rem);
   line-height: 0.96;
   letter-spacing: -0.065em;
+  overflow: visible;
 }
 
 .lp-story__title-line {
@@ -7712,6 +7716,8 @@ input[type="date"] {
 }
 
 .lp-story__title-accent--tricolor {
+  /* Extra padding prevents -webkit-background-clip from cutting the last glyph */
+  padding-inline-end: 0.12em;
   background: linear-gradient(92deg,
     #c89610 0%,
     #c89610 28%,
@@ -16460,11 +16466,12 @@ input[type="date"] {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(280px, 1fr);
   gap: 2rem 2.5rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 .lp-map-grid__left {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
 }
 
@@ -16483,7 +16490,8 @@ input[type="date"] {
 .lp-map-grid__canvas {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 5;
+  flex: 1;              /* grows to fill left column height after head + info box */
+  min-height: 280px;
   max-height: 540px;
   border-radius: 20px;
   overflow: hidden;
@@ -16580,20 +16588,23 @@ input[type="date"] {
   box-shadow: 0 10px 22px rgba(1, 95, 101, 0.22);
 }
 
-/* Module cards column (right side) */
+/* Module cards column (right side) — flex so cards share height with left column */
 .lp-map-grid__modules {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.85rem;
-  align-content: start;
 }
 
 .lp-map-grid__modules-eyebrow {
   margin: 0 0 0.1rem;
   color: rgba(23, 32, 51, 0.52);
+  flex-shrink: 0;   /* eyebrow stays fixed height, cards fill the rest */
 }
 
 .lp-module-card {
   position: relative;
+  flex: 1;                /* each card grows equally within the flex column */
+  min-height: 0;
   display: grid;
   gap: 0.55rem;
   padding: 1.15rem 1.2rem 1.1rem;

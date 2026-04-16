@@ -30,7 +30,7 @@ const FEATURE_TEXT = {
       href: "/contrato-limpio?lang=es",
       icon: FileSearch,
       tone: "yellow" as FeatureTone,
-      signal: "Expediente · mapa · corte",
+      signal: "Expediente · Mapa · Análisis",
     },
     promises: {
       title: "VotóMeter",
@@ -40,7 +40,7 @@ const FEATURE_TEXT = {
       href: "/votometro?lang=es",
       icon: Radar,
       tone: "blue" as FeatureTone,
-      signal: "Voto · tema · gaceta",
+      signal: "Voto · Legislador · Gaceta",
     },
     money: {
       title: "SigueElDinero",
@@ -50,7 +50,7 @@ const FEATURE_TEXT = {
       href: "/sigue-el-dinero?lang=es",
       icon: Waypoints,
       tone: "red" as FeatureTone,
-      signal: "Red · rastro · avance",
+      signal: "Red · Contratos · Trazabilidad",
     },
   },
   en: {
@@ -62,7 +62,7 @@ const FEATURE_TEXT = {
       href: "/contrato-limpio?lang=en",
       icon: FileSearch,
       tone: "yellow" as FeatureTone,
-      signal: "Record · map · slice",
+      signal: "Record · Map · Analysis",
     },
     promises: {
       title: "VotóMeter",
@@ -72,7 +72,7 @@ const FEATURE_TEXT = {
       href: "/votometro?lang=en",
       icon: Radar,
       tone: "blue" as FeatureTone,
-      signal: "Vote · topic · gazette",
+      signal: "Vote · Legislator · Gazette",
     },
     money: {
       title: "SigueElDinero",
@@ -82,7 +82,7 @@ const FEATURE_TEXT = {
       href: "/sigue-el-dinero?lang=en",
       icon: Waypoints,
       tone: "red" as FeatureTone,
-      signal: "Network · trail · progress",
+      signal: "Network · Contracts · Traceability",
     },
   },
 };
@@ -224,15 +224,39 @@ export function LandingPage({
         scrollTrigger: { trigger: ".lp-story", start: "top bottom", end: "bottom top", scrub: true },
       });
 
-      // ── Andes hills parallax (intro only) ──────────────
-      gsap.to(".lp-story__hills-bg", {
-        yPercent: 20,
+      // ── Andes hills — full-width parallax ──────────────
+      gsap.to(".lp-story__hills-wrap", {
+        yPercent: 28,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".lp-story",
+          start: "top top",
+          end: "55% top",
+          scrub: true,
+        },
+      });
+
+      // ── Title scroll animation ──────────────────────────
+      // Title lines drift upward at different rates → layered depth
+      gsap.to(".lp-story__title", {
+        yPercent: -18,
         ease: "none",
         scrollTrigger: {
           trigger: ".lp-story__intro",
           start: "top top",
           end: "bottom top",
-          scrub: true,
+          scrub: 1.2,
+        },
+      });
+      // Supporting elements drift at half the speed
+      gsap.to(".lp-story__eyebrow, .lp-story__live, .lp-story__flagbar", {
+        yPercent: -8,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".lp-story__intro",
+          start: "top top",
+          end: "bottom top",
+          scrub: 1.2,
         },
       });
     },
@@ -277,20 +301,21 @@ export function LandingPage({
 
       <main className="page lp-page">
         <section className="lp-story">
+          {/* Andes hills — full-width behind the entire hero section */}
+          <div className="lp-story__hills-wrap" aria-hidden="true">
+            <GLSLHills />
+          </div>
+
           <div className="lp-story__backdrop" aria-hidden="true">
             <span className="lp-story__glow lp-story__glow--yellow" />
             <span className="lp-story__glow lp-story__glow--blue" />
             <span className="lp-story__glow lp-story__glow--red" />
-            <span className="lp-story__gridline lp-story__gridline--left" />
-            <span className="lp-story__gridline lp-story__gridline--right" />
           </div>
 
           <div className="lp-story__inner">
 
             {/* ── HERO INTRO ─────────────────────────────────── */}
             <header className="lp-story__intro">
-              {/* Colombia Andes hills — backdrop for intro only */}
-              <GLSLHills className="lp-story__hills-bg" aria-hidden />
               <p className="eyebrow lp-story__eyebrow">
                 {lang === "es"
                   ? "VeedurIA · inteligencia cívica para Colombia"
@@ -359,11 +384,11 @@ export function LandingPage({
               {/* Left: Colombia map + info box */}
               <div className="lp-map-grid__left">
                 <div className="lp-map-grid__head">
-                  <p className="eyebrow">{lang === "es" ? "Entrada territorial" : "Territorial entry"}</p>
+                  <p className="eyebrow">{lang === "es" ? "Mapa de riesgo territorial" : "Territorial risk map"}</p>
                   <p className="lp-map-grid__hint">
                     {lang === "es"
-                      ? "Pasa el cursor o toca un departamento para explorar."
-                      : "Hover or tap a department to explore."}
+                      ? "Cada departamento muestra el volumen de contratos y la intensidad de riesgo calculada por el modelo. Haz clic para filtrar en ContratoLimpio."
+                      : "Each department shows contract volume and model-computed risk intensity. Click to filter in ContratoLimpio."}
                   </p>
                 </div>
 
