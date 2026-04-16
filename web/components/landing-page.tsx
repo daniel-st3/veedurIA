@@ -12,6 +12,7 @@ import { ColombiaMap } from "@/components/colombia-map";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { fetchGeoJson, fetchOverview } from "@/lib/api";
+import { deptDisplayLabel } from "@/lib/colombia-departments";
 import type { Lang, OverviewPayload } from "@/lib/types";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -123,14 +124,14 @@ export function LandingPage({
     if (typeof window === "undefined") return;
     const handlePageHide = () => {
       gsap.set(
-        ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card",
+        ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card, .lp-hero-flag",
         { clearProps: "all" },
       );
     };
     const handlePageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
         gsap.set(
-          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card",
+          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card, .lp-hero-flag",
           { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
         );
       }
@@ -148,7 +149,7 @@ export function LandingPage({
       const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (reduceMotion) {
         gsap.set(
-          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card",
+          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card, .lp-hero-flag",
           { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
         );
         return;
@@ -221,6 +222,30 @@ export function LandingPage({
         yPercent: -8, xPercent: 4, ease: "none",
         scrollTrigger: { trigger: ".lp-story", start: "top bottom", end: "bottom top", scrub: true },
       });
+
+      // ── Colombia flag parallax ──────────────────────────
+      gsap.fromTo(
+        ".lp-hero-flag",
+        { autoAlpha: 0, scale: 1.08 },
+        {
+          autoAlpha: 1,
+          scale: 1,
+          duration: 1.6,
+          ease: "power2.out",
+          delay: 0.25,
+          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility" }); },
+        },
+      );
+      gsap.to(".lp-hero-flag", {
+        yPercent: -26,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".lp-story",
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
     },
     { scope, dependencies: [lang, overview.meta.sourceRows, overview.slice.redAlerts] },
   );
@@ -231,7 +256,10 @@ export function LandingPage({
     overview.map.departments.find((item) => item.geoName === activeDepartment) ?? overview.map.departments[0];
   const focusedDepartment = hoveredDepartment ?? activeDepartment ?? overview.map.departments[0]?.geoName ?? null;
   const focusedDepartmentData =
-    overview.map.departments.find((item) => item.geoName === focusedDepartment) ?? currentDepartmentData;
+    overview.map.departments.find((item) => item.geoName === focusedDepartment) ??
+    (focusedDepartment
+      ? { geoName: focusedDepartment, label: deptDisplayLabel(focusedDepartment), avgRisk: 0, contractCount: 0 }
+      : currentDepartmentData);
   const featureSet = FEATURE_TEXT[lang];
   const features = [featureSet.contract, featureSet.promises, featureSet.money];
   const contratoHref = `/contrato-limpio?lang=${lang}`;
@@ -260,6 +288,11 @@ export function LandingPage({
 
       <main className="page lp-page">
         <section className="lp-story">
+          {/* Colombia flag parallax — behind everything */}
+          <div className="lp-story__flag-wrap" aria-hidden="true">
+            <div className="lp-hero-flag" />
+          </div>
+
           <div className="lp-story__backdrop" aria-hidden="true">
             <span className="lp-story__glow lp-story__glow--yellow" />
             <span className="lp-story__glow lp-story__glow--blue" />

@@ -7500,10 +7500,48 @@ input[type="date"] {
   border-radius: 999px;
 }
 
+/* ── Colombia flag parallax backdrop ── */
+.lp-story__flag-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lp-hero-flag {
+  position: absolute;
+  inset: -32% 0 -14%;
+  background: linear-gradient(
+    to bottom,
+    #f5c200 0%  50%,
+    #0d55d8 50% 75%,
+    #c42030 75% 100%
+  );
+  opacity: 0.17;
+  will-change: transform;
+}
+
+/* Soft centre vignette so text stays readable */
+.lp-hero-flag::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 36%, rgba(248, 248, 249, 0.90) 0%, transparent 58%),
+    linear-gradient(0deg,
+      rgba(248, 248, 249, 0.72) 0%,
+      transparent 24%,
+      transparent 76%,
+      rgba(248, 248, 249, 0.72) 100%
+    );
+}
+
 .lp-story__backdrop {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 1;
   /* subtle dot-grid gives the "data layer" feel */
   background-image:
     radial-gradient(circle, rgba(23, 32, 51, 0.055) 1px, transparent 1px);
@@ -7686,7 +7724,14 @@ input[type="date"] {
 }
 
 .lp-story__title-accent--tricolor {
-  background: linear-gradient(92deg, #c89610 0 33%, #0d5bd7 33% 72%, #c62839 72% 100%);
+  background: linear-gradient(92deg,
+    #c89610 0%,
+    #c89610 28%,
+    #0d5bd7 38%,
+    #0d5bd7 66%,
+    #c62839 76%,
+    #c62839 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -16518,8 +16563,9 @@ input[type="date"] {
   grid-row: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.28rem;
-  align-items: flex-end;
+  gap: 0.3rem;
+  align-items: flex-start;
+  align-self: center;
 }
 
 .lp-map-info__cta {
@@ -16574,18 +16620,8 @@ input[type="date"] {
 }
 
 .lp-module-card::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 12%;
-  bottom: 12%;
-  width: 3px;
-  border-radius: 999px;
+  display: none;
 }
-
-.lp-module-card--yellow::before { background: #d3a21a; }
-.lp-module-card--blue::before   { background: #0d5bd7; }
-.lp-module-card--red::before    { background: #c62839; }
 
 .lp-module-card:hover {
   transform: translateY(-4px) scale(1.008);
