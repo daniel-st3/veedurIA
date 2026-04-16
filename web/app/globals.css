@@ -16418,3 +16418,291 @@ input[type="date"] {
   text-decoration: none;
   white-space: nowrap;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   LP MAP GRID  — 2-column layout: map left, modules right
+   ══════════════════════════════════════════════════════════════ */
+
+.lp-map-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 1fr);
+  gap: 2rem 2.5rem;
+  align-items: start;
+}
+
+.lp-map-grid__left {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.lp-map-grid__head {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.lp-map-grid__hint {
+  margin: 0;
+  font-size: 0.86rem;
+  color: rgba(23, 32, 51, 0.52);
+  line-height: 1.45;
+}
+
+.lp-map-grid__canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: 540px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.46);
+  border: 1px solid rgba(23, 32, 51, 0.07);
+}
+
+.lp-map-grid__visual,
+.lp-map-grid__visual .colombia-map,
+.lp-map-grid__visual .colombia-map__svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Static department info box — replaces the floating tooltip */
+.lp-map-info {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 0.6rem 1rem;
+  align-items: center;
+  padding: 0.9rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(23, 32, 51, 0.09);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(6px);
+  transition: border-color 220ms ease, background 220ms ease;
+}
+
+.lp-map-info--high { border-color: rgba(192, 57, 43, 0.28); background: rgba(255, 248, 248, 0.88); }
+.lp-map-info--mid  { border-color: rgba(212, 128, 10, 0.24); background: rgba(255, 252, 244, 0.88); }
+.lp-map-info--low  { border-color: rgba(39, 166, 71, 0.22);  background: rgba(247, 255, 250, 0.88); }
+
+.lp-map-info__body {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  gap: 0.12rem;
+}
+
+.lp-map-info__label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(23, 32, 51, 0.48);
+}
+
+.lp-map-info__name {
+  font-family: "Sora", sans-serif;
+  font-size: clamp(1.05rem, 1.4vw, 1.22rem);
+  line-height: 1.15;
+  color: #172033;
+}
+
+.lp-map-info__meta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: rgba(23, 32, 51, 0.62);
+}
+
+.lp-map-info__legend {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  align-items: flex-end;
+}
+
+.lp-map-info__cta {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  width: fit-content;
+  min-height: 40px;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: #015f65;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.lp-map-info__cta:hover {
+  background: #024a50;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(1, 95, 101, 0.22);
+}
+
+/* Module cards column (right side) */
+.lp-map-grid__modules {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.lp-map-grid__modules-eyebrow {
+  margin: 0 0 0.1rem;
+  color: rgba(23, 32, 51, 0.52);
+}
+
+.lp-module-card {
+  position: relative;
+  display: grid;
+  gap: 0.55rem;
+  padding: 1.15rem 1.2rem 1.1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(23, 32, 51, 0.09);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.96) 0%, rgba(250, 246, 238, 0.92) 100%);
+  box-shadow: 0 2px 12px rgba(20, 30, 50, 0.05);
+  text-decoration: none;
+  color: var(--text);
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms ease, border-color 200ms ease;
+  overflow: hidden;
+}
+
+.lp-module-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12%;
+  bottom: 12%;
+  width: 3px;
+  border-radius: 999px;
+}
+
+.lp-module-card--yellow::before { background: #d3a21a; }
+.lp-module-card--blue::before   { background: #0d5bd7; }
+.lp-module-card--red::before    { background: #c62839; }
+
+.lp-module-card:hover {
+  transform: translateY(-4px) scale(1.008);
+  box-shadow: 0 18px 38px rgba(20, 30, 50, 0.11);
+}
+
+.lp-module-card--yellow:hover { border-color: rgba(211, 162, 26, 0.34); }
+.lp-module-card--blue:hover   { border-color: rgba(13, 91, 215, 0.28); }
+.lp-module-card--red:hover    { border-color: rgba(198, 40, 57, 0.28); }
+
+.lp-module-card__top {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lp-module-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.lp-module-card__icon--yellow { background: rgba(211, 162, 26, 0.14); color: #a16900; }
+.lp-module-card__icon--blue   { background: rgba(13, 91, 215, 0.12);  color: #0d5bd7; }
+.lp-module-card__icon--red    { background: rgba(198, 40, 57, 0.12);  color: #c62839; }
+
+.lp-module-card__kicker {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(23, 32, 51, 0.48);
+}
+
+.lp-module-card__title {
+  font-family: "Sora", sans-serif;
+  font-size: clamp(1.18rem, 1.8vw, 1.45rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: #172033;
+}
+
+.lp-module-card__body {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.58;
+  color: rgba(23, 32, 51, 0.68);
+}
+
+.lp-module-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.lp-module-card__signal {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(23, 32, 51, 0.44);
+}
+
+.lp-module-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #015f65;
+  white-space: nowrap;
+}
+
+.lp-module-card:hover .lp-module-card__cta {
+  color: #024a50;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .lp-map-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .lp-map-grid__canvas {
+    aspect-ratio: 1 / 1;
+    max-height: 400px;
+  }
+}
+
+@media (max-width: 640px) {
+  .lp-map-grid__canvas {
+    aspect-ratio: unset;
+    height: 320px;
+  }
+
+  .lp-map-info {
+    grid-template-columns: 1fr;
+  }
+
+  .lp-map-info__legend {
+    grid-column: 1;
+    grid-row: 2;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .lp-map-info__cta {
+    grid-row: 3;
+  }
+}

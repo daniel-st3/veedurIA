@@ -22,59 +22,65 @@ const FEATURE_TEXT = {
   es: {
     contract: {
       title: "ContratoLimpio",
-      kicker: "EXPLORAR CONTRATOS",
-      body: "Filtra por entidad, departamento, fechas y modalidad. El mapa reorganiza la lectura y el caso principal te lleva al expediente oficial.",
+      kicker: "CONTRATOS PÚBLICOS",
+      body: "Detecta anomalías en licitaciones y contratos directos. Filtra por entidad, departamento o modalidad y llega al expediente oficial en un clic.",
       cta: "Abrir ContratoLimpio",
       href: "/contrato-limpio?lang=es",
       icon: FileSearch,
       tone: "yellow" as FeatureTone,
+      signal: "Expediente · mapa · corte",
     },
     promises: {
       title: "VotóMeter",
-      kicker: "VER VOTACIONES",
-      body: "Cruza votaciones nominales del Congreso con el perfil programático de cada legislador. Baja a la tabla, abre la gaceta y revisa coherencia real por tema.",
+      kicker: "VOTACIONES DEL CONGRESO",
+      body: "Cruza votos nominales con el perfil programático de cada legislador. Abre la gaceta y verifica coherencia tema por tema.",
       cta: "Abrir VotóMeter",
       href: "/votometro?lang=es",
       icon: Radar,
       tone: "blue" as FeatureTone,
+      signal: "Voto · tema · gaceta",
     },
     money: {
       title: "SigueElDinero",
-      kicker: "MAPA RELACIONAL",
-      body: "La siguiente capa conectará contratistas, financiadores y señales repetidas. Ya puedes ver el frente abierto y lo que viene.",
-      cta: "Ver avance del módulo",
+      kicker: "RED RELACIONAL",
+      body: "Conecta contratistas, financiadores y señales repetidas. Visualiza la red de intereses detrás de los contratos públicos.",
+      cta: "Ver la red",
       href: "/sigue-el-dinero?lang=es",
       icon: Waypoints,
       tone: "red" as FeatureTone,
+      signal: "Red · rastro · avance",
     },
   },
   en: {
     contract: {
       title: "ContratoLimpio",
-      kicker: "EXPLORE CONTRACTS",
-      body: "Filter by entity, department, dates, and modality. The map reorganizes the readout and the lead case takes you back to the official record.",
+      kicker: "PUBLIC CONTRACTS",
+      body: "Detect anomalies in tenders and direct awards. Filter by entity, department, or modality and reach the official record in one click.",
       cta: "Open ContratoLimpio",
       href: "/contrato-limpio?lang=en",
       icon: FileSearch,
       tone: "yellow" as FeatureTone,
+      signal: "Record · map · slice",
     },
     promises: {
       title: "VotóMeter",
-      kicker: "VIEW VOTES",
-      body: "Cross nominal congressional votes with each legislator's programmatic profile. Drop into the table, open the gazette, and review topic-by-topic coherence.",
+      kicker: "CONGRESSIONAL VOTES",
+      body: "Cross nominal votes with each legislator's programmatic profile. Open the gazette and verify topic-by-topic coherence.",
       cta: "Open VotóMeter",
       href: "/votometro?lang=en",
       icon: Radar,
       tone: "blue" as FeatureTone,
+      signal: "Vote · topic · gazette",
     },
     money: {
       title: "SigueElDinero",
-      kicker: "RELATIONSHIP MAP",
-      body: "The next layer will connect contractors, funders, and repeated signals. You can already see the open workfront and what comes next.",
-      cta: "View module progress",
+      kicker: "RELATIONSHIP NETWORK",
+      body: "Connect contractors, funders, and repeated signals. Visualize the network of interests behind public contracts.",
+      cta: "See the network",
       href: "/sigue-el-dinero?lang=en",
       icon: Waypoints,
       tone: "red" as FeatureTone,
+      signal: "Network · trail · progress",
     },
   },
 };
@@ -101,37 +107,30 @@ export function LandingPage({
         setActiveDepartment((current) => current ?? data.map.departments[0]?.geoName);
       })
       .catch(() => {});
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [lang]);
 
   useEffect(() => {
     let alive = true;
     fetchGeoJson()
-      .then((data) => {
-        if (alive) setGeojson(data);
-      })
+      .then((data) => { if (alive) setGeojson(data); })
       .catch(() => {});
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
-  // Remove GSAP inline styles on page hide so bfcache restore doesn't leave elements invisible
+  // Clear GSAP inline styles on page hide to prevent bfcache invisibility
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handlePageHide = () => {
       gsap.set(
-        ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__actions, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-story-map, .lp-module-link, .lp-portfolio-card",
+        ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card",
         { clearProps: "all" },
       );
     };
     const handlePageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
-        // Page restored from bfcache — ensure elements are visible
         gsap.set(
-          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__actions, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-story-map, .lp-module-link, .lp-portfolio-card",
+          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card",
           { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
         );
       }
@@ -148,16 +147,15 @@ export function LandingPage({
     () => {
       const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (reduceMotion) {
-        // Immediately show all animated elements — never leave them invisible
         gsap.set(
-          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__actions, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-story-map, .lp-module-link, .lp-portfolio-card",
+          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card",
           { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
         );
         return;
       }
 
       gsap.fromTo(
-        ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__actions, .lp-story__stats",
+        ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats",
         { autoAlpha: 0, y: 18 },
         { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.04, ease: "power3.out",
           onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility" }); } },
@@ -178,23 +176,23 @@ export function LandingPage({
       );
 
       gsap.fromTo(
-        ".lp-story-map",
+        ".lp-map-grid",
         { autoAlpha: 0, y: 28, scale: 0.985 },
-        { autoAlpha: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out", delay: 0.08,
+        { autoAlpha: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out", delay: 0.1,
           onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); } },
       );
 
       gsap.fromTo(
-        ".lp-module-link",
-        { autoAlpha: 0, y: 22 },
+        ".lp-module-card",
+        { autoAlpha: 0, x: 24 },
         {
           autoAlpha: 1,
-          y: 0,
-          duration: 0.65,
-          stagger: 0.08,
+          x: 0,
+          duration: 0.62,
+          stagger: 0.09,
           ease: "power3.out",
-          delay: 0.1,
-          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility" }); },
+          delay: 0.18,
+          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); },
         },
       );
 
@@ -207,47 +205,21 @@ export function LandingPage({
           duration: 0.74,
           ease: "power3.out",
           onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility" }); },
-          scrollTrigger: {
-            trigger: ".lp-portfolio",
-            start: "top 82%",
-          },
+          scrollTrigger: { trigger: ".lp-portfolio", start: "top 82%" },
         },
       );
 
       gsap.to(".lp-story__glow--yellow", {
-        yPercent: -16,
-        xPercent: 6,
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".lp-story",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: true,
-        },
+        yPercent: -16, xPercent: 6, ease: "none",
+        scrollTrigger: { trigger: ".lp-story", start: "top bottom", end: "bottom top", scrub: true },
       });
-
       gsap.to(".lp-story__glow--blue", {
-        yPercent: 10,
-        xPercent: -5,
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".lp-story",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: true,
-        },
+        yPercent: 10, xPercent: -5, ease: "none",
+        scrollTrigger: { trigger: ".lp-story", start: "top bottom", end: "bottom top", scrub: true },
       });
-
       gsap.to(".lp-story__glow--red", {
-        yPercent: -8,
-        xPercent: 4,
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".lp-story",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: true,
-        },
+        yPercent: -8, xPercent: 4, ease: "none",
+        scrollTrigger: { trigger: ".lp-story", start: "top bottom", end: "bottom top", scrub: true },
       });
     },
     { scope, dependencies: [lang, overview.meta.sourceRows, overview.slice.redAlerts] },
@@ -271,6 +243,10 @@ export function LandingPage({
         ? "mid"
         : "low";
 
+  const handleDeptSelect = (geoName: string) => {
+    setActiveDepartment((prev) => prev === geoName ? prev : geoName);
+  };
+
   return (
     <div className="shell" ref={scope}>
       <SiteNav
@@ -293,11 +269,13 @@ export function LandingPage({
           </div>
 
           <div className="lp-story__inner">
+
+            {/* ── HERO INTRO ─────────────────────────────────── */}
             <header className="lp-story__intro">
               <p className="eyebrow lp-story__eyebrow">
                 {lang === "es"
-                  ? "VeedurIA · contratos, promesas y redes públicas"
-                  : "VeedurIA · contracts, promises, and public networks"}
+                  ? "VeedurIA · inteligencia cívica para Colombia"
+                  : "VeedurIA · civic intelligence for Colombia"}
               </p>
 
               <div className="lp-story__flagbar" aria-hidden="true">
@@ -313,213 +291,155 @@ export function LandingPage({
 
               <h1 className="lp-story__title">
                 <span className="lp-story__title-line">
-                  {lang === "es" ? "Detecta " : "Detect "}
-                  <span className="lp-story__title-accent lp-story__title-accent--tricolor">
-                    {lang === "es" ? "la señal" : "the signal"}
-                  </span>
+                  {lang === "es" ? "El poder público," : "Public power,"}
                 </span>
-                <span className="lp-story__title-line">{lang === "es" ? "antes de que" : "before it"}</span>
                 <span className="lp-story__title-line">
-                  <span className="lp-story__title-accent lp-story__title-accent--primary">
-                    {lang === "es" ? "se pierda" : "fades"}
+                  <span className="lp-story__title-accent lp-story__title-accent--tricolor">
+                    {lang === "es" ? "visible" : "visible"}
                   </span>
+                  {lang === "es" ? " y auditable" : " and auditable"}
                 </span>
               </h1>
 
               <p className="lp-story__body">
-                {lang === "es" ? "Empieza por " : "Start with "}
-                <Link href={`/contrato-limpio?lang=${lang}`} className="lp-inline-link">
-                  ContratoLimpio
-                </Link>
-                {lang === "es" ? " para abrir contratación, sigue con " : " to open procurement, move to "}
-                <Link href={`/votometro?lang=${lang}`} className="lp-inline-link">
-                  VotóMeter
-                </Link>
-                {lang === "es" ? " para contrastar votos y programas, y entra a " : " to contrast votes and programmes, and enter "}
-                <Link href={`/sigue-el-dinero?lang=${lang}`} className="lp-inline-link">
-                  SigueElDinero
-                </Link>
                 {lang === "es"
-                  ? " para seguir la capa relacional. Cada módulo te deja llegar rápido a la fuente que importa."
-                  : " to follow the relationship layer. Each module gets you quickly into the source that matters."}
+                  ? "Contratos con señales de riesgo, votos cruzados con programas legislativos y redes de financiación — todo trazado desde la fuente oficial. Sin intermediarios."
+                  : "Contracts with risk signals, votes crossed with legislative programmes, and financing networks — all traced from the official source. No intermediaries."}
               </p>
-
-              <div className="lp-story__actions">
-                {features.map((feature) => {
-                  const FeatureIcon = feature.icon;
-                  return (
-                    <Link key={feature.title} href={feature.href} className={`lp-story__spotlight-card lp-story__spotlight-card--${feature.tone}`}>
-                      <div className="lp-story__spotlight-top">
-                        <span className={`lp-story__spotlight-icon lp-story__spotlight-icon--${feature.tone}`}>
-                          <FeatureIcon size={18} />
-                        </span>
-                        <span className="lp-story__spotlight-kicker">{feature.kicker}</span>
-                      </div>
-                      <strong>{feature.title}</strong>
-                      <p>{feature.body}</p>
-                      <span className="lp-story__spotlight-cta">
-                        {feature.cta}
-                        <ArrowRight size={15} aria-hidden={true} />
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
 
               <div className="lp-story__stats">
                 <article className="lp-story-stat lp-story-stat--yellow">
-                  <span title={lang === "es" ? "Cantidad de registros visibles desde la fuente oficial" : "Visible records coming from the official source"}>
-                    {lang === "es" ? "Registros oficiales hoy" : "Official records today"}
-                  </span>
+                  <span>{lang === "es" ? "Registros oficiales hoy" : "Official records today"}</span>
                   {totalContracts ? (
                     <strong>{totalContracts.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
                   ) : (
                     <div className="lp-stat-skeleton" aria-hidden="true" />
                   )}
-                  <p>{lang === "es" ? `fuente visible al ${latestDate}` : `source visible through ${latestDate}`}</p>
+                  <p>{lang === "es" ? `fuente al ${latestDate}` : `source through ${latestDate}`}</p>
                 </article>
                 <article className="lp-story-stat lp-story-stat--blue">
-                  <span title={lang === "es" ? "Casos priorizados para abrir primero" : "Cases prioritized for first review"}>
-                    {lang === "es" ? "Alertas listas" : "Alerts ready"}
-                  </span>
+                  <span>{lang === "es" ? "Alertas listas" : "Alerts ready"}</span>
                   {overview.slice.redAlerts ? (
                     <strong>{overview.slice.redAlerts.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
                   ) : (
                     <div className="lp-stat-skeleton" aria-hidden="true" />
                   )}
-                  <p>{lang === "es" ? "casos priorizados para abrir primero" : "cases prioritized for first review"}</p>
+                  <p>{lang === "es" ? "priorizados para abrir primero" : "prioritized for first review"}</p>
                 </article>
                 <article className="lp-story-stat lp-story-stat--red">
-                  <span title={lang === "es" ? "Departamento con mayor intensidad visible" : "Department with the strongest visible intensity"}>
-                    {lang === "es" ? "Territorio más encendido" : "Most active territory"}
-                  </span>
+                  <span>{lang === "es" ? "Territorio más encendido" : "Most active territory"}</span>
                   <strong>{currentDepartmentData?.label ?? "Colombia"}</strong>
-                  <p>{currentDepartmentData ? `${Math.round(currentDepartmentData.avgRisk * 100)}/100` : "—"}</p>
+                  <p>{currentDepartmentData ? `${Math.round(currentDepartmentData.avgRisk * 100)}/100 intensidad` : "—"}</p>
                 </article>
               </div>
-
             </header>
 
-            <section className="lp-story-map">
-              <div className="lp-story-map__head">
-                <div>
+            {/* ── MAP + MODULES (2-column) ────────────────────── */}
+            <div className="lp-map-grid">
+
+              {/* Left: Colombia map + info box */}
+              <div className="lp-map-grid__left">
+                <div className="lp-map-grid__head">
                   <p className="eyebrow">{lang === "es" ? "Entrada territorial" : "Territorial entry"}</p>
-                  <h2>{lang === "es" ? "Abre ContratoLimpio desde el territorio" : "Open ContratoLimpio from the territory"}</h2>
-                </div>
-                <p className="lp-story-map__description">
-                  {lang === "es"
-                    ? "Mapa limpio, sin cajas encima: una lectura territorial rápida y un acceso directo al módulo completo."
-                    : "A clean map with no overlays on top: quick territorial context and a direct entry into the full module."}
-                </p>
-              </div>
-
-              <Link
-                href={contratoHref}
-                className="lp-story-map__frame lp-story-map__frame--link"
-                aria-label={lang === "es" ? "Abrir ContratoLimpio" : "Open ContratoLimpio"}
-              >
-                {geojson ? (
-                  <ColombiaMap
-                    geojson={geojson}
-                    departments={overview.map.departments}
-                    activeDepartment={activeDepartment}
-                    onHoverChange={setHoveredDepartment}
-                    mode="hero"
-                    showCaption={false}
-                    showTooltip={true}
-                    className="lp-story-map__visual"
-                  />
-                ) : (
-                  <div className="cv-map-placeholder">
-                    <span className="cv-spinner" aria-hidden="true" />
-                    <span className="label">{lang === "es" ? "Cargando territorio" : "Loading territory"}</span>
-                  </div>
-                )}
-              </Link>
-
-              <div className="lp-story-map__footer">
-                <div className={`lp-story-map__status lp-story-map__status--${focusTone}`}>
-                  <span>{hoveredDepartment ? (lang === "es" ? "En foco" : "In focus") : lang === "es" ? "Departamento activo" : "Active department"}</span>
-                  <strong>{focusedDepartmentData?.label ?? "Colombia"}</strong>
-                  <p>
-                    {(focusedDepartmentData?.contractCount ?? 0).toLocaleString(lang === "es" ? "es-CO" : "en-US")}{" "}
-                    {lang === "es" ? "contratos visibles" : "visible contracts"} ·{" "}
-                    {Math.round((focusedDepartmentData?.avgRisk ?? 0) * 100)}/100
+                  <p className="lp-map-grid__hint">
+                    {lang === "es"
+                      ? "Pasa el cursor o toca un departamento para explorar."
+                      : "Hover or tap a department to explore."}
                   </p>
                 </div>
 
-                <div className="lp-story-map__aside">
-                  <div className="lp-map-legend" aria-label={lang === "es" ? "Leyenda del mapa" : "Map legend"}>
-                    <span className="lp-map-legend__item">
-                      <i className="is-high" />
-                      {lang === "es" ? "Alto riesgo" : "High risk"}
-                    </span>
-                    <span className="lp-map-legend__item">
-                      <i className="is-mid" />
-                      {lang === "es" ? "Riesgo medio" : "Medium risk"}
-                    </span>
-                    <span className="lp-map-legend__item">
-                      <i className="is-low" />
-                      {lang === "es" ? "Riesgo bajo" : "Low risk"}
-                    </span>
+                <div className="lp-map-grid__canvas">
+                  {geojson ? (
+                    <ColombiaMap
+                      geojson={geojson}
+                      departments={overview.map.departments}
+                      activeDepartment={activeDepartment}
+                      onHoverChange={setHoveredDepartment}
+                      onSelect={handleDeptSelect}
+                      mode="hero"
+                      showCaption={false}
+                      showTooltip={false}
+                      className="lp-map-grid__visual"
+                    />
+                  ) : (
+                    <div className="cv-map-placeholder">
+                      <span className="cv-spinner" aria-hidden="true" />
+                      <span className="label">{lang === "es" ? "Cargando territorio" : "Loading territory"}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Static info box — updates on hover/click, no floating tooltip */}
+                <div className={`lp-map-info lp-map-info--${focusTone}`} aria-live="polite">
+                  <div className="lp-map-info__body">
+                    <p className="lp-map-info__label">
+                      {hoveredDepartment
+                        ? (lang === "es" ? "En foco" : "In focus")
+                        : (lang === "es" ? "Departamento activo" : "Active department")}
+                    </p>
+                    <strong className="lp-map-info__name">
+                      {focusedDepartmentData?.label ?? "Colombia"}
+                    </strong>
+                    <p className="lp-map-info__meta">
+                      {(focusedDepartmentData?.contractCount ?? 0).toLocaleString(lang === "es" ? "es-CO" : "en-US")}
+                      {" "}{lang === "es" ? "contratos" : "contracts"}
+                      {" · "}
+                      {Math.round((focusedDepartmentData?.avgRisk ?? 0) * 100)}/100{" "}
+                      {lang === "es" ? "intensidad" : "intensity"}
+                    </p>
                   </div>
-                  <Link href={contratoHref} className="lp-story-map__cta">
+                  <div className="lp-map-info__legend">
+                    <span className="lp-map-legend__item"><i className="is-high" />{lang === "es" ? "Alto" : "High"}</span>
+                    <span className="lp-map-legend__item"><i className="is-mid" />{lang === "es" ? "Medio" : "Med"}</span>
+                    <span className="lp-map-legend__item"><i className="is-low" />{lang === "es" ? "Bajo" : "Low"}</span>
+                  </div>
+                  <Link href={contratoHref} className="lp-map-info__cta">
                     {lang === "es" ? "Abrir ContratoLimpio" : "Open ContratoLimpio"}
-                    <ArrowRight size={15} aria-hidden={true} />
+                    <ArrowRight size={14} aria-hidden={true} />
                   </Link>
                 </div>
               </div>
-            </section>
 
-            <p className="lp-story__legend lp-kpi-legend">
-                {lang === "es"
-                  ? "Fuente oficial, alertas listas y territorio más encendido en una sola lectura."
-                  : "Official source, ready alerts, and the most active territory in one readout."}
-              </p>
-
-            <div className="lp-module-list">
-            {features.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <Link key={feature.title} href={feature.href} className={`lp-module-link lp-module-link--${feature.tone}`}>
-                  <div className="lp-module-link__identity">
-                    <div className="lp-module-link__top">
-                      <span className={`lp-module-link__icon lp-module-link__icon--${feature.tone}`}>
-                        <Icon size={18} />
+              {/* Right: Module cards */}
+              <div className="lp-map-grid__modules">
+                <p className="eyebrow lp-map-grid__modules-eyebrow">
+                  {lang === "es" ? "Herramientas de análisis" : "Analysis tools"}
+                </p>
+                {features.map((feature) => {
+                  const Icon = feature.icon;
+                  return (
+                    <Link
+                      key={feature.title}
+                      href={feature.href}
+                      className={`lp-module-card lp-module-card--${feature.tone}`}
+                    >
+                      <div className="lp-module-card__top">
+                        <span className={`lp-module-card__icon lp-module-card__icon--${feature.tone}`}>
+                          <Icon size={16} />
+                        </span>
+                        <span className="lp-module-card__kicker">{feature.kicker}</span>
+                      </div>
+                      <strong className="lp-module-card__title">{feature.title}</strong>
+                      <p className="lp-module-card__body">{feature.body}</p>
+                      <span className="lp-module-card__footer">
+                        <span className={`lp-module-card__signal lp-module-card__signal--${feature.tone}`}>
+                          {feature.signal}
+                        </span>
+                        <span className="lp-module-card__cta">
+                          {feature.cta}
+                          <ArrowRight size={13} aria-hidden={true} />
+                        </span>
                       </span>
-                      <span className="lp-module-link__kicker">{feature.kicker}</span>
-                    </div>
-                    <strong>{feature.title}</strong>
-                  </div>
-                  <div className="lp-module-link__body">
-                    <p>{feature.body}</p>
-                  </div>
-                  <div className="lp-module-link__cta">
-                    <span className={`lp-module-link__signal lp-module-link__signal--${feature.tone}`}>
-                      {feature.tone === "yellow"
-                        ? lang === "es"
-                          ? "Expediente, mapa y corte"
-                          : "Record, map, and slice"
-                        : feature.tone === "blue"
-                          ? lang === "es"
-                            ? "Voto, tema y gaceta"
-                            : "Vote, topic, and gazette"
-                          : lang === "es"
-                            ? "Red, rastro y avance"
-                            : "Graph, trail, and progress"}
-                    </span>
-                    <span className="lp-module-link__arrow">
-                      {feature.cta}
-                      <ArrowRight size={16} aria-hidden={true} />
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
+
           </div>
         </section>
 
+        {/* ── PORTFOLIO ───────────────────────────────────────── */}
         <section className="lp-portfolio">
           <div className="lp-portfolio-card">
             <div>
