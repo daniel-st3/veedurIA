@@ -4,6 +4,9 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 
 import { SiteFooter } from "@/components/site-footer";
@@ -22,6 +25,8 @@ import {
 import { votoMetroCopy } from "@/lib/copy";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
+
+gsap.registerPlugin(ScrollTrigger);
 
 type TableFilters = {
   theme: string;
@@ -57,6 +62,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
   const [barsVisible, setBarsVisible] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [photoMap, setPhotoMap] = useState<Record<string, string>>({});
+  const scope = useRef<HTMLDivElement | null>(null);
   const spotlightRef = useRef<HTMLDivElement | null>(null);
 
   const visibleProfiles = VOTOMETRO_LEGISLATORS;
@@ -316,7 +322,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
         y: names,
         type: "bar",
         orientation: "h",
-        marker: { color: "rgba(16,185,129,0.78)", line: { color: "rgba(16,185,129,0.3)", width: 1 } },
+        marker: { color: "rgba(13,91,215,0.8)", line: { color: "rgba(13,91,215,0.28)", width: 1 } },
         customdata: scatterProfiles.map((p) => [p.id, p.coherenceScore, p.totalVotes]),
         hovertemplate:
           lang === "es"
@@ -329,7 +335,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
         y: names,
         type: "bar",
         orientation: "h",
-        marker: { color: "rgba(220,38,38,0.72)", line: { color: "rgba(220,38,38,0.3)", width: 1 } },
+        marker: { color: "rgba(198,40,57,0.78)", line: { color: "rgba(198,40,57,0.26)", width: 1 } },
         customdata: scatterProfiles.map((p) => [p.id, p.inconsistentVotes]),
         hovertemplate:
           lang === "es"
@@ -342,7 +348,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
         y: names,
         type: "bar",
         orientation: "h",
-        marker: { color: "rgba(100,116,139,0.55)", line: { color: "rgba(100,116,139,0.2)", width: 1 } },
+        marker: { color: "rgba(211,162,26,0.72)", line: { color: "rgba(211,162,26,0.22)", width: 1 } },
         customdata: scatterProfiles.map((p) => [p.id, p.absencesOnKeyThemes]),
         hovertemplate:
           lang === "es"
@@ -381,6 +387,158 @@ export function VotometroView({ lang }: { lang: Lang }) {
     return () => observer.disconnect();
   }, [selectedProfile?.id]);
 
+  useGSAP(
+    () => {
+      const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (reduceMotion) {
+        gsap.set(
+          [
+            ".vm-hero__copy > *",
+            ".vm-kpi-card",
+            ".vm-section__header",
+            ".vm-analytics-card",
+            ".vm-panel--plot",
+            ".vm-legislator-card",
+            ".vm-spotlight__aside > *",
+            ".vm-spotlight__main > *",
+            ".vm-table-filters > *",
+            ".vm-table-wrap",
+            ".vm-pagination",
+            ".vm-legend",
+            ".vm-heatmap-wrap",
+            ".vm-methods__grid > article",
+          ].join(", "),
+          { autoAlpha: 1, y: 0, x: 0, scale: 1 },
+        );
+        return;
+      }
+
+      gsap.fromTo(
+        ".vm-hero__copy > *",
+        { autoAlpha: 0, y: 24 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.74,
+          stagger: 0.08,
+          ease: "power3.out",
+          onComplete() {
+            gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" });
+          },
+        },
+      );
+
+      gsap.fromTo(
+        ".vm-kpi-card",
+        { autoAlpha: 0, y: 26, scale: 0.985 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.76,
+          stagger: 0.08,
+          ease: "power3.out",
+          delay: 0.1,
+          onComplete() {
+            gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" });
+          },
+        },
+      );
+
+      gsap.to(".vm-hero__copy", {
+        yPercent: -7,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".vm-hero",
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+
+      gsap.to(".vm-hero__stats", {
+        yPercent: 8,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".vm-hero",
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+
+      gsap.utils.toArray<HTMLElement>(".vm-scroll-section").forEach((section) => {
+        if (section.classList.contains("vm-hero")) return;
+
+        const targets = section.querySelectorAll(
+          ".vm-section__header, .vm-analytics-card, .vm-panel--plot, .vm-legislator-card, .vm-spotlight__aside > *, .vm-spotlight__main > *, .vm-table-filters > *, .vm-table-wrap, .vm-pagination, .vm-legend, .vm-heatmap-wrap, .vm-methods__grid > article",
+        );
+
+        if (!targets.length) return;
+
+        gsap.fromTo(
+          targets,
+          { autoAlpha: 0, y: 30 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.78,
+            stagger: 0.06,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: section,
+              start: "top 79%",
+            },
+            onComplete() {
+              gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" });
+            },
+          },
+        );
+      });
+
+      gsap.fromTo(
+        ".vm-analytics-bar__track span, .vm-topic-overview__track span",
+        { scaleX: 0, transformOrigin: "left center" },
+        {
+          scaleX: 1,
+          duration: 1.05,
+          ease: "power3.out",
+          stagger: 0.08,
+          scrollTrigger: {
+            trigger: ".vm-overview",
+            start: "top 76%",
+          },
+          onComplete() {
+            gsap.set(this.targets(), { clearProps: "transform" });
+          },
+        },
+      );
+
+      gsap.fromTo(
+        ".vm-inline-meter span, .vm-coherence__bar span, .vm-topic-bar__track span",
+        { scaleX: 0, transformOrigin: "left center" },
+        {
+          scaleX: 1,
+          duration: 0.96,
+          ease: "power3.out",
+          stagger: 0.05,
+          scrollTrigger: {
+            trigger: ".vm-spotlight",
+            start: "top 76%",
+          },
+          onComplete() {
+            gsap.set(this.targets(), { clearProps: "transform" });
+          },
+        },
+      );
+    },
+    {
+      scope,
+      dependencies: [selectedProfile?.id, profilePeriod, heatmapRows.length, paginatedRows.length, visibleProfiles.length],
+    },
+  );
+
   const updateFilter = (key: keyof TableFilters, value: string) => {
     setFilters((current) => ({ ...current, [key]: value }));
   };
@@ -414,7 +572,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
   };
 
   return (
-    <div className="vm-shell">
+    <div ref={scope} className="vm-shell">
       <SiteNav
         lang={lang}
         links={[
@@ -425,7 +583,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
       />
 
       <main className="vm-main">
-        <section className="vm-hero">
+        <section className="vm-hero vm-scroll-section">
           <div className="vm-hero__grid vm-container">
             <div className="vm-hero__copy">
               <p className="vm-eyebrow">{t.eyebrowTemplate(visibleProfiles.length)}</p>
@@ -455,7 +613,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
           </div>
         </section>
 
-        <section className="vm-overview">
+        <section className="vm-overview vm-scroll-section">
           <div className="vm-container">
             <header className="vm-section__header vm-section__header--inline">
               <div>
@@ -576,7 +734,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
           </div>
         </section>
 
-        <section className="vm-section">
+        <section className="vm-section vm-scroll-section">
           <div className="vm-container">
             <header className="vm-section__header vm-section__header--inline">
               <div>
@@ -595,12 +753,12 @@ export function VotometroView({ lang }: { lang: Lang }) {
                   plot_bgcolor: "rgba(0,0,0,0)",
                   barmode: "relative",
                   margin: { l: 148, r: 32, t: 16, b: 48 },
-                  font: { color: "#2a241b", family: "Inter, ui-sans-serif, system-ui, sans-serif", size: 12 },
+                  font: { color: "#172033", family: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace", size: 12 },
                   xaxis: {
                     title: { text: lang === "es" ? "← Inconsistente / Ausente   |   Coherente →" : "← Inconsistent / Absent   |   Coherent →", standoff: 10 },
-                    gridcolor: "rgba(42, 36, 27, 0.08)",
+                    gridcolor: "rgba(23, 32, 51, 0.08)",
                     zeroline: true,
-                    zerolinecolor: "rgba(42,36,27,0.25)",
+                    zerolinecolor: "rgba(23, 32, 51, 0.22)",
                     zerolinewidth: 1.5,
                     ticksuffix: "%",
                     tickfont: { size: 11 },
@@ -630,7 +788,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
           </div>
         </section>
 
-        <section className="vm-section">
+        <section className="vm-section vm-scroll-section">
           <div className="vm-container">
             <header className="vm-section__header">
               <p className="vm-eyebrow">{t.legislatorExplorerEyebrow}</p>
@@ -677,7 +835,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
 
         {selectedProfile ? (
           <>
-            <section className="vm-spotlight" ref={spotlightRef}>
+            <section className="vm-spotlight vm-scroll-section" ref={spotlightRef}>
               <div className="vm-container vm-spotlight__layout">
                 <aside className="vm-spotlight__aside">
                   <ProfileAvatar profile={selectedProfile} photoMap={photoMap} size="large" />
@@ -785,7 +943,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
               </div>
             </section>
 
-            <section className="vm-section vm-section--table">
+            <section className="vm-section vm-section--table vm-scroll-section">
               <div className="vm-container">
                 <header className="vm-section__header vm-section__header--inline">
                   <div>
@@ -895,7 +1053,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
               </div>
             </section>
 
-            <section className="vm-section">
+            <section className="vm-section vm-scroll-section">
               <div className="vm-container">
                 <header className="vm-section__header">
                   <p className="vm-eyebrow">{t.matrixEyebrow}</p>
@@ -956,7 +1114,7 @@ export function VotometroView({ lang }: { lang: Lang }) {
               </div>
             </section>
 
-            <section className="vm-methods">
+            <section className="vm-methods vm-scroll-section">
               <div className="vm-container vm-methods__grid">
                 <article>
                   <h3>{t.methodsLayer}</h3>
