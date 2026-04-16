@@ -13,8 +13,7 @@ const SOCRATA_SUMMARY =
 const SOCRATA_LATEST =
   "https://www.datos.gov.co/resource/jbjy-vk9h.json" +
   "?$where=fecha_de_firma%20IS%20NOT%20NULL%20AND%20nombre_entidad%20IS%20NOT%20NULL%20AND%20departamento%20IS%20NOT%20NULL" +
-  "&" +
-  "?$select=fecha_de_firma,id_contrato,nombre_entidad,valor_del_contrato,departamento,urlproceso" +
+  "&$select=fecha_de_firma,id_contrato,nombre_entidad,valor_del_contrato,departamento,urlproceso" +
   "&$order=fecha_de_firma%20DESC,id_contrato%20ASC&$limit=5";
 const SOCRATA_METADATA = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h";
 
