@@ -12,13 +12,17 @@ import type {
   IdentityConflictRecord,
   LegislatorListItem,
   LegislatorProfile,
+  PartySummariesPayload,
   PartySummary,
+  ReviewDashboardPayload,
   PromiseReviewRecord,
   PromiseReviewSummary,
   TopicScore,
   VotometroChamber,
+  VotometroDataIssue,
   VotometroDirectoryPayload,
   VotometroFilters,
+  VotometroProfileResult,
   VotometroVotesPayload,
   VoteEventDetail,
 } from "@/lib/votometro-types";
@@ -57,6 +61,64 @@ function toNumber(value: unknown) {
 
 function toStringValue(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function issueFromError(error: unknown, context: string): VotometroDataIssue {
+  const fallback = {
+    detail: null as string | null,
+    code: "",
+    message: "",
+  };
+
+  if (error instanceof Error) {
+    fallback.message = error.message;
+  } else if (typeof error === "string") {
+    fallback.message = error;
+  } else if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    fallback.code = toStringValue(record.code);
+    fallback.message =
+      toStringValue(record.message) ||
+      toStringValue(record.error_description) ||
+      toStringValue(record.hint);
+    fallback.detail = toStringValue(record.details) || null;
+  }
+
+  const message = fallback.message || context;
+
+  if (message.includes("must be set")) {
+    return {
+      code: "missing_env",
+      title: "Configuración incompleta de VotóMeter",
+      message:
+        "Faltan variables de entorno de Supabase para leer la capa pública del módulo.",
+      detail: message,
+      httpStatus: 503,
+    };
+  }
+
+  if (
+    fallback.code === "PGRST205" ||
+    /Could not find the table/i.test(message) ||
+    /schema cache/i.test(message)
+  ) {
+    return {
+      code: "missing_schema",
+      title: "VotóMeter no está inicializado en Supabase",
+      message:
+        "La base pública conectada no tiene todavía las tablas o vistas de VotóMeter. Ejecuta scripts/setup_supabase.sql en el proyecto Supabase correcto y luego corre el primer sync.",
+      detail: message,
+      httpStatus: 503,
+    };
+  }
+
+  return {
+    code: "query_error",
+    title: "VotóMeter no pudo leer su capa pública",
+    message: context,
+    detail: message,
+    httpStatus: 503,
+  };
 }
 
 function parseTopicScores(value: unknown): TopicScore[] {
@@ -152,7 +214,10 @@ function voteFromRow(row: VoteRow): VoteEventDetail {
   };
 }
 
-function emptyDirectory(filters: VotometroFilters): VotometroDirectoryPayload {
+function emptyDirectory(
+  filters: VotometroFilters,
+  issue: VotometroDataIssue | null = null,
+): VotometroDirectoryPayload {
   return {
     meta: {
       total: 0,
@@ -164,6 +229,7 @@ function emptyDirectory(filters: VotometroFilters): VotometroDirectoryPayload {
       averageCoherence: null,
       generatedAt: new Date().toISOString(),
     },
+    issue,
     filters,
     options: {
       parties: [],
@@ -211,7 +277,12 @@ export async function getVotometroDirectory(filtersInput: SearchParamInput | Vot
     if (filters.party) query = query.eq("party", filters.party);
 
     const { data, error } = await query;
-    if (error || !data) return emptyDirectory(filters);
+    if (error || !data) {
+      return emptyDirectory(
+        filters,
+        issueFromError(error ?? new Error("No data returned from votometro_directory_public"), "VotóMeter no pudo leer el directorio público."),
+      );
+    }
 
     const items = (data as DirectoryRow[]).map(itemFromDirectoryRow);
     const optionsSource = [...items];
@@ -264,6 +335,7 @@ export async function getVotometroDirectory(filtersInput: SearchParamInput | Vot
           : null,
         generatedAt: new Date().toISOString(),
       },
+      issue: null,
       filters: { ...filters, page: safePage },
       options: {
         parties: [...new Set(optionsSource.map((item) => item.party).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es-CO")),
@@ -272,12 +344,20 @@ export async function getVotometroDirectory(filtersInput: SearchParamInput | Vot
       },
       items: paged,
     } satisfies VotometroDirectoryPayload;
-  } catch {
-    return emptyDirectory(filters);
+  } catch (error) {
+    return emptyDirectory(
+      filters,
+      issueFromError(error, "VotóMeter no pudo inicializar la lectura del directorio."),
+    );
   }
 }
 
 export async function getVotometroProfile(slug: string): Promise<LegislatorProfile | null> {
+  const result = await getVotometroProfileResult(slug);
+  return result.profile;
+}
+
+export async function getVotometroProfileResult(slug: string): Promise<VotometroProfileResult> {
   try {
     const supabase = getDataSupabase();
     const { data: profileRow, error: profileError } = await supabase
@@ -286,7 +366,19 @@ export async function getVotometroProfile(slug: string): Promise<LegislatorProfi
       .eq("slug", slug)
       .maybeSingle();
 
-    if (profileError || !profileRow) return null;
+    if (profileError) {
+      return {
+        profile: null,
+        issue: issueFromError(profileError, "VotóMeter no pudo leer este perfil."),
+      };
+    }
+
+    if (!profileRow) {
+      return {
+        profile: null,
+        issue: null,
+      };
+    }
 
     const item = itemFromDirectoryRow(profileRow as DirectoryRow);
 
@@ -329,20 +421,26 @@ export async function getVotometroProfile(slug: string): Promise<LegislatorProfi
       : [];
 
     return {
-      ...item,
-      attendance,
-      socials: Array.isArray(socials)
-        ? (socials as Record<string, unknown>[]).map((social) => ({
-            network: toStringValue(social.network),
-            handle: toStringValue(social.handle),
-            url: toStringValue(social.url),
-          }))
-        : [],
-      promises: promiseItems,
-      recentVotes: votes.items,
+      profile: {
+        ...item,
+        attendance,
+        socials: Array.isArray(socials)
+          ? (socials as Record<string, unknown>[]).map((social) => ({
+              network: toStringValue(social.network),
+              handle: toStringValue(social.handle),
+              url: toStringValue(social.url),
+            }))
+          : [],
+        promises: promiseItems,
+        recentVotes: votes.items,
+      },
+      issue: votes.issue,
     };
-  } catch {
-    return null;
+  } catch (error) {
+    return {
+      profile: null,
+      issue: issueFromError(error, "VotóMeter no pudo construir este perfil."),
+    };
   }
 }
 
@@ -384,6 +482,7 @@ export async function getVotometroVotes({
     if (error || !data) {
       return {
         meta: { total: 0, page, pageSize, generatedAt: new Date().toISOString() },
+        issue: issueFromError(error ?? new Error("No data returned from votometro_vote_records_public"), "VotóMeter no pudo leer las votaciones públicas."),
         items: [],
       };
     }
@@ -395,24 +494,48 @@ export async function getVotometroVotes({
         pageSize,
         generatedAt: new Date().toISOString(),
       },
+      issue: null,
       items: (data as VoteRow[]).map(voteFromRow),
     };
-  } catch {
+  } catch (error) {
     return {
       meta: { total: 0, page, pageSize, generatedAt: new Date().toISOString() },
+      issue: issueFromError(error, "VotóMeter no pudo inicializar la lectura de votaciones."),
       items: [],
     };
   }
 }
 
 export async function getPartySummaries(chamber?: VotometroChamber): Promise<PartySummary[]> {
+  const payload = await getPartySummariesPayload(chamber);
+  return payload.items;
+}
+
+export async function getPartySummariesPayload(
+  chamber?: VotometroChamber,
+): Promise<PartySummariesPayload> {
   try {
     const supabase = getDataSupabase();
     let query = supabase.from("party_metrics_current").select("*").order("member_count", { ascending: false });
     if (chamber) query = query.eq("chamber", chamber);
     const { data, error } = await query;
-    if (error || !data) return [];
-    return (data as Record<string, unknown>[]).map((row) => ({
+    if (error || !data) {
+      return {
+        meta: {
+          total: 0,
+          generatedAt: new Date().toISOString(),
+        },
+        issue: issueFromError(error ?? new Error("No data returned from party_metrics_current"), "VotóMeter no pudo leer los agregados por partido."),
+        items: [],
+      };
+    }
+    return {
+      meta: {
+        total: data.length,
+        generatedAt: new Date().toISOString(),
+      },
+      issue: null,
+      items: (data as Record<string, unknown>[]).map((row) => ({
       partyKey: toStringValue(row.party_key),
       party: toStringValue(row.party),
       chamber: toStringValue(row.chamber),
@@ -423,9 +546,17 @@ export async function getPartySummaries(chamber?: VotometroChamber): Promise<Par
       coherenceScore: toNumber(row.coherence_score),
       approvedPromiseMatches: toNumber(row.approved_promise_matches) ?? 0,
       topicScores: parseTopicScores(row.topic_scores),
-    }));
-  } catch {
-    return [];
+      })),
+    };
+  } catch (error) {
+    return {
+      meta: {
+        total: 0,
+        generatedAt: new Date().toISOString(),
+      },
+      issue: issueFromError(error, "VotóMeter no pudo inicializar la lectura por partido."),
+      items: [],
+    };
   }
 }
 
@@ -433,76 +564,86 @@ export function getTopicOptions() {
   return VOTOMETRO_TOPICS;
 }
 
-export async function getReviewDashboard() {
-  const supabase = createServiceSupabase();
+export async function getReviewDashboard(): Promise<ReviewDashboardPayload> {
+  try {
+    const supabase = createServiceSupabase();
 
-  const [{ data: legislators }, { data: claims }, { data: reviews }, { data: conflicts }, { data: runs }] =
-    await Promise.all([
-      supabase.from("legislators").select("id, canonical_name"),
-      supabase
-        .from("promise_claims")
-        .select("id, legislator_id, claim_text, source_label, source_date, topic_label")
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("promise_reviews")
-        .select("promise_claim_id, status, review_note")
-        .order("updated_at", { ascending: false })
-        .limit(100),
-      supabase
-        .from("identity_conflicts")
-        .select("*")
-        .order("confidence", { ascending: false })
-        .limit(50),
-      supabase
-        .from("ingestion_runs")
-        .select("id, job_name, mode, source_system, status, started_at, finished_at, rows_in, rows_out, replace_public, warnings")
-        .order("started_at", { ascending: false })
-        .limit(20),
-    ]);
+    const [{ data: legislators }, { data: claims }, { data: reviews }, { data: conflicts }, { data: runs }] =
+      await Promise.all([
+        supabase.from("legislators").select("id, canonical_name"),
+        supabase
+          .from("promise_claims")
+          .select("id, legislator_id, claim_text, source_label, source_date, topic_label")
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("promise_reviews")
+          .select("promise_claim_id, status, review_note")
+          .order("updated_at", { ascending: false })
+          .limit(100),
+        supabase
+          .from("identity_conflicts")
+          .select("*")
+          .order("confidence", { ascending: false })
+          .limit(50),
+        supabase
+          .from("ingestion_runs")
+          .select("id, job_name, mode, source_system, status, started_at, finished_at, rows_in, rows_out, replace_public, warnings")
+          .order("started_at", { ascending: false })
+          .limit(20),
+      ]);
 
-  const legislatorNameById = new Map<string, string>(
-    (legislators as Record<string, unknown>[] | null)?.map((row) => [toStringValue(row.id), toStringValue(row.canonical_name)]) ?? [],
-  );
+    const legislatorNameById = new Map<string, string>(
+      (legislators as Record<string, unknown>[] | null)?.map((row) => [toStringValue(row.id), toStringValue(row.canonical_name)]) ?? [],
+    );
 
-  const reviewByClaimId = new Map<string, Record<string, unknown>>(
-    (reviews as Record<string, unknown>[] | null)?.map((row) => [toStringValue(row.promise_claim_id), row]) ?? [],
-  );
+    const reviewByClaimId = new Map<string, Record<string, unknown>>(
+      (reviews as Record<string, unknown>[] | null)?.map((row) => [toStringValue(row.promise_claim_id), row]) ?? [],
+    );
 
-  const promiseQueue: PromiseReviewRecord[] = (claims as Record<string, unknown>[] | null)?.map((claim) => {
-    const review = reviewByClaimId.get(toStringValue(claim.id));
+    const promiseQueue: PromiseReviewRecord[] = (claims as Record<string, unknown>[] | null)?.map((claim) => {
+      const review = reviewByClaimId.get(toStringValue(claim.id));
+      return {
+        id: toStringValue(claim.id),
+        legislatorId: toStringValue(claim.legislator_id),
+        legislatorName: legislatorNameById.get(toStringValue(claim.legislator_id)) ?? "Legislador sin nombre",
+        topicLabel: toStringValue(claim.topic_label) || "Sin tema",
+        sourceLabel: toStringValue(claim.source_label) || "Fuente pública",
+        sourceDate: toStringValue(claim.source_date) || null,
+        claimText: toStringValue(claim.claim_text),
+        status: toStringValue(review?.status) || "pending",
+        reviewNote: toStringValue(review?.review_note),
+      };
+    }) ?? [];
+
+    const identityQueue: IdentityConflictRecord[] = (conflicts as Record<string, unknown>[] | null)?.map((conflict) => ({
+      id: toStringValue(conflict.id),
+      sourceSystem: toStringValue(conflict.source_system),
+      chamber: toStringValue(conflict.chamber),
+      candidateName: toStringValue(conflict.candidate_name),
+      normalizedName: toStringValue(conflict.normalized_name),
+      proposedLegislatorId: toStringValue(conflict.proposed_legislator_id) || null,
+      confidence: toNumber(conflict.confidence),
+      status: toStringValue(conflict.status),
+      evidence:
+        conflict.evidence && typeof conflict.evidence === "object"
+          ? (conflict.evidence as Record<string, unknown>)
+          : {},
+      resolvedNote: toStringValue(conflict.resolved_note),
+    })) ?? [];
+
     return {
-      id: toStringValue(claim.id),
-      legislatorId: toStringValue(claim.legislator_id),
-      legislatorName: legislatorNameById.get(toStringValue(claim.legislator_id)) ?? "Legislador sin nombre",
-      topicLabel: toStringValue(claim.topic_label) || "Sin tema",
-      sourceLabel: toStringValue(claim.source_label) || "Fuente pública",
-      sourceDate: toStringValue(claim.source_date) || null,
-      claimText: toStringValue(claim.claim_text),
-      status: toStringValue(review?.status) || "pending",
-      reviewNote: toStringValue(review?.review_note),
+      promiseQueue,
+      identityQueue,
+      runs: (runs as Record<string, unknown>[] | null) ?? [],
+      issue: null,
     };
-  }) ?? [];
-
-  const identityQueue: IdentityConflictRecord[] = (conflicts as Record<string, unknown>[] | null)?.map((conflict) => ({
-    id: toStringValue(conflict.id),
-    sourceSystem: toStringValue(conflict.source_system),
-    chamber: toStringValue(conflict.chamber),
-    candidateName: toStringValue(conflict.candidate_name),
-    normalizedName: toStringValue(conflict.normalized_name),
-    proposedLegislatorId: toStringValue(conflict.proposed_legislator_id) || null,
-    confidence: toNumber(conflict.confidence),
-    status: toStringValue(conflict.status),
-    evidence:
-      conflict.evidence && typeof conflict.evidence === "object"
-        ? (conflict.evidence as Record<string, unknown>)
-        : {},
-    resolvedNote: toStringValue(conflict.resolved_note),
-  })) ?? [];
-
-  return {
-    promiseQueue,
-    identityQueue,
-    runs: (runs as Record<string, unknown>[] | null) ?? [],
-  };
+  } catch (error) {
+    return {
+      promiseQueue: [],
+      identityQueue: [],
+      runs: [],
+      issue: issueFromError(error, "VotóMeter no pudo abrir el backoffice de revisión."),
+    };
+  }
 }

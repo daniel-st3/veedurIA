@@ -1,7 +1,7 @@
 import { VotometroDirectoryPage } from "@/components/votometro/directory-page";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
-import { getPartySummaries, getVotometroDirectory } from "@/lib/votometro-server";
+import { getPartySummariesPayload, getVotometroDirectory } from "@/lib/votometro-server";
 
 export const dynamic = "force-dynamic";
 
@@ -31,8 +31,8 @@ export default async function VotometroPage({
   const lang = resolveLang(Array.isArray(params.lang) ? params.lang[0] : params.lang);
   const [payload, parties] = await Promise.all([
     getVotometroDirectory(params),
-    getPartySummaries(),
+    getPartySummariesPayload(),
   ]);
 
-  return <VotometroDirectoryPage lang={lang} payload={payload} parties={parties} />;
+  return <VotometroDirectoryPage lang={lang} payload={payload} parties={parties.items} />;
 }

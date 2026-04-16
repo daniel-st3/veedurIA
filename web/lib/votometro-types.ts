@@ -2,6 +2,15 @@ import type { VotometroTopicKey } from "@/lib/votometro-topics";
 
 export type VotometroChamber = "senado" | "camara";
 export type PromiseAlignment = "coherente" | "inconsistente" | "ausente" | "sin-promesa";
+export type VotometroIssueCode = "missing_env" | "missing_schema" | "query_error";
+
+export type VotometroDataIssue = {
+  code: VotometroIssueCode;
+  title: string;
+  message: string;
+  detail: string | null;
+  httpStatus: number;
+};
 
 export type TopicScore = {
   key: string;
@@ -127,6 +136,7 @@ export type VotometroDirectoryPayload = {
     averageCoherence: number | null;
     generatedAt: string;
   };
+  issue: VotometroDataIssue | null;
   filters: VotometroFilters;
   options: {
     parties: string[];
@@ -143,7 +153,22 @@ export type VotometroVotesPayload = {
     pageSize: number;
     generatedAt: string;
   };
+  issue: VotometroDataIssue | null;
   items: VoteEventDetail[];
+};
+
+export type PartySummariesPayload = {
+  meta: {
+    total: number;
+    generatedAt: string;
+  };
+  issue: VotometroDataIssue | null;
+  items: PartySummary[];
+};
+
+export type VotometroProfileResult = {
+  profile: LegislatorProfile | null;
+  issue: VotometroDataIssue | null;
 };
 
 export type PromiseReviewRecord = {
@@ -169,4 +194,11 @@ export type IdentityConflictRecord = {
   status: string;
   evidence: Record<string, unknown>;
   resolvedNote: string;
+};
+
+export type ReviewDashboardPayload = {
+  promiseQueue: PromiseReviewRecord[];
+  identityQueue: IdentityConflictRecord[];
+  runs: Record<string, unknown>[];
+  issue: VotometroDataIssue | null;
 };

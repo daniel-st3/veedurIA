@@ -1,4 +1,5 @@
 import { ContractsView } from "@/components/contracts-view";
+import { deptGeoName } from "@/lib/colombia-departments";
 import { fetchContractsTable, fetchGeoJson, fetchOverview } from "@/lib/api";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
@@ -39,7 +40,7 @@ export default async function ContratoLimpioPage({
   const params = await searchParams;
   const lang = resolveLang(params.lang);
   const initialFilters = {
-    department: params.dept || undefined,
+    department: params.dept ? deptGeoName(params.dept) : undefined,
     risk: params.risk === "high" || params.risk === "medium" || params.risk === "low" ? params.risk : "all",
     modality: params.modality || undefined,
     query: params.q || "",

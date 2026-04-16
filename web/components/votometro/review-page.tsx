@@ -6,6 +6,7 @@ import type { Lang } from "@/lib/types";
 import type {
   IdentityConflictRecord,
   PromiseReviewRecord,
+  VotometroDataIssue,
 } from "@/lib/votometro-types";
 
 import styles from "./votometro.module.css";
@@ -17,6 +18,7 @@ export function VotometroReviewPage({
   promiseQueue,
   identityQueue,
   runs,
+  issue,
 }: {
   lang: Lang;
   isConfigured: boolean;
@@ -24,6 +26,7 @@ export function VotometroReviewPage({
   promiseQueue: PromiseReviewRecord[];
   identityQueue: IdentityConflictRecord[];
   runs: Record<string, unknown>[];
+  issue: VotometroDataIssue | null;
 }) {
   const copy =
     lang === "es"
@@ -98,6 +101,15 @@ export function VotometroReviewPage({
 
         {isConfigured && isAuthenticated ? (
           <>
+            {issue ? (
+              <section className={styles.alertCard}>
+                <span className={styles.eyebrow}>Review / Status</span>
+                <h2 className={styles.alertTitle}>{issue.title}</h2>
+                <p className={styles.alertBody}>{issue.message}</p>
+                {issue.detail ? <p className={styles.smallMuted}>Detalle técnico: {issue.detail}</p> : null}
+              </section>
+            ) : null}
+
             <section className={styles.surface}>
               <h2 className={styles.surfaceTitle}>{copy.pendingPromises}</h2>
               <div className={styles.reviewGrid}>

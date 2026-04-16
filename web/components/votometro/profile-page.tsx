@@ -4,7 +4,7 @@ import { ArrowUpRight, CalendarDays, Mail, Phone } from "lucide-react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import type { Lang } from "@/lib/types";
-import type { LegislatorProfile } from "@/lib/votometro-types";
+import type { LegislatorProfile, VotometroDataIssue } from "@/lib/votometro-types";
 
 import styles from "./votometro.module.css";
 
@@ -27,10 +27,41 @@ function avatar(profile: LegislatorProfile) {
 export function VotometroProfilePage({
   lang,
   profile,
+  issue,
 }: {
   lang: Lang;
-  profile: LegislatorProfile;
+  profile: LegislatorProfile | null;
+  issue: VotometroDataIssue | null;
 }) {
+  if (!profile) {
+    return (
+      <div className={styles.shell}>
+        <SiteNav lang={lang} />
+        <main className={styles.main}>
+          <section className={styles.alertCard}>
+            <span className={styles.eyebrow}>
+              {lang === "es" ? "Perfil individual" : "Individual profile"}
+            </span>
+            <h1 className={styles.alertTitle}>
+              {issue?.title ?? (lang === "es" ? "Perfil no disponible" : "Profile unavailable")}
+            </h1>
+            <p className={styles.alertBody}>
+              {issue?.message ??
+                (lang === "es"
+                  ? "El legislador solicitado no existe en este corte público."
+                  : "The requested legislator is not available in this public slice.")}
+            </p>
+            {issue?.detail ? <p className={styles.smallMuted}>Detalle técnico: {issue.detail}</p> : null}
+            <Link href={`/votometro?lang=${lang}`} className={styles.inlineLink}>
+              {lang === "es" ? "Volver al directorio" : "Back to directory"}
+            </Link>
+          </section>
+        </main>
+        <SiteFooter lang={lang} />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.shell}>
       <SiteNav lang={lang} />

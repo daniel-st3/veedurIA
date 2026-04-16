@@ -19,5 +19,7 @@ export async function GET(request: NextRequest) {
     pageSize: Number.isFinite(pageSize) ? Math.min(100, Math.max(1, pageSize)) : 20,
   });
 
-  return NextResponse.json(payload);
+  return NextResponse.json(payload, {
+    status: payload.issue?.httpStatus ?? 200,
+  });
 }

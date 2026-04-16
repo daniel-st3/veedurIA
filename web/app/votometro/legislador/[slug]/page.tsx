@@ -1,9 +1,7 @@
-import { notFound } from "next/navigation";
-
 import { VotometroProfilePage } from "@/components/votometro/profile-page";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
-import { getVotometroProfile } from "@/lib/votometro-server";
+import { getVotometroProfileResult } from "@/lib/votometro-server";
 
 export const revalidate = 3600;
 
@@ -16,14 +14,17 @@ export async function generateMetadata({
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const lang = resolveLang(Array.isArray(query.lang) ? query.lang[0] : query.lang);
-  const profile = await getVotometroProfile(slug);
+  const { profile, issue } = await getVotometroProfileResult(slug);
 
   if (!profile) {
+    const description = issue
+      ? issue.message
+      : "El perfil solicitado no está disponible en este corte de VotóMeter.";
     return buildPageMetadata({
       lang,
       path: `/votometro/legislador/${slug}?lang=${lang}`,
       title: "Legislador no encontrado — VotóMeter",
-      description: "El perfil solicitado no está disponible en este corte de VotóMeter.",
+      description,
       imagePath: "/votometro/opengraph-image",
     });
   }
@@ -46,9 +47,7 @@ export default async function VotometroLegislatorPage({
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const lang = resolveLang(Array.isArray(query.lang) ? query.lang[0] : query.lang);
-  const profile = await getVotometroProfile(slug);
+  const { profile, issue } = await getVotometroProfileResult(slug);
 
-  if (!profile) notFound();
-
-  return <VotometroProfilePage lang={lang} profile={profile} />;
+  return <VotometroProfilePage lang={lang} profile={profile} issue={issue} />;
 }
