@@ -7500,48 +7500,10 @@ input[type="date"] {
   border-radius: 999px;
 }
 
-/* ── Colombia flag parallax backdrop ── */
-.lp-story__flag-wrap {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.lp-hero-flag {
-  position: absolute;
-  inset: -32% 0 -14%;
-  background: linear-gradient(
-    to bottom,
-    #f5c200 0%  50%,
-    #0d55d8 50% 75%,
-    #c42030 75% 100%
-  );
-  opacity: 0.17;
-  will-change: transform;
-}
-
-/* Soft centre vignette so text stays readable */
-.lp-hero-flag::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 36%, rgba(248, 248, 249, 0.90) 0%, transparent 58%),
-    linear-gradient(0deg,
-      rgba(248, 248, 249, 0.72) 0%,
-      transparent 24%,
-      transparent 76%,
-      rgba(248, 248, 249, 0.72) 100%
-    );
-}
-
 .lp-story__backdrop {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 1;
   /* subtle dot-grid gives the "data layer" feel */
   background-image:
     radial-gradient(circle, rgba(23, 32, 51, 0.055) 1px, transparent 1px);
@@ -7661,12 +7623,38 @@ input[type="date"] {
 }
 
 .lp-story__intro {
+  position: relative;
+  overflow: hidden;
   display: grid;
   gap: 0.85rem;
   max-width: 62rem;
   margin-inline: auto;
   justify-items: center;
   text-align: center;
+  border-radius: 24px;
+  padding: clamp(1.8rem, 3.5vw, 3rem) clamp(1rem, 3vw, 2rem);
+}
+
+/* Andes hills WebGL backdrop — only covers the intro/hero area */
+.lp-story__hills-bg {
+  position: absolute !important;
+  inset: -22% -8% !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  opacity: 0.26;
+  will-change: transform;
+}
+
+/* Gradient overlay so text stays crisp over the hills */
+.lp-story__intro::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 75% 55% at 50% 35%, rgba(248,249,250,0.82) 0%, transparent 55%),
+    linear-gradient(180deg, rgba(248,249,250,0.68) 0%, transparent 30%, transparent 70%, rgba(248,249,250,0.55) 100%);
 }
 
 .lp-story__eyebrow {

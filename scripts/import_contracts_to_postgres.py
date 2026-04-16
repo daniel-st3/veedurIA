@@ -26,7 +26,9 @@ import argparse
 import json
 import os
 import pathlib
+import re
 import sys
+import unicodedata
 from datetime import datetime, timezone
 from typing import Any
 
@@ -87,15 +89,57 @@ def _find_parquet() -> pathlib.Path:
 # ── stats computation ─────────────────────────────────────────────────────────
 
 def _dept_geo_name(dept: str) -> str:
-    mapping = {
-        "BOGOTA": "SANTAFE DE BOGOTA D.C",
-        "BOGOTÁ": "SANTAFE DE BOGOTA D.C",
-        "BOGOTA D.C.": "SANTAFE DE BOGOTA D.C",
-        "BOGOTÁ D.C.": "SANTAFE DE BOGOTA D.C",
-        "SAN ANDRES": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+    canonical = {
+        "AMAZONAS": "AMAZONAS",
+        "ANTIOQUIA": "ANTIOQUIA",
+        "ARAUCA": "ARAUCA",
+        "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+        "ATLANTICO": "ATLANTICO",
+        "BOLIVAR": "BOLIVAR",
+        "BOYACA": "BOYACA",
+        "CALDAS": "CALDAS",
+        "CAQUETA": "CAQUETA",
+        "CASANARE": "CASANARE",
+        "CAUCA": "CAUCA",
+        "CESAR": "CESAR",
+        "CHOCO": "CHOCO",
+        "CORDOBA": "CORDOBA",
+        "CUNDINAMARCA": "CUNDINAMARCA",
+        "GUAINIA": "GUAINIA",
+        "GUAVIARE": "GUAVIARE",
+        "HUILA": "HUILA",
+        "LA GUAJIRA": "LA GUAJIRA",
+        "MAGDALENA": "MAGDALENA",
+        "META": "META",
+        "NARINO": "NARIÑO",
+        "NORTE DE SANTANDER": "NORTE DE SANTANDER",
+        "PUTUMAYO": "PUTUMAYO",
+        "QUINDIO": "QUINDIO",
+        "RISARALDA": "RISARALDA",
+        "SANTAFE DE BOGOTA D C": "SANTAFE DE BOGOTA D.C",
+        "SANTANDER": "SANTANDER",
+        "SUCRE": "SUCRE",
+        "TOLIMA": "TOLIMA",
+        "VALLE DEL CAUCA": "VALLE DEL CAUCA",
+        "VAUPES": "VAUPES",
+        "VICHADA": "VICHADA",
     }
-    upper = dept.strip().upper()
-    return mapping.get(upper, upper)
+    aliases = {
+        "BOGOTA": "SANTAFE DE BOGOTA D C",
+        "BOGOTA D C": "SANTAFE DE BOGOTA D C",
+        "BOGOTA D.C": "SANTAFE DE BOGOTA D C",
+        "DISTRITO CAPITAL DE BOGOTA": "SANTAFE DE BOGOTA D C",
+        "SAN ANDRES": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+        "SAN ANDRES PROVIDENCIA Y SANTA CATALINA": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+        "SAN ANDRES, PROVIDENCIA Y SANTA CATALINA": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+    }
+
+    normalized = unicodedata.normalize("NFD", str(dept or ""))
+    normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    normalized = re.sub(r"[.,]", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip().upper()
+    normalized = aliases.get(normalized, normalized)
+    return canonical.get(normalized, normalized)
 
 
 def _format_cop(value: float) -> str:
@@ -106,10 +150,44 @@ def _format_cop(value: float) -> str:
     return f"${value / 1_000:.0f}K"
 
 
-def compute_global_stats(df: pd.DataFrame) -> dict:
-    """Compute all stats needed by the overview API route."""
-    df = df.copy()
+def _pad_departments(departments: list[dict]) -> list[dict]:
+    """Ensure all 33 canonical GeoJSON departments appear, even those with 0 flagged contracts."""
+    ALL_GEO_NAMES = [
+        "AMAZONAS", "ANTIOQUIA", "ARAUCA",
+        "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
+        "ATLANTICO", "BOLIVAR", "BOYACA", "CALDAS", "CAQUETA", "CASANARE",
+        "CAUCA", "CESAR", "CHOCO", "CORDOBA", "CUNDINAMARCA", "GUAINIA",
+        "GUAVIARE", "HUILA", "LA GUAJIRA", "MAGDALENA", "META", "NARIÑO",
+        "NORTE DE SANTANDER", "PUTUMAYO", "QUINDIO", "RISARALDA",
+        "SANTAFE DE BOGOTA D.C", "SANTANDER", "SUCRE", "TOLIMA",
+        "VALLE DEL CAUCA", "VAUPES", "VICHADA",
+    ]
+    existing = {d["geoName"] for d in departments}
+    for geo in ALL_GEO_NAMES:
+        if geo not in existing:
+            departments.append({
+                "key": geo,
+                "label": geo.title(),
+                "geoName": geo,
+                "avgRisk": 0.0,
+                "contractCount": 0,
+            })
+    return departments
+
+
+def compute_global_stats(df_flagged: pd.DataFrame, df_all: pd.DataFrame | None = None) -> dict:
+    """Compute all stats needed by the overview API route.
+
+    df_flagged — red+yellow contracts only (used for lead cases, risk stats).
+    df_all     — full dataset (used for department map stats so every region shows).
+    """
+    df = df_flagged.copy()
     df["value_num"] = pd.to_numeric(df["valor_del_contrato"], errors="coerce").fillna(0)
+
+    # Use the full dataset for department stats so departments with only low-risk
+    # contracts still appear on the map (instead of showing 0 contracts).
+    df_for_depts = df_all.copy() if df_all is not None else df
+    df_for_depts["value_num"] = pd.to_numeric(df_for_depts["valor_del_contrato"], errors="coerce").fillna(0)
 
     red = df[df["risk_label"] == "risk_rojo"]
     yellow = df[df["risk_label"] == "risk_amarillo"]
@@ -117,9 +195,9 @@ def compute_global_stats(df: pd.DataFrame) -> dict:
     latest_ts = df["fecha_firma"].max()
     latest_date = latest_ts.strftime("%Y-%m-%d") if pd.notna(latest_ts) else None
 
-    # Department stats
+    # Department stats — computed from ALL contracts, not just flagged
     dept_grp = (
-        df.groupby("departamento")
+        df_for_depts.groupby("departamento")
         .agg(contract_count=("risk_score", "size"), avg_risk=("risk_score", "mean"))
         .reset_index()
     )
@@ -133,6 +211,7 @@ def compute_global_stats(df: pd.DataFrame) -> dict:
         }
         for _, row in dept_grp.iterrows()
     ]
+    departments = _pad_departments(departments)
 
     # Top 48 lead cases
     top = df.nlargest(48, "risk_score")
@@ -257,8 +336,9 @@ def main(full: bool = False) -> None:
     parquet_path = _find_parquet()
     print(f"Reading {parquet_path.name} …")
     df = pd.read_parquet(str(parquet_path), columns=SLIM_COLS)
+    print(f"  Total contracts: {len(df):,}")
 
-    # Keep only red + yellow
+    # Keep only red + yellow for the contracts table; full df feeds dept map stats
     flagged = df[df["risk_label"].isin(["risk_rojo", "risk_amarillo"])].copy()
     print(f"  Red+Yellow: {len(flagged):,} contracts")
 
@@ -316,9 +396,9 @@ def main(full: bool = False) -> None:
             pct = done / len(clean) * 100
             print(f"  {done:,} / {len(clean):,}  ({pct:.0f}%)")
 
-    # Compute + store global stats
+    # Compute + store global stats (dept map uses full df so all 33 regions show)
     print("Computing global stats …")
-    stats = compute_global_stats(flagged)
+    stats = compute_global_stats(flagged, df_all=df)
     client.table("contracts_stats").upsert(
         {"key": "global", "data": stats, "updated_at": datetime.now(timezone.utc).isoformat()},
         on_conflict="key",

@@ -9,6 +9,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, FileSearch, Radar, Waypoints } from "lucide-react";
 
 import { ColombiaMap } from "@/components/colombia-map";
+import { GLSLHills } from "@/components/ui/glsl-hills";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { fetchGeoJson, fetchOverview } from "@/lib/api";
@@ -124,14 +125,14 @@ export function LandingPage({
     if (typeof window === "undefined") return;
     const handlePageHide = () => {
       gsap.set(
-        ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card, .lp-hero-flag",
+        ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card",
         { clearProps: "all" },
       );
     };
     const handlePageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
         gsap.set(
-          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card, .lp-hero-flag",
+          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card",
           { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
         );
       }
@@ -149,7 +150,7 @@ export function LandingPage({
       const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (reduceMotion) {
         gsap.set(
-          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card, .lp-hero-flag",
+          ".lp-story__eyebrow, .lp-story__flagbar, .lp-story__body, .lp-story__stats, .lp-story__title-line, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-portfolio-card",
           { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
         );
         return;
@@ -223,24 +224,12 @@ export function LandingPage({
         scrollTrigger: { trigger: ".lp-story", start: "top bottom", end: "bottom top", scrub: true },
       });
 
-      // ── Colombia flag parallax ──────────────────────────
-      gsap.fromTo(
-        ".lp-hero-flag",
-        { autoAlpha: 0, scale: 1.08 },
-        {
-          autoAlpha: 1,
-          scale: 1,
-          duration: 1.6,
-          ease: "power2.out",
-          delay: 0.25,
-          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility" }); },
-        },
-      );
-      gsap.to(".lp-hero-flag", {
-        yPercent: -26,
+      // ── Andes hills parallax (intro only) ──────────────
+      gsap.to(".lp-story__hills-bg", {
+        yPercent: 20,
         ease: "none",
         scrollTrigger: {
-          trigger: ".lp-story",
+          trigger: ".lp-story__intro",
           start: "top top",
           end: "bottom top",
           scrub: true,
@@ -288,11 +277,6 @@ export function LandingPage({
 
       <main className="page lp-page">
         <section className="lp-story">
-          {/* Colombia flag parallax — behind everything */}
-          <div className="lp-story__flag-wrap" aria-hidden="true">
-            <div className="lp-hero-flag" />
-          </div>
-
           <div className="lp-story__backdrop" aria-hidden="true">
             <span className="lp-story__glow lp-story__glow--yellow" />
             <span className="lp-story__glow lp-story__glow--blue" />
@@ -305,6 +289,8 @@ export function LandingPage({
 
             {/* ── HERO INTRO ─────────────────────────────────── */}
             <header className="lp-story__intro">
+              {/* Colombia Andes hills — backdrop for intro only */}
+              <GLSLHills className="lp-story__hills-bg" aria-hidden />
               <p className="eyebrow lp-story__eyebrow">
                 {lang === "es"
                   ? "VeedurIA · inteligencia cívica para Colombia"

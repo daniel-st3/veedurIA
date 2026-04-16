@@ -140,6 +140,10 @@ export function deptDisplayLabel(value: string | null | undefined) {
   return DISPLAY_LABELS[geoName] ?? geoName;
 }
 
+export function getAllGeoNames(): string[] {
+  return [...GEO_DEPARTMENT_NAMES];
+}
+
 export function departmentFilterVariants(value: string | null | undefined) {
   const geoName = deptGeoName(value);
   if (!geoName) return [];

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase, deptGeoName, formatCop } from "@/lib/supabase-server";
+import { createServerSupabase, formatCop } from "@/lib/supabase-server";
+import { departmentFilterVariants, deptDisplayLabel, deptGeoName, getAllGeoNames } from "@/lib/colombia-departments";
 import type { OverviewPayload } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -9,18 +10,46 @@ export const dynamic = "force-dynamic";
 const SOCRATA_SUMMARY =
   "https://www.datos.gov.co/resource/jbjy-vk9h.json" +
   "?$select=max(fecha_de_firma)%20as%20max_fecha,%20count(*)%20as%20total&$limit=1";
+const SOCRATA_METADATA = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h";
 
-async function fetchSourceCount(): Promise<{ rows: number | null; latestDate: string | null }> {
+function searchableClause(raw: string) {
+  const term = raw.trim().replace(/[%(),]/g, " ");
+  if (!term) return null;
+  return [
+    `entity.ilike.%${term}%`,
+    `provider.ilike.%${term}%`,
+    `id.ilike.%${term}%`,
+    `modality.ilike.%${term}%`,
+    `object_desc.ilike.%${term}%`,
+  ].join(",");
+}
+
+function readableText(value: unknown, fallback: string) {
+  const text = String(value ?? "").trim();
+  return text || fallback;
+}
+
+function readableUrl(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+async function fetchSourceStatus(): Promise<{ rows: number | null; latestDate: string | null; updatedAt: string | null }> {
   try {
-    const res = await fetch(SOCRATA_SUMMARY, { next: { revalidate: 3600 } });
-    if (!res.ok) return { rows: null, latestDate: null };
-    const json = await res.json();
+    const [summaryRes, metadataRes] = await Promise.all([
+      fetch(SOCRATA_SUMMARY, { cache: "no-store" }),
+      fetch(SOCRATA_METADATA, { cache: "no-store" }),
+    ]);
+    if (!summaryRes.ok || !metadataRes.ok) {
+      return { rows: null, latestDate: null, updatedAt: null };
+    }
+    const [json, metadata] = await Promise.all([summaryRes.json(), metadataRes.json()]);
     return {
       rows: json?.[0]?.total ? Number(json[0].total) : null,
       latestDate: json?.[0]?.max_fecha?.slice(0, 10) ?? null,
+      updatedAt: metadata?.dataUpdatedAt ?? null,
     };
   } catch {
-    return { rows: null, latestDate: null };
+    return { rows: null, latestDate: null, updatedAt: null };
   }
 }
 
@@ -34,6 +63,8 @@ export async function GET(req: NextRequest) {
     const dateFrom = searchParams.get("date_from") ?? undefined;
     const dateTo = searchParams.get("date_to") ?? undefined;
     const queryText = searchParams.get("query") ?? undefined;
+    const departmentFilters = departmentFilterVariants(department);
+    const activeDepartmentGeoName = deptGeoName(department);
 
     const hasFilters = !!(department || (risk && risk !== "all") || modality || dateFrom || dateTo || queryText);
 
@@ -67,13 +98,17 @@ export async function GET(req: NextRequest) {
         .order("risk_score", { ascending: false })
         .limit(48);
 
-      if (department) q = q.eq("department", department);
+      if (departmentFilters.length) q = q.in("department", departmentFilters);
       if (risk === "high") q = q.eq("risk_bucket", "high");
       else if (risk === "medium") q = q.eq("risk_bucket", "medium");
+      else if (risk === "low") q = q.eq("risk_bucket", "low");
       if (modality) q = q.eq("modality", modality);
       if (dateFrom) q = q.gte("date", dateFrom);
       if (dateTo) q = q.lte("date", dateTo);
-      if (queryText) q = q.ilike("entity", `%${queryText}%`);
+      if (queryText) {
+        const clause = searchableClause(queryText);
+        if (clause) q = q.or(clause);
+      }
 
       const { data: rows, count } = await q;
 
@@ -99,15 +134,15 @@ export async function GET(req: NextRequest) {
       filteredLeadCases = (rows ?? []).slice(0, 48).map((r: Record<string, unknown>) => ({
         id: String(r.id ?? ""),
         score: Math.round((r.risk_score as number) * 100),
-        riskBand: (r.risk_bucket === "high" ? "high" : "medium") as "high" | "medium" | "low",
-        entity: String(r.entity ?? ""),
-        provider: String(r.provider ?? ""),
-        department: String(r.department ?? ""),
-        modality: String(r.modality ?? ""),
+        riskBand: ((r.risk_bucket as string) === "high" ? "high" : (r.risk_bucket as string) === "medium" ? "medium" : "low") as "high" | "medium" | "low",
+        entity: readableText(r.entity, lang === "es" ? "Entidad sin nombre disponible" : "Entity name unavailable"),
+        provider: readableText(r.provider, lang === "es" ? "Proveedor no disponible" : "Provider unavailable"),
+        department: deptDisplayLabel(String(r.department ?? "")),
+        modality: readableText(r.modality, lang === "es" ? "Modalidad no disponible" : "Modality unavailable"),
         date: String(r.date ?? ""),
         value: Number(r.value ?? 0),
         valueLabel: formatCop(Number(r.value ?? 0), lang),
-        secopUrl: String(r.secop_url ?? ""),
+        secopUrl: readableUrl(r.secop_url),
         pickReason: "",
         signal: "",
         factors: [],
@@ -115,16 +150,68 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 3. Fetch live SECOP source count (non-blocking) ──────────────────────
-    const sourceData = await fetchSourceCount();
+    const sourceData = await fetchSourceStatus();
 
     // ── 4. Build departments from global stats ───────────────────────────────
-    const allDepts = (g.departments as Array<{
+    const allDepts = ((g.departments as Array<{
       key: string; label: string; geoName: string; avgRisk: number; contractCount: number;
-    }>) ?? [];
+    }>) ?? []).map((department) => {
+      const geoName = deptGeoName(department.geoName || department.key);
+      return {
+        key: geoName,
+        label: deptDisplayLabel(department.label || department.key),
+        geoName,
+        avgRisk: department.avgRisk,
+        contractCount: department.contractCount,
+      };
+    });
 
-    const filteredDepts = department
-      ? allDepts.filter((d) => d.key === department)
-      : allDepts;
+    // Pad every canonical GeoJSON department so the map always paints all 33 regions.
+    // The import script only stores departments that have flagged (red/yellow) contracts,
+    // so departments with only low-risk contracts would be missing without this padding.
+    const allDeptsByGeoName = new Map(allDepts.map((d) => [d.geoName, d]));
+    for (const geoName of getAllGeoNames()) {
+      if (!allDeptsByGeoName.has(geoName)) {
+        allDeptsByGeoName.set(geoName, {
+          key: geoName,
+          label: deptDisplayLabel(geoName),
+          geoName,
+          avgRisk: 0,
+          contractCount: 0,
+        });
+      }
+    }
+    const paddedAllDepts = [...allDeptsByGeoName.values()];
+
+    const filteredDepts = (activeDepartmentGeoName
+      ? paddedAllDepts.filter((d) => d.geoName === activeDepartmentGeoName)
+      : paddedAllDepts).filter((department) => department.geoName !== "NO DEFINIDO");
+
+    const departmentOptions = [...new Map(
+      (((g.deptOptions as string[]) ?? []) as string[])
+        .map((rawDepartment) => {
+          const geoName = deptGeoName(rawDepartment);
+          return [
+            geoName,
+            {
+              value: geoName,
+              label: deptDisplayLabel(rawDepartment),
+            },
+          ] as const;
+        }),
+    ).values()];
+
+    const sourceFreshnessGapDays =
+      (g.latestDate as string | null) && sourceData.latestDate
+        ? Math.max(
+            0,
+            Math.round(
+              (new Date(`${sourceData.latestDate}T00:00:00Z`).getTime() -
+                new Date(`${g.latestDate as string}T00:00:00Z`).getTime()) /
+                86_400_000,
+            ),
+          )
+        : null;
 
     // ── 5. Compose OverviewPayload ───────────────────────────────────────────
     const payload: OverviewPayload = {
@@ -132,17 +219,17 @@ export async function GET(req: NextRequest) {
         lang,
         fullDataset: true,
         totalRows: g.totalRows as number,
-        shownRows: g.totalRows as number,
-        previewRows: Math.min(g.totalRows as number, 48),
+        shownRows: hasFilters ? sliceTotal : (g.totalRows as number),
+        previewRows: Math.min(hasFilters ? sliceTotal : (g.totalRows as number), 48),
         latestContractDate: g.latestDate as string | null,
         sourceLatestContractDate: sourceData.latestDate,
         sourceRows: sourceData.rows,
-        sourceFreshnessGapDays: null,
-        sourceUpdatedAt: null,
+        sourceFreshnessGapDays,
+        sourceUpdatedAt: sourceData.updatedAt,
         lastRunTs: statsRow.updated_at as string,
       },
       options: {
-        departments: ((g.deptOptions as string[]) ?? []).map((d) => ({ value: d, label: d.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) })),
+        departments: departmentOptions,
         modalities: ((g.modalityOptions as string[]) ?? []).map((m) => ({ value: m, label: m })),
       },
       map: {
@@ -159,11 +246,14 @@ export async function GET(req: NextRequest) {
         redAlerts: sliceRed,
         prioritizedValue: sliceMedian,
         prioritizedValueLabel: formatCop(sliceMedian, lang),
-        dominantDepartment: sliceDominant,
+        dominantDepartment: deptDisplayLabel(sliceDominant),
       },
       benchmarks: {
         nationalMeanRisk: g.meanRisk as number,
         sliceMeanRisk: sliceMean,
+        departmentMeanRisk: activeDepartmentGeoName
+          ? allDepts.find((department) => department.geoName === activeDepartmentGeoName)?.avgRisk ?? null
+          : null,
         sliceMedianValue: sliceMedian,
       },
       leadCases: filteredLeadCases,
@@ -172,7 +262,7 @@ export async function GET(req: NextRequest) {
         modalities: (g.modalities as OverviewPayload["summaries"]["modalities"]) ?? [],
       },
       analytics: {
-        departments: allDepts,
+        departments: paddedAllDepts.filter((department) => department.geoName !== "NO DEFINIDO"),
         modalities: (g.modalities as OverviewPayload["analytics"]["modalities"]) ?? [],
         entities: (g.entities as OverviewPayload["analytics"]["entities"]) ?? [],
         months: (g.months as OverviewPayload["analytics"]["months"]) ?? [],
@@ -195,7 +285,7 @@ export async function GET(req: NextRequest) {
     };
 
     return NextResponse.json(payload, {
-      headers: { "Cache-Control": "s-maxage=60, stale-while-revalidate=300" },
+      headers: { "Cache-Control": "no-store, max-age=0" },
     });
   } catch (err) {
     console.error("[/api/contracts/overview]", err);
