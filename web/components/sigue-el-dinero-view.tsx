@@ -504,6 +504,21 @@ export function SigueElDineroView({ lang }: Props) {
           {activeTab === "red" && (
             <div className="sed-network-layout">
               <div className="sed-canvas-col">
+                {selectedNode && (
+                  <div className="sed-focus-banner" role="status">
+                    <div className="sed-focus-banner__copy">
+                      <strong>{lang === "es" ? "Modo foco activo" : "Focus mode active"}</strong>
+                      <span>
+                        {lang === "es"
+                          ? `Ahora ves la red directa de ${selectedNode.label}. Cierra este foco para volver al panorama completo.`
+                          : `You are looking at ${selectedNode.label}'s direct network. Clear focus to return to the full overview.`}
+                      </span>
+                    </div>
+                    <button className="sed-focus-banner__reset" onClick={handleBackgroundClick}>
+                      {lang === "es" ? "Ver panorama general" : "Show full overview"}
+                    </button>
+                  </div>
+                )}
                 <div className="sed-canvas-wrap" ref={containerRef}>
                   {error ? (
                     <NetworkError message={error} onRetry={() => loadOverview(true)} />

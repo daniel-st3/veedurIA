@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { forceCollide } from "d3-force-3d";
+import { forceCollide, forceX, forceY } from "d3-force-3d";
 import type { NetworkEdge, NetworkNode } from "@/lib/network/types";
 import { resolveNodeColor, nodeRadius } from "@/lib/network/buildNodes";
 import { edgeWidth } from "@/lib/network/buildEdges";
@@ -28,6 +28,13 @@ type Props = {
   height?: number;
 };
 
+type LabelBox = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
 export function NetworkCanvas({
   nodes,
   edges,
@@ -44,77 +51,124 @@ export function NetworkCanvas({
 }: Props) {
   const graphRef = useRef<any>(null);
   const autoFitRef = useRef(false);
+  const renderedLabelBoxesRef = useRef<LabelBox[]>([]);
   const [mounted, setMounted] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const renderedLabelBoxesRef = useRef<Array<{ x: number; y: number; w: number; h: number }>>([]);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  // ── CRITICAL: memoize graph data so hover/selection changes don't restart simulation ──
-  const graphData = useMemo(() => ({
-    nodes: nodes.map((n) => ({ ...n })),
-    links: edges.map((e) => ({ ...e })),
-  }), [nodes, edges]);
-
-  const topLabelIds = useMemo(() => {
-    return [...nodes]
-      .sort((left, right) => {
-        const hubDelta = Number(right.is_hub) - Number(left.is_hub);
-        if (hubDelta !== 0) return hubDelta;
-        const connectionDelta = right.connection_count - left.connection_count;
-        if (connectionDelta !== 0) return connectionDelta;
-        return right.total_value - left.total_value;
-      })
-      .slice(0, 7)
-      .map((node) => node.id);
-  }, [nodes]);
-
-  const focusedNodeId = hoveredNodeId ?? selectedNodeId;
-
-  // ── Adjacency map for neighbor highlighting ──────────────────────────────
   const adjacencyMap = useMemo(() => {
     const map = new Map<string, Set<string>>();
-    edges.forEach((e) => {
-      // After d3-force processes the graph, source/target become objects; handle both
-      const src = typeof e.source === "string" ? e.source : (e.source as any)?.id ?? "";
-      const tgt = typeof e.target === "string" ? e.target : (e.target as any)?.id ?? "";
-      if (!src || !tgt) return;
-      if (!map.has(src)) map.set(src, new Set());
-      if (!map.has(tgt)) map.set(tgt, new Set());
-      map.get(src)!.add(tgt);
-      map.get(tgt)!.add(src);
+    edges.forEach((edge) => {
+      const sourceId = resolveLinkEndId(edge.source);
+      const targetId = resolveLinkEndId(edge.target);
+      if (!sourceId || !targetId) return;
+      if (!map.has(sourceId)) map.set(sourceId, new Set());
+      if (!map.has(targetId)) map.set(targetId, new Set());
+      map.get(sourceId)?.add(targetId);
+      map.get(targetId)?.add(sourceId);
     });
     return map;
   }, [edges]);
 
-  // Center on selected node
+  const focusedNodeId = hoveredNodeId ?? selectedNodeId;
+
+  const selectedNeighborhoodIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!selectedNodeId) return ids;
+    ids.add(selectedNodeId);
+    adjacencyMap.get(selectedNodeId)?.forEach((id) => ids.add(id));
+    return ids;
+  }, [adjacencyMap, selectedNodeId]);
+
+  const visibleNodes = useMemo(() => {
+    if (!selectedNodeId) return nodes;
+    return nodes.filter((node) => selectedNeighborhoodIds.has(node.id));
+  }, [nodes, selectedNeighborhoodIds, selectedNodeId]);
+
+  const visibleEdges = useMemo(() => {
+    if (!selectedNodeId) return edges;
+    return edges.filter((edge) => {
+      const sourceId = resolveLinkEndId(edge.source);
+      const targetId = resolveLinkEndId(edge.target);
+      return selectedNeighborhoodIds.has(sourceId) && selectedNeighborhoodIds.has(targetId);
+    });
+  }, [edges, selectedNeighborhoodIds, selectedNodeId]);
+
+  const graphData = useMemo(() => ({
+    nodes: visibleNodes.map((node) => ({ ...node })),
+    links: visibleEdges.map((edge) => ({ ...edge })),
+  }), [visibleEdges, visibleNodes]);
+
+  const prioritizedLabelIds = useMemo(() => {
+    const limit = selectedNodeId ? Math.min(visibleNodes.length, 10) : 6;
+    return [...visibleNodes]
+      .sort((left, right) => {
+        if (Number(right.is_hub) !== Number(left.is_hub)) {
+          return Number(right.is_hub) - Number(left.is_hub);
+        }
+        if (right.connection_count !== left.connection_count) {
+          return right.connection_count - left.connection_count;
+        }
+        return right.total_value - left.total_value;
+      })
+      .slice(0, limit)
+      .map((node) => node.id);
+  }, [selectedNodeId, visibleNodes]);
+
+  const layoutTargetMap = useMemo(() => {
+    return selectedNodeId
+      ? buildFocusTargetMap(visibleNodes, selectedNodeId)
+      : buildOverviewTargetMap(visibleNodes);
+  }, [selectedNodeId, visibleNodes]);
+
   useEffect(() => {
     if (!selectedNodeId || !graphRef.current) return;
-    const node = graphData.nodes.find((n) => n.id === selectedNodeId);
+    const node = graphData.nodes.find((item) => item.id === selectedNodeId);
     if (node && typeof node.x === "number" && typeof node.y === "number") {
-      graphRef.current.centerAt(node.x, node.y, 600);
-      graphRef.current.zoom(1.8, 600);
+      graphRef.current.centerAt(node.x, node.y, 550);
+      graphRef.current.zoom(1.42, 550);
     }
-  }, [selectedNodeId, graphData.nodes]);
+  }, [graphData.nodes, selectedNodeId]);
 
   useEffect(() => {
     autoFitRef.current = false;
     if (!graphRef.current) return;
+
     const chargeForce = graphRef.current.d3Force("charge");
-    if (chargeForce) chargeForce.strength(networkConfig.canvas.physics.chargeStrength);
+    if (chargeForce) {
+      chargeForce.strength(
+        selectedNodeId
+          ? networkConfig.canvas.physics.chargeStrength * 0.7
+          : networkConfig.canvas.physics.chargeStrength,
+      );
+    }
+
     const linkForce = graphRef.current.d3Force("link");
-    if (linkForce) linkForce.distance(networkConfig.canvas.physics.linkDistance);
+    if (linkForce) {
+      linkForce.distance(selectedNodeId ? 124 : networkConfig.canvas.physics.linkDistance);
+    }
+
+    graphRef.current.d3Force(
+      "x",
+      forceX((node: NetworkNode) => layoutTargetMap.get(node.id)?.x ?? 0).strength(selectedNodeId ? 0.34 : 0.085),
+    );
+    graphRef.current.d3Force(
+      "y",
+      forceY((node: NetworkNode) => layoutTargetMap.get(node.id)?.y ?? 0).strength(selectedNodeId ? 0.34 : 0.085),
+    );
     graphRef.current.d3Force(
       "collision",
       forceCollide((node: NetworkNode) => nodeRadius(node) + networkConfig.canvas.physics.collisionPadding)
-        .strength(0.95)
+        .strength(0.96)
         .iterations(3),
     );
-    graphRef.current.d3ReheatSimulation();
-  }, [nodes.length, edges.length]);
 
-  // ── Custom node rendering ────────────────────────────────────────────────
+    graphRef.current.d3ReheatSimulation();
+  }, [graphData.links.length, graphData.nodes.length, layoutTargetMap, selectedNodeId]);
+
   const renderNode = useCallback(
     (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
       try {
@@ -122,277 +176,234 @@ export function NetworkCanvas({
         if (typedNode.id === graphData.nodes[0]?.id) {
           renderedLabelBoxesRef.current = [];
         }
-        const r = nodeRadius(typedNode);
+
+        const radius = nodeRadius(typedNode);
         const isSelected = typedNode.id === selectedNodeId;
         const isHovered = typedNode.id === hoveredNodeId;
+        const neighbors = focusedNodeId ? adjacencyMap.get(focusedNodeId) : null;
+        const isNeighbor = !selectedNodeId && (neighbors?.has(typedNode.id) ?? false);
+        const isDimmed = !selectedNodeId && !!focusedNodeId && !isSelected && !isHovered && !isNeighbor;
+        const isPrioritized = prioritizedLabelIds.includes(typedNode.id);
         const color = resolveNodeColor(typedNode, selectedNodeId, hoveredNodeId);
 
-        // Determine neighbor state for dimming
-        const neighbors = focusedNodeId ? adjacencyMap.get(focusedNodeId) : null;
-        const isNeighbor = neighbors?.has(typedNode.id) ?? false;
-        const isDimmed = !!focusedNodeId && !isHovered && !isSelected && !isNeighbor;
-        const isPrimaryLabel = topLabelIds.includes(typedNode.id);
-
-        // Apply opacity dimming for non-neighbor nodes
         ctx.save();
-        ctx.globalAlpha = isDimmed ? 0.12 : 1.0;
+        ctx.globalAlpha = isDimmed ? 0.14 : 1;
 
-        // Glow / halo
         if (isSelected) {
           ctx.beginPath();
-          ctx.arc(typedNode.x, typedNode.y, r + 6, 0, 2 * Math.PI);
-          const glow = ctx.createRadialGradient(typedNode.x, typedNode.y, r, typedNode.x, typedNode.y, r + 12);
-          glow.addColorStop(0, "rgba(198,40,57,0.4)");
+          ctx.arc(typedNode.x, typedNode.y, radius + 10, 0, 2 * Math.PI);
+          const glow = ctx.createRadialGradient(typedNode.x, typedNode.y, radius, typedNode.x, typedNode.y, radius + 16);
+          glow.addColorStop(0, "rgba(198,40,57,0.34)");
           glow.addColorStop(1, "rgba(198,40,57,0)");
           ctx.fillStyle = glow;
           ctx.fill();
-        } else if (isHovered || isNeighbor) {
+        } else if (isHovered || isNeighbor || (selectedNodeId && typedNode.id !== selectedNodeId)) {
           ctx.beginPath();
-          ctx.arc(typedNode.x, typedNode.y, r + 4, 0, 2 * Math.PI);
-          const hGlow = ctx.createRadialGradient(typedNode.x, typedNode.y, r * 0.5, typedNode.x, typedNode.y, r + 7);
-          hGlow.addColorStop(0, `${color}55`);
-          hGlow.addColorStop(1, `${color}00`);
-          ctx.fillStyle = hGlow;
+          ctx.arc(typedNode.x, typedNode.y, radius + 5, 0, 2 * Math.PI);
+          const glow = ctx.createRadialGradient(typedNode.x, typedNode.y, radius * 0.35, typedNode.x, typedNode.y, radius + 9);
+          glow.addColorStop(0, `${color}40`);
+          glow.addColorStop(1, `${color}00`);
+          ctx.fillStyle = glow;
           ctx.fill();
         }
 
-        // Node fill — solid color with inner sheen
-        if (isSelected) {
-          ctx.fillStyle = "#c62839";
-        } else {
-          const grad = ctx.createRadialGradient(
-            typedNode.x - r * 0.3, typedNode.y - r * 0.32, r * 0.05,
-            typedNode.x, typedNode.y, r * 1.1,
-          );
-          grad.addColorStop(0, isHovered || isNeighbor
-            ? color.replace(/^#/, "").length === 6
-              ? lightenHex(color, 0.28)
-              : color
-            : lightenHex(color, 0.12));
-          grad.addColorStop(1, color);
-          ctx.fillStyle = grad;
-        }
+        const gradient = ctx.createRadialGradient(
+          typedNode.x - radius * 0.28,
+          typedNode.y - radius * 0.28,
+          radius * 0.08,
+          typedNode.x,
+          typedNode.y,
+          radius * 1.08,
+        );
+        gradient.addColorStop(0, lightenHex(isSelected ? "#c62839" : color, isSelected ? 0.12 : 0.2));
+        gradient.addColorStop(1, isSelected ? "#c62839" : color);
+
+        ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.arc(typedNode.x, typedNode.y, r, 0, 2 * Math.PI);
+        ctx.arc(typedNode.x, typedNode.y, radius, 0, 2 * Math.PI);
         ctx.fill();
 
-        // Node border
         ctx.strokeStyle = isSelected
           ? "rgba(198,40,57,0.9)"
-          : isHovered || isNeighbor
-            ? `${color}cc`
+          : isHovered || isNeighbor || (selectedNodeId && typedNode.id !== selectedNodeId)
+            ? `${color}bb`
             : typedNode.is_hub
-              ? `${color}88`
-              : `${color}44`;
-        ctx.lineWidth = isSelected ? 2.5 : isHovered ? 1.8 : typedNode.is_hub ? 1.2 : 0.7;
+              ? `${color}72`
+              : `${color}38`;
+        ctx.lineWidth = isSelected ? 2.2 : isHovered ? 1.5 : 0.9;
         ctx.stroke();
 
-        // Thin white inner ring for depth
-        if (r > 7) {
+        if (radius > 7) {
           ctx.beginPath();
-          ctx.arc(typedNode.x - r * 0.22, typedNode.y - r * 0.22, r * 0.28, 0, 2 * Math.PI);
-          ctx.fillStyle = "rgba(255,255,255,0.22)";
+          ctx.arc(typedNode.x - radius * 0.24, typedNode.y - radius * 0.24, radius * 0.24, 0, 2 * Math.PI);
+          ctx.fillStyle = "rgba(255,255,255,0.2)";
           ctx.fill();
         }
 
-        // ── Label ──────────────────────────────────────────────────────────
-        // Default view keeps a curated set of names visible.
-        // Hover or click focuses a node and reveals its neighborhood labels.
-        const hubThreshold = (networkConfig.canvas as any).hubLabelZoomThreshold ?? 1.4;
-        const forceShow = isSelected || isHovered;
-        const neighborShow = isNeighbor && !!focusedNodeId;
         const showLabel =
           !isDimmed && (
-            forceShow ||
-            neighborShow ||
-            (isPrimaryLabel && globalScale >= 0.9) ||
-            (typedNode.is_hub && globalScale >= hubThreshold) ||
+            isSelected ||
+            isHovered ||
+            (selectedNodeId ? isPrioritized : isNeighbor || (isPrioritized && globalScale >= 0.9)) ||
+            (typedNode.is_hub && globalScale >= networkConfig.canvas.hubLabelZoomThreshold) ||
             globalScale >= networkConfig.canvas.labelZoomThreshold
           );
 
         if (showLabel) {
-          const targetPx = isSelected ? 13 : isHovered || isNeighbor ? 11.5 : isPrimaryLabel ? 10.5 : 9.5;
-          const fontSize = Math.max(targetPx / globalScale, 5.5);
-          const isBold = isSelected || typedNode.is_hub || isHovered || isPrimaryLabel;
-          ctx.font = `${isBold ? "600 " : ""}${fontSize}px Inter,ui-sans-serif,sans-serif`;
+          const fontPx = isSelected ? 12.5 : isHovered ? 10.5 : 9.25;
+          const fontSize = Math.max(fontPx / globalScale, 5.1);
+          ctx.font = `${isSelected || isHovered || typedNode.is_hub ? "600 " : ""}${fontSize}px Inter, ui-sans-serif, sans-serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
-          const maxLen = forceShow
-            ? networkConfig.canvas.labelMaxLength + 10
-            : neighborShow
-              ? networkConfig.canvas.labelMaxLength + 4
-              : typedNode.is_hub
-                ? networkConfig.canvas.labelMaxLength
-                : isPrimaryLabel
-                  ? 14
-                  : 11;
-          const label =
-            typedNode.label.length > maxLen
-              ? typedNode.label.slice(0, maxLen - 1) + "…"
-              : typedNode.label;
+          const maxLabelLength = isSelected
+            ? networkConfig.canvas.labelMaxLength + 8
+            : isPrioritized
+              ? networkConfig.canvas.labelMaxLength
+              : 11;
+          const label = typedNode.label.length > maxLabelLength
+            ? `${typedNode.label.slice(0, maxLabelLength - 1)}…`
+            : typedNode.label;
 
-          const m = ctx.measureText(label);
-          const tw = m.width;
-          const th = fontSize * 1.2;
-          const px = isSelected ? 6 : 4;
-          const py = 2;
-          const lx = typedNode.x;
-          const labelOffset = forceShow || neighborShow ? r + 16 : r + 12;
+          const metrics = ctx.measureText(label);
+          const textWidth = metrics.width;
+          const textHeight = fontSize * 1.18;
+          const paddingX = isSelected ? 6 : 4;
+          const paddingY = 2;
+          const offset = isSelected ? radius + 18 : radius + 13;
           const labelDirection = typedNode.y > height * 0.58 ? -1 : 1;
-          const ly = typedNode.y + labelDirection * labelOffset;
-          const pr = (th + py * 2) / 2; // pill corner radius
-          const proposedBox = {
-            x: lx - tw / 2 - px - 4,
-            y: ly - th / 2 - py - 3,
-            w: tw + px * 2 + 8,
-            h: th + py * 2 + 6,
+          const labelY = typedNode.y + labelDirection * offset;
+          const labelBox = {
+            x: typedNode.x - textWidth / 2 - paddingX - 4,
+            y: labelY - textHeight / 2 - paddingY - 3,
+            w: textWidth + paddingX * 2 + 8,
+            h: textHeight + paddingY * 2 + 6,
           };
 
-          const collidesWithExistingLabel = renderedLabelBoxesRef.current.some((box) =>
+          const collides = renderedLabelBoxesRef.current.some((box) =>
             !(
-              proposedBox.x + proposedBox.w < box.x ||
-              box.x + box.w < proposedBox.x ||
-              proposedBox.y + proposedBox.h < box.y ||
-              box.y + box.h < proposedBox.y
+              labelBox.x + labelBox.w < box.x ||
+              box.x + box.w < labelBox.x ||
+              labelBox.y + labelBox.h < box.y ||
+              box.y + box.h < labelBox.y
             ),
           );
 
-          if (collidesWithExistingLabel && !forceShow && !neighborShow) {
+          if (collides && !isSelected && !isHovered) {
             ctx.restore();
             return;
           }
 
-          // Pill background
-          const bx = lx - tw / 2 - px;
-          const by = ly - th / 2 - py;
-          const bw = tw + px * 2;
-          const bh = th + py * 2;
-
+          const pillRadius = (textHeight + paddingY * 2) / 2;
           ctx.fillStyle = isSelected
             ? "rgba(255,255,255,0.98)"
-            : neighborShow || isHovered
-              ? "rgba(255,255,255,0.96)"
-              : isPrimaryLabel
-                ? "rgba(255,252,248,0.94)"
-                : "rgba(255,255,255,0.91)";
-
-          ctx.beginPath();
-          ctx.moveTo(bx + pr, by);
-          ctx.lineTo(bx + bw - pr, by);
-          ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + pr);
-          ctx.lineTo(bx + bw, by + bh - pr);
-          ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - pr, by + bh);
-          ctx.lineTo(bx + pr, by + bh);
-          ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - pr);
-          ctx.lineTo(bx, by + pr);
-          ctx.quadraticCurveTo(bx, by, bx + pr, by);
-          ctx.closePath();
+            : "rgba(255,255,255,0.93)";
+          roundedPill(
+            ctx,
+            typedNode.x - textWidth / 2 - paddingX,
+            labelY - textHeight / 2 - paddingY,
+            textWidth + paddingX * 2,
+            textHeight + paddingY * 2,
+            pillRadius,
+          );
           ctx.fill();
 
-          // Pill border
           ctx.strokeStyle = isSelected
-            ? "rgba(198,40,57,0.35)"
-            : neighborShow
-              ? `${color}55`
-              : isPrimaryLabel
-                ? "rgba(23,32,51,0.18)"
-              : typedNode.is_hub
-                ? `${color}33`
-                : "rgba(23,32,51,0.12)";
+            ? "rgba(198,40,57,0.34)"
+            : "rgba(23,32,51,0.14)";
           ctx.lineWidth = 0.7 / globalScale;
           ctx.stroke();
 
-          // Label text
-          ctx.fillStyle = isSelected
-            ? "#c62839"
-            : neighborShow || isHovered
-              ? color
-              : isPrimaryLabel || typedNode.is_hub
-                ? "#172033"
-                : "rgba(23,32,51,0.72)";
-          ctx.fillText(label, lx, ly);
-          renderedLabelBoxesRef.current.push(proposedBox);
+          ctx.fillStyle = isSelected ? "#c62839" : "#172033";
+          ctx.fillText(label, typedNode.x, labelY);
+          renderedLabelBoxesRef.current.push(labelBox);
         }
 
         ctx.restore();
-      } catch { /* ignore canvas errors */ }
+      } catch {
+        // Canvas exceptions should never take down the page.
+      }
     },
-    [selectedNodeId, hoveredNodeId, adjacencyMap, focusedNodeId, graphData.nodes, height, topLabelIds],
+    [
+      adjacencyMap,
+      focusedNodeId,
+      graphData.nodes,
+      height,
+      hoveredNodeId,
+      prioritizedLabelIds,
+      selectedNodeId,
+    ],
   );
 
-  // ── Pointer hit area (must match visual radius so clicks register accurately) ─
   const paintPointerArea = useCallback(
     (node: any, color: string, ctx: CanvasRenderingContext2D) => {
       try {
         const typedNode = node as NetworkNode & { x: number; y: number };
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(typedNode.x, typedNode.y, nodeRadius(typedNode) + 5, 0, 2 * Math.PI);
+        ctx.arc(typedNode.x, typedNode.y, nodeRadius(typedNode) + 6, 0, 2 * Math.PI);
         ctx.fill();
-      } catch { /* ignore */ }
+      } catch {
+        // Ignore pointer paint failures.
+      }
     },
     [],
   );
 
-  // ── Edge color — dims non-connected edges on hover ───────────────────────
   const getLinkColor = useCallback(
     (link: any) => {
-      const sourceId = typeof link.source === "string" ? link.source : link.source?.id;
-      const targetId = typeof link.target === "string" ? link.target : link.target?.id;
+      const sourceId = resolveLinkEndId(link.source);
+      const targetId = resolveLinkEndId(link.target);
       const isSelectedEdge = link.id === selectedEdgeId;
-      const connectedToFocus =
-        focusedNodeId && (sourceId === focusedNodeId || targetId === focusedNodeId);
+      const touchesFocusedNode = focusedNodeId && (sourceId === focusedNodeId || targetId === focusedNodeId);
 
       if (isSelectedEdge) return "#c62839";
-      if (focusedNodeId) {
-        if (connectedToFocus) return `rgba(23,32,51,${link.confidence >= 80 ? 0.48 : 0.3})`;
-        return "rgba(23,32,51,0.055)";
+      if (selectedNodeId) {
+        return touchesFocusedNode ? "rgba(23,32,51,0.34)" : "rgba(23,32,51,0.12)";
       }
-      // Default: semi-transparent dark edges on cream background
-      const conf = (link.confidence ?? 50) / 100;
-      return `rgba(23,32,51,${0.12 + conf * 0.18})`;
+      if (focusedNodeId) {
+        return touchesFocusedNode ? "rgba(23,32,51,0.34)" : "rgba(23,32,51,0.055)";
+      }
+      return "rgba(23,32,51,0.16)";
     },
-    [focusedNodeId, selectedEdgeId],
+    [focusedNodeId, selectedEdgeId, selectedNodeId],
   );
 
-  // ── Zoom controls ────────────────────────────────────────────────────────
   const handleZoomIn = useCallback(() => {
-    if (graphRef.current) {
-      const next = Math.min((graphRef.current.zoom() ?? 1) * 1.4, 12);
-      graphRef.current.zoom(next, 350);
-      setZoomLevel(next);
-    }
+    if (!graphRef.current) return;
+    const next = Math.min((graphRef.current.zoom() ?? 1) * 1.35, 12);
+    graphRef.current.zoom(next, 320);
+    setZoomLevel(next);
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    if (graphRef.current) {
-      const next = Math.max((graphRef.current.zoom() ?? 1) / 1.4, 0.15);
-      graphRef.current.zoom(next, 350);
-      setZoomLevel(next);
-    }
+    if (!graphRef.current) return;
+    const next = Math.max((graphRef.current.zoom() ?? 1) / 1.35, 0.15);
+    graphRef.current.zoom(next, 320);
+    setZoomLevel(next);
   }, []);
 
   const handleZoomReset = useCallback(() => {
-    if (graphRef.current) {
-      graphRef.current.zoomToFit(450, 42);
-      setZoomLevel(1);
-    }
-  }, []);
+    if (!graphRef.current) return;
+    graphRef.current.zoomToFit(450, selectedNodeId ? 90 : 42);
+    setZoomLevel(1);
+  }, [selectedNodeId]);
 
-  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
-    if (e.shiftKey) return;
-    e.stopPropagation();
+  const handleWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    if (event.shiftKey) return;
+    event.stopPropagation();
   }, []);
 
   const handleNodeClick = useCallback(
     (node: any) => onNodeClick(node as NetworkNode),
     [onNodeClick],
   );
+
   const handleEdgeClick = useCallback(
     (link: any) => onEdgeClick(link as NetworkEdge),
     [onEdgeClick],
   );
+
   const handleNodeHover = useCallback(
     (node: any | null) => onNodeHover(node ? (node as NetworkNode) : null),
     [onNodeHover],
@@ -415,7 +426,6 @@ export function NetworkCanvas({
     <div
       className="sed-canvas-inner"
       style={{ height, position: "relative" }}
-      ref={wrapRef}
       onWheel={handleWheel}
     >
       <ForceGraph2D
@@ -424,29 +434,27 @@ export function NetworkCanvas({
         width={width}
         height={height}
         backgroundColor={networkConfig.canvas.backgroundColor}
-        // Node rendering
         nodeLabel={() => ""}
         nodeCanvasObject={renderNode}
         nodeCanvasObjectMode={() => "replace"}
         nodePointerAreaPaint={paintPointerArea}
-        // Link rendering
         linkWidth={(link: any) => {
-          return hoveredNodeId || selectedNodeId ? edgeWidth(link) * 1.2 : edgeWidth(link);
+          const baseWidth = edgeWidth(link as NetworkEdge);
+          return selectedNodeId ? Math.min(baseWidth * 1.15, 2.8) : baseWidth;
         }}
         linkColor={getLinkColor}
+        linkCurvature={() => (selectedNodeId ? 0.08 : 0.03)}
         linkDirectionalParticles={(link: any) => {
-          const src = typeof link.source === "string" ? link.source : link.source?.id;
-          const tgt = typeof link.target === "string" ? link.target : link.target?.id;
-          const focusedLink = focusedNodeId && (src === focusedNodeId || tgt === focusedNodeId);
-          if (link.id === selectedEdgeId) return 5;
-          if (focusedLink && link.confidence >= 80) return selectedNodeId ? 3 : 2;
+          const sourceId = resolveLinkEndId(link.source);
+          const targetId = resolveLinkEndId(link.target);
+          const touchesFocusedNode = focusedNodeId && (sourceId === focusedNodeId || targetId === focusedNodeId);
+          if (link.id === selectedEdgeId) return 4;
+          if (touchesFocusedNode && link.confidence >= 80) return selectedNodeId ? 3 : 2;
           return 0;
         }}
         linkDirectionalParticleSpeed={0.005}
         linkDirectionalParticleWidth={2.5}
         linkDirectionalParticleColor={() => "#c62839"}
-        linkLabel={() => ""}
-        // Events
         onNodeClick={handleNodeClick}
         onLinkClick={handleEdgeClick}
         onNodeHover={handleNodeHover}
@@ -454,39 +462,128 @@ export function NetworkCanvas({
         onZoom={({ k }: { k: number }) => setZoomLevel(k)}
         enableNodeDrag={false}
         onEngineStop={() => {
-          if (!selectedNodeId && !autoFitRef.current && graphRef.current && nodes.length > 0) {
+          if (!selectedNodeId && !autoFitRef.current && graphRef.current && graphData.nodes.length > 0) {
             autoFitRef.current = true;
             graphRef.current.zoomToFit(500, 42);
           }
         }}
-        // Physics
         d3AlphaDecay={networkConfig.canvas.physics.alphaDecay}
         d3VelocityDecay={networkConfig.canvas.physics.velocityDecay}
         cooldownTicks={networkConfig.canvas.physics.cooldownTicks}
-        // Performance
         autoPauseRedraw
         warmupTicks={40}
       />
 
-      {/* Zoom controls */}
       <div className="sed-canvas-controls" aria-label={lang === "es" ? "Controles de zoom" : "Zoom controls"}>
         <button className="sed-canvas-ctrl-btn" onClick={handleZoomIn} title={lang === "es" ? "Acercar" : "Zoom in"}>+</button>
         <button className="sed-canvas-ctrl-btn sed-canvas-ctrl-btn--reset" onClick={handleZoomReset} title={lang === "es" ? "Ajustar" : "Fit"}>⤢</button>
         <button className="sed-canvas-ctrl-btn" onClick={handleZoomOut} title={lang === "es" ? "Alejar" : "Zoom out"}>−</button>
       </div>
 
-      {zoomLevel <= 1.05 && nodes.length > 0 && (
+      {zoomLevel <= 1.02 && !selectedNodeId && graphData.nodes.length > 0 && (
         <div className="sed-canvas-hint" aria-hidden="true">
           {lang === "es"
-            ? "Arrastra · Pasa el cursor por un nodo · Usa + para acercar"
-            : "Drag · Hover a node to see its connections · Use + to zoom"}
+            ? "Explora el overview · haz clic para aislar una red directa"
+            : "Scan the overview · click to isolate a direct network"}
         </div>
       )}
     </div>
   );
 }
 
-/** Lighten a hex color by blending toward white */
+function buildOverviewTargetMap(nodes: NetworkNode[]): Map<string, { x: number; y: number }> {
+  const map = new Map<string, { x: number; y: number }>();
+  const sorted = [...nodes].sort((left, right) => {
+    if (Number(right.is_hub) !== Number(left.is_hub)) {
+      return Number(right.is_hub) - Number(left.is_hub);
+    }
+    if (right.connection_count !== left.connection_count) {
+      return right.connection_count - left.connection_count;
+    }
+    return right.total_value - left.total_value;
+  });
+
+  sorted.forEach((node, index) => {
+    const baseRadius = node.is_hub
+      ? 88
+      : node.type === "entity"
+        ? 166
+        : node.type === "provider"
+          ? 236
+          : 304;
+    const ringOffset = Math.floor(index / 6) * 14;
+    const angle = index * 2.399963229728653 + seededAngleOffset(node.id);
+    map.set(node.id, {
+      x: Math.cos(angle) * (baseRadius + ringOffset),
+      y: Math.sin(angle) * ((baseRadius + ringOffset) * 0.76),
+    });
+  });
+
+  return map;
+}
+
+function buildFocusTargetMap(
+  nodes: NetworkNode[],
+  selectedNodeId: string,
+): Map<string, { x: number; y: number }> {
+  const map = new Map<string, { x: number; y: number }>();
+  map.set(selectedNodeId, { x: 0, y: 0 });
+
+  const neighbors = nodes
+    .filter((node) => node.id !== selectedNodeId)
+    .sort((left, right) => {
+      if (right.connection_count !== left.connection_count) {
+        return right.connection_count - left.connection_count;
+      }
+      return right.total_value - left.total_value;
+    });
+
+  neighbors.forEach((node, index) => {
+    const angle = -Math.PI / 2 + (index / Math.max(neighbors.length, 1)) * Math.PI * 2;
+    const radius = node.type === "entity" ? 176 : node.type === "provider" ? 216 : 252;
+    map.set(node.id, {
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * (radius * 0.76),
+    });
+  });
+
+  return map;
+}
+
+function resolveLinkEndId(value: string | { id?: string } | undefined): string {
+  if (typeof value === "string") return value;
+  return value?.id ?? "";
+}
+
+function seededAngleOffset(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) {
+    hash = (hash * 31 + id.charCodeAt(i)) % 360;
+  }
+  return (hash / 360) * Math.PI * 2;
+}
+
+function roundedPill(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
 function lightenHex(hex: string, amount: number): string {
   const h = hex.replace("#", "");
   if (h.length !== 6) return hex;
