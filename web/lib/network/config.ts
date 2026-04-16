@@ -74,20 +74,20 @@ export const networkConfig = {
 
   canvas: {
     maxNodes: 300,
-    initialHubs: 22,           // fewer initial anchors prevents the first layout from collapsing into a blob
+    initialHubs: 14,           // start with a lighter frame so the first read feels intentional, not crowded
     expandLimit: 48,
     backgroundColor: "rgba(0,0,0,0)",
     physics: {
-      alphaDecay: 0.014,       // a touch slower so collision force has time to breathe the layout open
-      velocityDecay: 0.24,     // keep motion smooth but less sticky
-      cooldownTicks: 260,      // extra settling time reduces final overlaps
-      chargeStrength: -980,    // stronger repulsion opens space between clusters
-      linkDistance: 210,       // keep a longer web spine so labels have room
-      collisionPadding: 18,    // minimum empty space around each node
+      alphaDecay: 0.010,       // slower decay keeps the web breathing longer
+      velocityDecay: 0.18,     // less damping for wider, more organic spread
+      cooldownTicks: 380,      // longer settle time for wide horizontal spacing
+      chargeStrength: -1800,   // stronger repulsion to push nodes apart horizontally
+      linkDistance: 310,       // longer links — wider web at first glance
+      collisionPadding: 32,    // more breathing room between nodes
     },
-    labelZoomThreshold: 1.9,   // full labels only once the user gets closer
-    hubLabelZoomThreshold: 1.18,
-    labelMaxLength: 18,
+    labelZoomThreshold: 1.85,  // show labels sooner — names are important
+    hubLabelZoomThreshold: 1.0, // hub labels always visible
+    labelMaxLength: 26,        // allow longer names before truncating
   },
 
   cache: {

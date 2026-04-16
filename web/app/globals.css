@@ -24,6 +24,54 @@
   --radius-sm: 14px;
 }
 
+/* 2026-04 contracts/maps readability hardening */
+
+.map-tooltip {
+  position: fixed;
+  width: min(320px, calc(100vw - 32px));
+  z-index: 1200;
+  transform: none;
+  padding: 0.95rem 1rem;
+  border-radius: 20px;
+  background: rgba(255, 251, 245, 0.98);
+  color: #172033;
+  border: 1px solid rgba(23, 32, 51, 0.12);
+  box-shadow: 0 24px 60px rgba(23, 32, 51, 0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.map-tooltip__title {
+  color: #172033;
+  font-size: 0.98rem;
+}
+
+.map-tooltip__metric,
+.map-tooltip__alert,
+.map-tooltip__hint {
+  color: rgba(23, 32, 51, 0.84);
+}
+
+.map-tooltip__hint {
+  color: #0d5bd7;
+  font-weight: 700;
+}
+
+.contract-freshness__item--disabled,
+.cv-link-disabled {
+  opacity: 0.78;
+}
+
+.contract-freshness__item--disabled {
+  cursor: default;
+}
+
+.cv-link-disabled {
+  cursor: default;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 /* 2026-04 polish pass */
 
 .is-spinning {
@@ -15027,6 +15075,8 @@ input[type="date"] {
   gap: 1rem;
   border-top: 0;
   margin-top: 0.4rem;
+  width: min(100%, 980px);   /* match the actions grid width for visual symmetry */
+  margin-inline: auto;
 }
 
 .lp-module-link {
@@ -16319,4 +16369,52 @@ input[type="date"] {
   .sed-tab { white-space: nowrap; flex-shrink: 0; }
 
   .sed-concentration-view { padding: 0.75rem; }
+}
+
+/* 2026-04 final overrides: maps/contracts readability */
+
+.map-tooltip {
+  position: fixed;
+  width: min(320px, calc(100vw - 32px));
+  z-index: 1200;
+  transform: none;
+  padding: 0.95rem 1rem;
+  border-radius: 20px;
+  background: rgba(255, 251, 245, 0.98);
+  color: #172033;
+  border: 1px solid rgba(23, 32, 51, 0.12);
+  box-shadow: 0 24px 60px rgba(23, 32, 51, 0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.map-tooltip__title {
+  color: #172033;
+  font-size: 0.98rem;
+}
+
+.map-tooltip__metric,
+.map-tooltip__alert,
+.map-tooltip__hint {
+  color: rgba(23, 32, 51, 0.84);
+}
+
+.map-tooltip__hint {
+  color: #0d5bd7;
+  font-weight: 700;
+}
+
+.contract-freshness__item--disabled,
+.cv-link-disabled {
+  opacity: 0.78;
+}
+
+.contract-freshness__item--disabled {
+  cursor: default;
+}
+
+.cv-link-disabled {
+  cursor: default;
+  text-decoration: none;
+  white-space: nowrap;
 }

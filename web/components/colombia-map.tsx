@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 
+import { deptGeoName } from "@/lib/colombia-departments";
 import type { DepartmentDatum } from "@/lib/types";
 
 type Feature = {
@@ -52,7 +53,7 @@ const MAP_TONES = {
   low: "rgba(39, 166, 71, 0.76)",
   medium: "rgba(212, 128, 10, 0.76)",
   high: "rgba(192, 57, 43, 0.8)",
-  neutral: "rgba(1, 95, 101, 0.12)",
+  neutral: "rgba(160, 190, 210, 0.50)",   // visible light steel-blue for departments with no data
   activeGlow: "rgba(1, 95, 101, 0.18)",
   activeDot: "#015f65",
 };
@@ -125,7 +126,7 @@ function buildProjectedFeatures(geojson: Props["geojson"]): ProjectedFeature[] {
       .join(" ");
 
     return {
-      key: feature.properties?.NOMBRE_DPT ?? "",
+      key: deptGeoName(feature.properties?.NOMBRE_DPT ?? ""),
       label: feature.properties?.NOMBRE_DPT ?? "",
       path,
       centerX: centerCount ? centerX / centerCount : VIEWBOX_WIDTH / 2,
@@ -184,7 +185,7 @@ export function ColombiaMap({
   const scope = useRef<HTMLDivElement>(null);
   const features = useMemo(() => buildProjectedFeatures(geojson), [geojson]);
   const summary = useMemo(
-    () => new Map(departments.map((item) => [item.geoName, item])),
+    () => new Map(departments.map((item) => [deptGeoName(item.geoName || item.key || item.label), item])),
     [departments],
   );
   const stops = useMemo(
@@ -193,9 +194,10 @@ export function ColombiaMap({
   );
 
   const currentDepartment = hovered || activeDepartment || departments[0]?.geoName || null;
-  const currentDatum = currentDepartment ? summary.get(currentDepartment) : undefined;
-  const currentFeature = currentDepartment ? features.find((feature) => feature.key === currentDepartment) : null;
-  const currentTooltip = currentDepartment ? tooltipData?.[currentDepartment] : undefined;
+  const normalizedCurrentDepartment = currentDepartment ? deptGeoName(currentDepartment) : null;
+  const currentDatum = normalizedCurrentDepartment ? summary.get(normalizedCurrentDepartment) : undefined;
+  const currentFeature = normalizedCurrentDepartment ? features.find((feature) => feature.key === normalizedCurrentDepartment) : null;
+  const currentTooltip = normalizedCurrentDepartment ? tooltipData?.[normalizedCurrentDepartment] : undefined;
   // On bfcache restore (back navigation), GSAP inline opacity:0 can persist on
   // shapes that were mid-animation when the user navigated away. Force-show all
   // shapes so the map is always visible after back navigation.
@@ -262,62 +264,23 @@ export function ColombiaMap({
         return;
       }
 
-      gsap.set(shapes, { autoAlpha: 0, scale: 0.88, transformBox: "fill-box", transformOrigin: "50% 50%" });
-      if (marker) gsap.set(marker, { autoAlpha: 0, scale: 0.6, transformOrigin: "50% 50%" });
-
-      const timeline = gsap.timeline({
-        defaults: { ease: "power3.out" },
-        onComplete: () => setIntroReady(true),
+      gsap.set(dots, { autoAlpha: 0 });
+      gsap.set(shapes, {
+        autoAlpha: 1,
+        scale: 1,
+        transformBox: "fill-box",
+        transformOrigin: "50% 50%",
       });
-
-      timeline.fromTo(
-        dots,
-        {
-          autoAlpha: 0,
-          scale: 0,
-          x: () => randomPoint(240, -120),
-          y: () => randomPoint(260, -130),
-        },
-        {
-          autoAlpha: 1,
-          scale: 1.12,
-          x: 0,
-          y: 0,
-          duration: 0.68,
-          stagger: 0.02,
-        },
-        0,
-      );
-
-      timeline.to(
-        dots,
-        {
-          autoAlpha: 0,
-          scale: 0.18,
-          duration: 0.42,
-          stagger: 0.01,
-        },
-        0.72,
-      );
-      timeline.to(
-        shapes,
-        {
-          autoAlpha: 1,
-          scale: 1,
-          duration: 0.72,
-          stagger: 0.024,
-        },
-        0.48,
-      );
-      if (marker) timeline.to(marker, { autoAlpha: 1, scale: 1, duration: 0.5 }, 1.08);
+      if (marker) gsap.set(marker, { autoAlpha: 1, scale: 1, transformOrigin: "50% 50%" });
+      setIntroReady(true);
     },
     { scope, dependencies: [features.length, mode] },
   );
 
   useGSAP(
     () => {
-      if (!currentDepartment || !scope.current) return;
-      const escaped = currentDepartment.replaceAll('"', '\\"');
+      if (!normalizedCurrentDepartment || !scope.current) return;
+      const escaped = normalizedCurrentDepartment.replaceAll('"', '\\"');
       const featureNode = scope.current.querySelector<SVGPathElement>(`[data-feature="${escaped}"]`);
       const marker = scope.current.querySelector(".colombia-map__marker");
       if (featureNode) {
@@ -331,15 +294,15 @@ export function ColombiaMap({
         gsap.fromTo(marker, { scale: 0.82 }, { scale: 1, duration: 0.38, ease: "back.out(1.7)" });
       }
     },
-    { scope, dependencies: [currentDepartment, introReady] },
+    { scope, dependencies: [introReady, normalizedCurrentDepartment] },
   );
 
   if (!features.length) {
     return <div className={`colombia-map ${className ?? ""}`} />;
   }
 
-  const hoveredSummary = hovered ? summary.get(hovered) : null;
-  const hoveredTooltip = hovered ? tooltipData?.[hovered] : null;
+  const hoveredSummary = hovered ? summary.get(deptGeoName(hovered)) : null;
+  const hoveredTooltip = hovered ? tooltipData?.[deptGeoName(hovered)] : null;
 
   return (
     <div
@@ -393,17 +356,17 @@ export function ColombiaMap({
         <g className="colombia-map__group">
           {features.map((feature, index) => {
             const datum = summary.get(feature.key);
-            const isActive = currentDepartment === feature.key;
+            const isActive = normalizedCurrentDepartment === feature.key;
             const isHot = (datum?.avgRisk ?? 0) >= 0.7;
             const fill =
               datum
                 ? toneForRisk(datum.avgRisk, stops)
                 : mode === "hero"
                   ? index % 3 === 0
-                    ? "rgba(39, 166, 71, 0.14)"
+                    ? "rgba(39, 166, 71, 0.42)"
                     : index % 3 === 1
-                      ? "rgba(1, 95, 101, 0.12)"
-                      : "rgba(122, 106, 85, 0.12)"
+                      ? "rgba(160, 190, 210, 0.50)"
+                      : "rgba(190, 180, 165, 0.45)"
                   : MAP_TONES.neutral;
 
             return (
@@ -414,7 +377,8 @@ export function ColombiaMap({
                 fill={fill}
                 fillRule="evenodd"
                 className={`colombia-map__shape ${isActive ? "is-active" : ""} ${isHot ? "is-hot" : ""}`}
-                stroke={isActive ? "rgba(1, 95, 101, 0.7)" : undefined}
+                stroke={isActive ? "#015f65" : undefined}
+                strokeWidth={isActive ? 2 : undefined}
                 style={{ animationDelay: `${index * 18}ms` }}
                 onMouseEnter={() => {
                   setHovered(feature.key);

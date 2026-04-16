@@ -103,7 +103,7 @@ export function NetworkCanvas({
   }), [visibleEdges, visibleNodes]);
 
   const prioritizedLabelIds = useMemo(() => {
-    const limit = selectedNodeId ? Math.min(visibleNodes.length, 10) : 6;
+    const limit = selectedNodeId ? Math.min(visibleNodes.length, 12) : 8;
     return [...visibleNodes]
       .sort((left, right) => {
         if (Number(right.is_hub) !== Number(left.is_hub)) {
@@ -148,22 +148,23 @@ export function NetworkCanvas({
 
     const linkForce = graphRef.current.d3Force("link");
     if (linkForce) {
-      linkForce.distance(selectedNodeId ? 124 : networkConfig.canvas.physics.linkDistance);
+      linkForce.distance(selectedNodeId ? 186 : networkConfig.canvas.physics.linkDistance);
     }
 
     graphRef.current.d3Force(
       "x",
-      forceX((node: NetworkNode) => layoutTargetMap.get(node.id)?.x ?? 0).strength(selectedNodeId ? 0.34 : 0.085),
+      forceX((node: NetworkNode) => layoutTargetMap.get(node.id)?.x ?? 0).strength(selectedNodeId ? 0.30 : 0.075),
     );
     graphRef.current.d3Force(
       "y",
-      forceY((node: NetworkNode) => layoutTargetMap.get(node.id)?.y ?? 0).strength(selectedNodeId ? 0.34 : 0.085),
+      // Y force is weaker than X — pushes the layout to spread horizontally
+      forceY((node: NetworkNode) => layoutTargetMap.get(node.id)?.y ?? 0).strength(selectedNodeId ? 0.18 : 0.042),
     );
     graphRef.current.d3Force(
       "collision",
       forceCollide((node: NetworkNode) => nodeRadius(node) + networkConfig.canvas.physics.collisionPadding)
-        .strength(0.96)
-        .iterations(3),
+        .strength(1)
+        .iterations(4),
     );
 
     graphRef.current.d3ReheatSimulation();
@@ -250,8 +251,8 @@ export function NetworkCanvas({
           );
 
         if (showLabel) {
-          const fontPx = isSelected ? 12.5 : isHovered ? 10.5 : 9.25;
-          const fontSize = Math.max(fontPx / globalScale, 5.1);
+          const fontPx = isSelected ? 13.5 : isHovered ? 11.5 : 10.0;
+          const fontSize = Math.max(fontPx / globalScale, 5.5);
           ctx.font = `${isSelected || isHovered || typedNode.is_hub ? "600 " : ""}${fontSize}px Inter, ui-sans-serif, sans-serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
@@ -385,7 +386,7 @@ export function NetworkCanvas({
 
   const handleZoomReset = useCallback(() => {
     if (!graphRef.current) return;
-    graphRef.current.zoomToFit(450, selectedNodeId ? 90 : 42);
+    graphRef.current.zoomToFit(450, selectedNodeId ? 120 : 96);
     setZoomLevel(1);
   }, [selectedNodeId]);
 
@@ -464,7 +465,7 @@ export function NetworkCanvas({
         onEngineStop={() => {
           if (!selectedNodeId && !autoFitRef.current && graphRef.current && graphData.nodes.length > 0) {
             autoFitRef.current = true;
-            graphRef.current.zoomToFit(500, 42);
+            graphRef.current.zoomToFit(500, 96);
           }
         }}
         d3AlphaDecay={networkConfig.canvas.physics.alphaDecay}
@@ -483,8 +484,8 @@ export function NetworkCanvas({
       {zoomLevel <= 1.02 && !selectedNodeId && graphData.nodes.length > 0 && (
         <div className="sed-canvas-hint" aria-hidden="true">
           {lang === "es"
-            ? "Explora el overview · haz clic para aislar una red directa"
-            : "Scan the overview · click to isolate a direct network"}
+            ? "Explora el panorama · haz clic para abrir una red más clara"
+            : "Scan the overview · click to open a clearer local network"}
         </div>
       )}
     </div>
@@ -503,20 +504,48 @@ function buildOverviewTargetMap(nodes: NetworkNode[]): Map<string, { x: number; 
     return right.total_value - left.total_value;
   });
 
-  sorted.forEach((node, index) => {
-    const baseRadius = node.is_hub
-      ? 88
-      : node.type === "entity"
-        ? 166
-        : node.type === "provider"
-          ? 236
-          : 304;
-    const ringOffset = Math.floor(index / 6) * 14;
-    const angle = index * 2.399963229728653 + seededAngleOffset(node.id);
-    map.set(node.id, {
-      x: Math.cos(angle) * (baseRadius + ringOffset),
-      y: Math.sin(angle) * ((baseRadius + ringOffset) * 0.76),
-    });
+  const hubs = sorted.filter((node) => node.is_hub);
+  const clusters = sorted.filter((node) => !node.is_hub && node.type === "cluster");
+  const entities = sorted.filter((node) => !node.is_hub && node.type === "entity");
+  const providers = sorted.filter((node) => !node.is_hub && node.type === "provider");
+  const remainder = sorted.filter(
+    (node) => !node.is_hub && node.type !== "cluster" && node.type !== "entity" && node.type !== "provider",
+  );
+
+  placeNodesOnRings(map, hubs, {
+    baseRadius: 160,
+    ringStep: 100,
+    baseCountPerRing: 4,
+    yScale: 0.52,             // flat ellipse — spread horizontally
+    angleOffset: -Math.PI / 2,
+  });
+  placeNodesOnRings(map, clusters, {
+    baseRadius: 320,
+    ringStep: 120,
+    baseCountPerRing: 5,
+    yScale: 0.48,
+    angleOffset: Math.PI / 5,
+  });
+  placeNodesOnRings(map, entities, {
+    baseRadius: 480,
+    ringStep: 140,
+    baseCountPerRing: 7,
+    yScale: 0.55,
+    angleOffset: -Math.PI / 3,
+  });
+  placeNodesOnRings(map, providers, {
+    baseRadius: 680,
+    ringStep: 150,
+    baseCountPerRing: 10,
+    yScale: 0.60,
+    angleOffset: Math.PI / 9,
+  });
+  placeNodesOnRings(map, remainder, {
+    baseRadius: 880,
+    ringStep: 140,
+    baseCountPerRing: 12,
+    yScale: 0.62,
+    angleOffset: -Math.PI / 8,
   });
 
   return map;
@@ -538,16 +567,53 @@ function buildFocusTargetMap(
       return right.total_value - left.total_value;
     });
 
-  neighbors.forEach((node, index) => {
-    const angle = -Math.PI / 2 + (index / Math.max(neighbors.length, 1)) * Math.PI * 2;
-    const radius = node.type === "entity" ? 176 : node.type === "provider" ? 216 : 252;
-    map.set(node.id, {
-      x: Math.cos(angle) * radius,
-      y: Math.sin(angle) * (radius * 0.76),
-    });
+  placeNodesOnRings(map, neighbors, {
+    baseRadius: 248,
+    ringStep: 114,
+    baseCountPerRing: 7,
+    yScale: 0.82,
+    angleOffset: -Math.PI / 2,
   });
 
   return map;
+}
+
+function placeNodesOnRings(
+  map: Map<string, { x: number; y: number }>,
+  nodes: NetworkNode[],
+  options: {
+    baseRadius: number;
+    ringStep: number;
+    baseCountPerRing: number;
+    yScale: number;
+    angleOffset: number;
+  },
+) {
+  let ringIndex = 0;
+  let cursor = 0;
+
+  while (cursor < nodes.length) {
+    const radius = options.baseRadius + ringIndex * options.ringStep;
+    const ringCount = Math.min(
+      nodes.length - cursor,
+      options.baseCountPerRing + ringIndex * Math.max(2, Math.round(options.baseCountPerRing * 0.35)),
+    );
+
+    for (let i = 0; i < ringCount; i += 1) {
+      const node = nodes[cursor + i];
+      const angle =
+        options.angleOffset +
+        (i / Math.max(ringCount, 1)) * Math.PI * 2 +
+        seededAngleOffset(node.id) * 0.08;
+      map.set(node.id, {
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * (radius * options.yScale),
+      });
+    }
+
+    cursor += ringCount;
+    ringIndex += 1;
+  }
 }
 
 function resolveLinkEndId(value: string | { id?: string } | undefined): string {
