@@ -150,6 +150,60 @@ def _format_cop(value: float) -> str:
     return f"${value / 1_000:.0f}K"
 
 
+def _compute_lead_case_signals(row: pd.Series, risk_label: str) -> dict:
+    """Derive pickReason, signal, and factors from available contract fields."""
+    is_direct = bool(row.get("is_direct_award", False))
+    single_b = bool(row.get("single_bidder", False))
+    risk_score = float(row.get("risk_score", 0))
+    modality = str(row.get("modalidad_de_contratacion", "")).lower()
+
+    # pickReason: short band label
+    if risk_label == "risk_rojo":
+        pick_reason = "Alerta preventiva alta"
+    else:
+        pick_reason = "Patrón atípico moderado"
+
+    # signal: 1-line summary of the most salient trait
+    signals = []
+    if is_direct or "directa" in modality or "direct" in modality:
+        signals.append("Contratación directa")
+    if single_b:
+        signals.append("Oferente único")
+    if not signals:
+        signals.append("Anomalía estadística global")
+
+    signal = " · ".join(signals)
+
+    # factors: up to 3 heuristic contributions
+    factors: list[dict] = []
+    if is_direct or "directa" in modality:
+        factors.append({
+            "key": "direct_award",
+            "label": "Modalidad de contratación directa",
+            "severity": round(min(1.0, 0.55 + risk_score * 0.35), 3),
+        })
+    if single_b:
+        factors.append({
+            "key": "single_bidder",
+            "label": "Único oferente habilitado",
+            "severity": round(min(1.0, 0.50 + risk_score * 0.30), 3),
+        })
+    if risk_score >= 0.7:
+        factors.append({
+            "key": "anomaly_global",
+            "label": "Desvío global por encima del umbral de riesgo alto",
+            "severity": round(min(1.0, risk_score), 3),
+        })
+    elif risk_score >= 0.4:
+        factors.append({
+            "key": "anomaly_moderate",
+            "label": "Desvío moderado respecto al patrón típico del corte",
+            "severity": round(min(1.0, risk_score), 3),
+        })
+
+    return {"pickReason": pick_reason, "signal": signal, "factors": factors[:3]}
+
+
 def _pad_departments(departments: list[dict]) -> list[dict]:
     """Ensure all 33 canonical GeoJSON departments appear, even those with 0 flagged contracts."""
     ALL_GEO_NAMES = [
@@ -215,8 +269,10 @@ def compute_global_stats(df_flagged: pd.DataFrame, df_all: pd.DataFrame | None =
 
     # Top 48 lead cases
     top = df.nlargest(48, "risk_score")
-    lead_cases = [
-        {
+    lead_cases = []
+    for _, r in top.iterrows():
+        signals = _compute_lead_case_signals(r, str(r.get("risk_label", "")))
+        lead_cases.append({
             "id": str(r["id_contrato"]),
             "score": int(round(float(r["risk_score"]) * 100)),
             "riskBand": "high" if r["risk_label"] == "risk_rojo" else "medium",
@@ -228,12 +284,10 @@ def compute_global_stats(df_flagged: pd.DataFrame, df_all: pd.DataFrame | None =
             "value": int(pd.to_numeric(r["valor_del_contrato"], errors="coerce") or 0),
             "valueLabel": _format_cop(float(pd.to_numeric(r["valor_del_contrato"], errors="coerce") or 0)),
             "secopUrl": _extract_url(r["urlproceso"]),
-            "pickReason": "",
-            "signal": "",
-            "factors": [],
-        }
-        for _, r in top.iterrows()
-    ]
+            "pickReason": signals["pickReason"],
+            "signal": signals["signal"],
+            "factors": signals["factors"],
+        })
 
     # Top entities
     ent_grp = (

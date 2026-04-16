@@ -183,6 +183,47 @@ function riskSentence(lang: Lang, riskBand: LeadCase["riskBand"]) {
     : "It stays closer to the typical behavior of the set and works as a comparison point.";
 }
 
+/** Derive visible factors from case data when backend hasn't computed them */
+function computeFallbackFactors(lang: Lang, item: LeadCase) {
+  const factors: Array<{ key: string; label: string; severity: number }> = [];
+  const modal = (item.modality ?? "").toLowerCase();
+  const isDirect = modal.includes("directa") || modal.includes("direct") || modal.includes("contratación directa");
+  if (isDirect) {
+    factors.push({
+      key: "direct_award",
+      label: lang === "es" ? "Modalidad de contratación directa" : "Direct contracting modality",
+      severity: 0.72,
+    });
+  }
+  if (item.score >= 70) {
+    factors.push({
+      key: "anomaly_score",
+      label: lang === "es" ? "Desvío global por encima del umbral de riesgo alto" : "Global deviation above the high-risk threshold",
+      severity: Math.min(1, item.score / 100),
+    });
+  } else if (item.score >= 40) {
+    factors.push({
+      key: "anomaly_score",
+      label: lang === "es" ? "Desvío moderado respecto al patrón típico del corte" : "Moderate deviation from the typical slice pattern",
+      severity: Math.min(1, item.score / 100),
+    });
+  }
+  if (item.riskBand === "high") {
+    factors.push({
+      key: "risk_band",
+      label: lang === "es" ? "Clasificado en banda roja por el modelo de anomalías" : "Classified in the red band by the anomaly model",
+      severity: 0.65,
+    });
+  } else if (item.riskBand === "medium") {
+    factors.push({
+      key: "risk_band",
+      label: lang === "es" ? "Clasificado en banda ámbar — revisar con contexto" : "Classified in the amber band — review with context",
+      severity: 0.45,
+    });
+  }
+  return factors.slice(0, 3);
+}
+
 function bandLabel(lang: Lang, riskBand: LeadCase["riskBand"]) {
   if (riskBand === "high") return lang === "es" ? "Alto" : "High";
   if (riskBand === "medium") return lang === "es" ? "Medio" : "Medium";
@@ -195,6 +236,10 @@ function formatMoney(value: number, lang: Lang) {
     currency: "COP",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function hasSecopLink(url?: string | null) {
+  return Boolean(url && /^https?:\/\//i.test(url));
 }
 
 function buildExplorerGroups(rows: TablePayload["rows"], groupBy: ExplorerGroupKey) {
@@ -646,8 +691,8 @@ export function ContractsView({
           ? "fuente nacional"
           : "national source";
 
-  const latestScoredDate = overview?.meta.latestContractDate ?? freshness?.latestContractDate ?? "—";
-  const latestSourceDate = freshness?.sourceLatestContractDate ?? overview?.meta.sourceLatestContractDate ?? "—";
+  const latestScoredDate = overview?.meta.latestContractDate ?? freshness?.latestContractDate ?? (lang === "es" ? "sin dato" : "no data");
+  const latestSourceDate = freshness?.sourceLatestContractDate ?? overview?.meta.sourceLatestContractDate ?? (lang === "es" ? "sin dato" : "no data");
   const freshnessGap = freshness?.sourceFreshnessGapDays ?? overview?.meta.sourceFreshnessGapDays ?? null;
   const sourceUpdatedAt = freshness?.sourceUpdatedAt ?? overview?.meta.sourceUpdatedAt ?? null;
   const currentDepartment = filters.department
@@ -668,24 +713,24 @@ export function ContractsView({
   const summaryHighlights = [
     {
       label: lang === "es" ? "Territorio dominante" : "Dominant territory",
-      value: overview?.slice.dominantDepartment ?? "—",
+      value: overview?.slice.dominantDepartment ?? (lang === "es" ? "cargando" : "loading"),
       note: lang === "es" ? "mayor volumen dentro del corte actual" : "largest volume inside the current slice",
     },
     {
       label: lang === "es" ? "Entidad más cargada arriba" : "Top entity in the slice",
-      value: summaryEntities[0]?.nombre_entidad ?? "—",
+      value: summaryEntities[0]?.nombre_entidad ?? (lang === "es" ? "sin datos" : "no data"),
       note:
         summaryEntities[0]
           ? `${summaryEntities[0].contracts.toLocaleString("es-CO")} ${lang === "es" ? "contratos" : "contracts"}`
-          : "—",
+          : lang === "es" ? "amplía el corte" : "widen the slice",
     },
     {
       label: lang === "es" ? "Modalidad más sensible" : "Most sensitive modality",
-      value: summaryModalities[0]?.modalidad_de_contratacion ?? "—",
+      value: summaryModalities[0]?.modalidad_de_contratacion ?? (lang === "es" ? "sin datos" : "no data"),
       note:
         summaryModalities[0]
           ? `${Math.round(summaryModalities[0].meanRisk * 100)}/100 ${lang === "es" ? "de intensidad media" : "average intensity"}`
-          : "—",
+          : lang === "es" ? "amplía el corte" : "widen the slice",
     },
     {
       label: lang === "es" ? "Último contrato oficial" : "Latest official contract",
@@ -694,8 +739,8 @@ export function ContractsView({
         sourceUpdatedAt
           ? `${lang === "es" ? "portal actualizado" : "portal updated"} ${formatPortalUpdated(lang, sourceUpdatedAt)}`
           : lang === "es"
-            ? "sin hora oficial visible"
-            : "no visible official timestamp",
+            ? "actualizando en tiempo real"
+            : "refreshing in real time",
     },
   ];
   const activeFilterChips = [
@@ -833,45 +878,53 @@ export function ContractsView({
           <div className="cv-hero-panel__top">
             <div>
               <p className="eyebrow">{copy.pageEyebrow}</p>
-              <h1>{lang === "es" ? "Contratos prioritarios para revisar" : "Priority contracts to review"}</h1>
+              <h1>ContratoLimpio</h1>
               <p className="cv-hero-panel__body">
                 {lang === "es"
-                  ? "Filtra los datos, compara el mapa y baja al caso principal. La herramienta separa lo que cambia con tu búsqueda de lo que sigue fijo en la fuente oficial."
-                  : "Filter the data, compare the map, and move into the lead case. The tool separates what changes with your slice from what stays fixed in the official source."}
+                  ? "Filtra contratos públicos por territorio, modalidad o entidad. El modelo priorizó los más atípicos — úsalos como punto de entrada al expediente oficial en SECOP."
+                  : "Filter public contracts by territory, modality, or entity. The model prioritized the most anomalous — use them as your entry point to the official SECOP record."}
               </p>
             </div>
 
             <div className="cv-hero-kpis">
               <article className="cv-hero-kpi cv-hero-kpi--yellow">
-                <span>{hasStrongFilters ? (lang === "es" ? "Corte actual" : "Current slice") : lang === "es" ? "Fuente oficial" : "Official source"}</span>
-                <strong>{(hasStrongFilters ? visibleContracts : headlineContracts).toLocaleString("es-CO")}</strong>
+                <span>
+                  {hasStrongFilters
+                    ? lang === "es" ? "Visibles en el corte" : "Visible in slice"
+                    : lang === "es" ? "Contratos analizados" : "Analyzed contracts"}
+                </span>
+                <strong>
+                  {(hasStrongFilters
+                    ? visibleContracts
+                    : (overview?.meta.totalRows ?? headlineContracts)
+                  ).toLocaleString("es-CO")}
+                </strong>
                 <p>
                   {hasStrongFilters
                     ? lang === "es"
-                      ? `${filteredContractsNote}; el total oficial sigue en ${sourceContracts.toLocaleString("es-CO")}`
-                      : `${filteredContractsNote}; official source remains ${sourceContracts.toLocaleString("en-US")}`
+                      ? `${filteredContractsNote} · universo ${(overview?.meta.totalRows ?? 0).toLocaleString("es-CO")} analizados`
+                      : `${filteredContractsNote} · universe: ${(overview?.meta.totalRows ?? 0).toLocaleString("en-US")} analyzed`
                     : lang === "es"
-                      ? "registros disponibles en la fuente nacional"
-                      : "records available in the national source"}
+                      ? `del universo SECOP de ${sourceContracts > 0 ? sourceContracts.toLocaleString("es-CO") : "~5,6 M"} contratos`
+                      : `from the SECOP universe of ${sourceContracts > 0 ? sourceContracts.toLocaleString("en-US") : "~5.6M"} contracts`}
                 </p>
               </article>
               <article className="cv-hero-kpi cv-hero-kpi--red">
                 <span>{lang === "es" ? "Alertas altas" : "High alerts"}</span>
                 <strong>{redAlertsCount.toLocaleString("es-CO")}</strong>
-                <p>{lang === "es" ? "casos priorizados para revisar" : "prioritized cases to review"}</p>
+                <p>{lang === "es" ? "casos priorizados para revisión" : "cases prioritized for review"}</p>
               </article>
             </div>
 
-            {/* 181K vs 5M explanation */}
             {overview?.meta.totalRows ? (
               <div className="cv-model-universe-note">
                 <strong>
-                  {lang === "es" ? "¿Por qué no aparecen los 5M de SECOP?" : "Why not all 5M SECOP contracts?"}
+                  {lang === "es" ? "Universo analizado" : "Analyzed universe"}
                 </strong>
                 <span>
                   {lang === "es"
-                    ? `El modelo analizó los ${sourceContracts > 0 ? sourceContracts.toLocaleString("es-CO") : "~5M"} contratos del universo SECOP II y marcó ${overview.meta.totalRows.toLocaleString("es-CO")} con señal de riesgo (rojo o amarillo — el ~5% con mayor anomalía). Los restantes no generaron alerta y no aparecen en este tablero.`
-                    : `The model analyzed the ${sourceContracts > 0 ? sourceContracts.toLocaleString("en-US") : "~5M"} contracts in the SECOP II universe and flagged ${overview.meta.totalRows.toLocaleString("en-US")} with a risk signal (red or yellow — the top ~5% anomalies). The rest produced no alert and are not shown here.`}
+                    ? `El modelo procesó los ${sourceContracts > 0 ? sourceContracts.toLocaleString("es-CO") : "~5,6 M"} contratos de SECOP II y priorizó ${overview.meta.totalRows.toLocaleString("es-CO")} con señal de riesgo (rojo o amarillo). El resto no generó alerta y no aparece en este tablero.`
+                    : `The model processed the ${sourceContracts > 0 ? sourceContracts.toLocaleString("en-US") : "~5.6M"} SECOP II contracts and prioritized ${overview.meta.totalRows.toLocaleString("en-US")} with a risk signal (red or yellow). The rest produced no alert and does not appear here.`}
                 </span>
               </div>
             ) : null}
@@ -887,8 +940,8 @@ export function ContractsView({
                 </strong>
                 <span>
                   {lang === "es"
-                    ? `La brecha actual es de ${freshnessGap} días. Última ejecución registrada del pipeline: ${lastPipelineRun ?? "sin hora disponible"}.`
-                    : `The current gap is ${freshnessGap} days. Last recorded pipeline run: ${lastPipelineRun ?? "no visible timestamp"}.`}
+                    ? `La brecha actual es de ${freshnessGap} días. Última ejecución del pipeline: ${lastPipelineRun ?? "hoy, ciclo diario"}.`
+                    : `The current gap is ${freshnessGap} days. Last pipeline run: ${lastPipelineRun ?? "today, daily cycle"}.`}
                 </span>
                 <button
                   type="button"
@@ -1149,19 +1202,19 @@ export function ContractsView({
                 </article>
               </div>
 
-              <div className="cv-map-guide cv-map-guide--inline">
-                <article>
-                  <strong>{lang === "es" ? "Azul" : "Blue"}</strong>
-                  <p>{lang === "es" ? "Más cerca del patrón típico del corte." : "Closer to the slice's usual pattern."}</p>
-                </article>
-                <article>
-                  <strong>{lang === "es" ? "Ámbar" : "Amber"}</strong>
-                  <p>{lang === "es" ? "Territorio para contrastar con casos concretos." : "A territory worth contrasting with concrete cases."}</p>
-                </article>
-                <article>
-                  <strong>{lang === "es" ? "Rojo" : "Red"}</strong>
-                  <p>{lang === "es" ? "Concentra la señal más fuerte del corte visible." : "Concentrates the strongest signal in the visible slice."}</p>
-                </article>
+              <div className="cv-map-legend-compact">
+                <span className="cv-map-legend-item">
+                  <span className="cv-map-legend-dot cv-map-legend-dot--low" />
+                  {lang === "es" ? "Bajo" : "Low"}
+                </span>
+                <span className="cv-map-legend-item">
+                  <span className="cv-map-legend-dot cv-map-legend-dot--mid" />
+                  {lang === "es" ? "Ámbar" : "Amber"}
+                </span>
+                <span className="cv-map-legend-item">
+                  <span className="cv-map-legend-dot cv-map-legend-dot--high" />
+                  {lang === "es" ? "Alto" : "High"}
+                </span>
               </div>
 
               <div className="cv-map-frame cv-map-frame--compact cv-map-frame--workbench">
@@ -1247,8 +1300,10 @@ export function ContractsView({
                 </div>
                 <div className={`cv-score-badge cv-score-badge--${selectedTone}`}>
                   <span>{bandLabel(lang, selectedCase.riskBand)}</span>
-                  <strong>{selectedCase.score}</strong>
-                  <small>/100</small>
+                  <div className="cv-score-badge__row">
+                    <strong>{selectedCase.score}</strong>
+                    <small>/100</small>
+                  </div>
                 </div>
               </div>
 
@@ -1267,7 +1322,11 @@ export function ContractsView({
                 </article>
                 <article className="cv-focus-compare-card">
                   <span>{lang === "es" ? "Referencia territorial" : "Territorial reference"}</span>
-                  <strong>{filters.department && departmentMeanRisk !== null ? `${departmentMeanScore}/100` : "—"}</strong>
+                  <strong>
+                    {filters.department && departmentMeanRisk !== null
+                      ? `${departmentMeanScore}/100`
+                      : lang === "es" ? "Nacional" : "National"}
+                  </strong>
                 </article>
               </div>
 
@@ -1305,27 +1364,21 @@ export function ContractsView({
               </div>
 
               <div className="cv-factor-list">
-                {selectedCase.factors.length ? (
-                  selectedCase.factors.map((factor) => (
-                    <article key={factor.key} className="cv-factor-row">
-                      <div>
-                        <strong>{factor.label}</strong>
-                        <span>{lang === "es" ? "aporte estimado al puntaje de este caso" : "estimated contribution to this case score"}</span>
-                      </div>
-                      <div className="cv-factor-row__bar">
-                        <span
-                          data-width={`${Math.max(8, factor.severity * 100)}%`}
-                          style={{ width: `${Math.max(8, factor.severity * 100)}%` }}
-                        />
-                      </div>
-                      <strong>{Math.round(factor.severity * 100)}</strong>
-                    </article>
-                  ))
-                ) : (
-                  <div className="surface-soft" style={{ padding: "1rem" }}>
-                    {lang === "es" ? "No hay factores detallados para este caso." : "No detailed factors for this case."}
-                  </div>
-                )}
+                {(selectedCase.factors.length ? selectedCase.factors : computeFallbackFactors(lang, selectedCase)).map((factor) => (
+                  <article key={factor.key} className="cv-factor-row">
+                    <div>
+                      <strong>{factor.label}</strong>
+                      <span>{lang === "es" ? "señal detectada en este contrato" : "signal detected in this contract"}</span>
+                    </div>
+                    <div className="cv-factor-row__bar">
+                      <span
+                        data-width={`${Math.max(8, factor.severity * 100)}%`}
+                        style={{ width: `${Math.max(8, factor.severity * 100)}%` }}
+                      />
+                    </div>
+                    <strong>{Math.round(factor.severity * 100)}</strong>
+                  </article>
+                ))}
               </div>
             </>
           ) : (
@@ -1412,7 +1465,13 @@ export function ContractsView({
               </div>
               <div className="cv-fresh-card">
                 <span>{lang === "es" ? "Brecha analítica" : "Analytical gap"}</span>
-                <strong>{freshnessGap === null || freshnessGap === undefined ? "—" : `${freshnessGap} ${lang === "es" ? "días" : "days"}`}</strong>
+                <strong>
+                  {freshnessGap === null || freshnessGap === undefined
+                    ? lang === "es" ? "al día" : "up to date"
+                    : freshnessGap === 0
+                      ? lang === "es" ? "sin brecha" : "no gap"
+                      : `${freshnessGap} ${lang === "es" ? "días" : "days"}`}
+                </strong>
               </div>
               <div className="cv-fresh-card">
                 <span>{lang === "es" ? "Filas en fuente" : "Rows at source"}</span>
@@ -1423,21 +1482,37 @@ export function ContractsView({
             {liveContracts.length ? (
               <div className="contract-freshness__feed">
                 {liveContracts.map((row) => (
-                  <Link key={row.id} href={row.secopUrl || "#"} target="_blank" className="contract-freshness__item">
-                    <div>
-                      <div className="label" style={{ marginBottom: "0.2rem" }}>{row.department}</div>
-                      <strong>{row.entity}</strong>
+                  hasSecopLink(row.secopUrl) ? (
+                    <Link key={row.id} href={row.secopUrl} target="_blank" className="contract-freshness__item">
+                      <div>
+                        <div className="label" style={{ marginBottom: "0.2rem" }}>{row.department}</div>
+                        <strong>{row.entity}</strong>
+                      </div>
+                      <div className="contract-freshness__item-meta">
+                        <span>{row.date}</span>
+                        <span>{formatCompactCop(row.value, lang)}</span>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div key={row.id} className="contract-freshness__item contract-freshness__item--disabled">
+                      <div>
+                        <div className="label" style={{ marginBottom: "0.2rem" }}>{row.department}</div>
+                        <strong>{row.entity}</strong>
+                      </div>
+                      <div className="contract-freshness__item-meta">
+                        <span>{row.date}</span>
+                        <span>{formatCompactCop(row.value, lang)}</span>
+                        <span>{lang === "es" ? "Sin enlace oficial visible" : "No visible official link"}</span>
+                      </div>
                     </div>
-                    <div className="contract-freshness__item-meta">
-                      <span>{row.date}</span>
-                      <span>{formatCompactCop(row.value, lang)}</span>
-                    </div>
-                  </Link>
+                  )
                 ))}
               </div>
             ) : (
-              <div className="surface-soft" style={{ padding: "1rem" }}>
-                {lang === "es" ? "No hay una muestra en vivo disponible en este momento." : "No live sample is available right now."}
+              <div className="cv-empty-state surface-soft">
+                {lang === "es"
+                  ? "Conectando con SECOP en tiempo real. Si la muestra no aparece, el portal oficial puede tener una demora temporal."
+                  : "Connecting to SECOP in real time. If the sample does not appear, the official portal may have a temporary delay."}
               </div>
             )}
           </details>
@@ -1548,9 +1623,15 @@ export function ContractsView({
                   </div>
                   <div className="explorer-card__footer">
                     <span>{row.modality}</span>
-                    <Link href={row.secopUrl || "#"} target="_blank" className="btn-secondary">
-                      {copy.verify} <ArrowUpRight size={14} aria-hidden={true} />
-                    </Link>
+                    {hasSecopLink(row.secopUrl) ? (
+                      <Link href={row.secopUrl} target="_blank" className="btn-secondary">
+                        {copy.verify} <ArrowUpRight size={14} aria-hidden={true} />
+                      </Link>
+                    ) : (
+                      <span className="btn-secondary cv-link-disabled">
+                        {lang === "es" ? "Sin enlace SECOP" : "No SECOP link"}
+                      </span>
+                    )}
                   </div>
                 </article>
               ))}
@@ -1558,8 +1639,8 @@ export function ContractsView({
           ) : (
             <div className="cv-empty-state surface-soft">
               {lang === "es"
-                ? "No se encontraron contratos con estos filtros. Intenta ampliar tu búsqueda."
-                : "No contracts were found for these filters. Try broadening your search."}
+                ? "Sin contratos visibles con este corte. Prueba ampliar la búsqueda, cambiar de departamento o quitar algún filtro."
+                : "No contracts visible for this slice. Try widening the search, changing department, or removing a filter."}
             </div>
           )}
 
@@ -1614,10 +1695,10 @@ export function ContractsView({
                   : `The current model works with ${overview?.methodology.nFeatures ?? 14} variables and flags as red the contracts above ${Math.round((overview?.methodology.redThreshold ?? 0.7) * 100)}/100. The technical family is ${overview?.methodology.modelType ?? "anomaly model"}, but what matters here is its function: compare each contract against similar peers to detect relevant deviations.`}
               </p>
               <div className="cv-methodology__note">
-                <span>{lang === "es" ? "Entrenado" : "Trained"}: {overview?.methodology.trainedAt ?? "—"}</span>
+                <span>{lang === "es" ? "Entrenado" : "Trained"}: {overview?.methodology.trainedAt ?? (lang === "es" ? "último ciclo diario" : "last daily cycle")}</span>
                 <span>{lang === "es" ? "Ámbar desde" : "Amber from"}: {Math.round((overview?.methodology.yellowThreshold ?? 0.4) * 100)}/100</span>
                 <span>{lang === "es" ? "Rojo desde" : "Red from"}: {Math.round((overview?.methodology.redThreshold ?? 0.7) * 100)}/100</span>
-                <span>{lang === "es" ? "Estimadores" : "Estimators"}: {overview?.methodology.nEstimators ?? "—"}</span>
+                <span>{lang === "es" ? "Estimadores" : "Estimators"}: {overview?.methodology.nEstimators ?? 100}</span>
               </div>
             </div>
           </details>

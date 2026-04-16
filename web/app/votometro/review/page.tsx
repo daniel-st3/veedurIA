@@ -11,6 +11,7 @@ import {
 import type {
   IdentityConflictRecord,
   PromiseReviewRecord,
+  VotometroDataIssue,
 } from "@/lib/votometro-types";
 import { getReviewDashboard } from "@/lib/votometro-server";
 
@@ -47,16 +48,14 @@ export default async function VotometroReviewRoute({
   let promiseQueue: PromiseReviewRecord[] = [];
   let identityQueue: IdentityConflictRecord[] = [];
   let runs: Record<string, unknown>[] = [];
+  let issue: VotometroDataIssue | null = null;
 
   if (configured && authed) {
-    try {
-      const dashboard = await getReviewDashboard();
-      promiseQueue = dashboard.promiseQueue;
-      identityQueue = dashboard.identityQueue;
-      runs = dashboard.runs;
-    } catch {
-      // Keep the review shell visible even if the admin tables are not ready yet.
-    }
+    const dashboard = await getReviewDashboard();
+    promiseQueue = dashboard.promiseQueue;
+    identityQueue = dashboard.identityQueue;
+    runs = dashboard.runs;
+    issue = dashboard.issue;
   }
 
   return (
@@ -67,6 +66,7 @@ export default async function VotometroReviewRoute({
       promiseQueue={promiseQueue}
       identityQueue={identityQueue}
       runs={runs}
+      issue={issue}
     />
   );
 }

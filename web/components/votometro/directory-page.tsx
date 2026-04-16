@@ -8,6 +8,7 @@ import { VOTOMETRO_TOPICS } from "@/lib/votometro-topics";
 import type {
   LegislatorListItem,
   PartySummary,
+  VotometroDataIssue,
   VotometroDirectoryPayload,
   VotometroFilters,
 } from "@/lib/votometro-types";
@@ -46,6 +47,47 @@ function avatarFor(profile: LegislatorListItem) {
 
 function profileHref(lang: Lang, slug: string) {
   return `/votometro/legislador/${slug}?lang=${lang}`;
+}
+
+function IssuePanel({
+  lang,
+  issue,
+}: {
+  lang: Lang;
+  issue: VotometroDataIssue;
+}) {
+  const steps =
+    issue.code === "missing_schema"
+      ? [
+          "Ejecuta scripts/setup_supabase.sql en el proyecto Supabase conectado a este entorno.",
+          "Corre un primer sync con python scripts/sync_votometro.py --mode=daily.",
+          "Verifica que el frontend tenga SUPABASE_URL y que el entorno server-side tenga SUPABASE_SERVICE_KEY o SUPABASE_KEY.",
+        ]
+      : issue.code === "missing_env"
+        ? [
+            "Define SUPABASE_URL en el entorno del frontend.",
+            "Define SUPABASE_SERVICE_KEY o SUPABASE_KEY para las rutas server-side y review.",
+            "Si usas lectura pública con RLS, define también SUPABASE_ANON_KEY.",
+          ]
+        : [
+            "Revisa la conectividad del proyecto Supabase.",
+            "Valida que las vistas públicas de VotóMeter sigan existiendo y respondan.",
+            "Inspecciona el último run de sync y confirma que no quedó en warning.",
+          ];
+
+  return (
+    <section className={styles.alertCard}>
+      <span className={styles.eyebrow}>{lang === "es" ? "Estado del módulo" : "Module status"}</span>
+      <h2 className={styles.alertTitle}>{issue.title}</h2>
+      <p className={styles.alertBody}>{issue.message}</p>
+      {issue.detail ? <p className={styles.smallMuted}>Detalle técnico: {issue.detail}</p> : null}
+      <ol className={styles.alertList}>
+        {steps.map((step) => (
+          <li key={step}>{lang === "es" ? step : step}</li>
+        ))}
+      </ol>
+    </section>
+  );
 }
 
 function Card({ profile, lang }: { profile: LegislatorListItem; lang: Lang }) {
@@ -244,6 +286,8 @@ export function VotometroDirectoryPage({
           </div>
         </section>
 
+        {payload.issue ? <IssuePanel lang={lang} issue={payload.issue} /> : null}
+
         <section className={styles.surface}>
           <h2 className={styles.surfaceTitle}>{copy.filtersTitle}</h2>
           <p className={styles.surfaceIntro}>{copy.filtersIntro}</p>
@@ -362,7 +406,13 @@ export function VotometroDirectoryPage({
               />
             </>
           ) : (
-            <div className={styles.emptyState}>{copy.empty}</div>
+            <div className={styles.emptyState}>
+              {payload.issue
+                ? lang === "es"
+                  ? "El directorio no está vacío por falta de legisladores: la capa de datos no quedó lista en este entorno."
+                  : "The directory is not empty because of missing legislators: the data layer is not ready in this environment."
+                : copy.empty}
+            </div>
           )}
         </section>
 

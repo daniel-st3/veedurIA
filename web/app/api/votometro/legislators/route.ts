@@ -7,5 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const payload = await getVotometroDirectory(request.nextUrl.searchParams);
-  return NextResponse.json(payload);
+  return NextResponse.json(payload, {
+    status: payload.issue?.httpStatus ?? 200,
+  });
 }

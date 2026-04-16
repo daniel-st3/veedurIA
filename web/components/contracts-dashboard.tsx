@@ -345,6 +345,79 @@ export function ContractsDashboard({
     [lang, riskBandMix],
   );
 
+  // ── Creative chart 1: Risk vs. Value bubble (from visible tableRows) ──────
+  const bubbleData = useMemo(() => {
+    const sample = rows.slice(0, 120); // cap for perf
+    return [
+      {
+        x: sample.map((row) => row.value),
+        y: sample.map((row) => row.score),
+        text: sample.map((row) => row.entity),
+        type: "scatter",
+        mode: "markers",
+        marker: {
+          size: 12,
+          color: sample.map((row) =>
+            row.riskBand === "high" ? RISK_COLORS.high : row.riskBand === "medium" ? RISK_COLORS.medium : RISK_COLORS.low,
+          ),
+          opacity: 0.78,
+          line: { color: "rgba(40,37,29,0.12)", width: 1 },
+        },
+        hovertemplate:
+          lang === "es"
+            ? "<b>%{text}</b><br>Valor: $%{x:,.0f}<br>Puntaje: %{y}/100<extra></extra>"
+            : "<b>%{text}</b><br>Value: $%{x:,.0f}<br>Score: %{y}/100<extra></extra>",
+      },
+    ];
+  }, [lang, rows]);
+
+  // ── Creative chart 2: Treemap — modality → entity → contracts ────────────
+  const treemapData = useMemo(() => {
+    const grouped: Record<string, Record<string, number>> = {};
+    rows.forEach((row) => {
+      const mod = row.modality || (lang === "es" ? "Sin modalidad" : "No modality");
+      const ent = row.entity.slice(0, 36) || (lang === "es" ? "Sin entidad" : "No entity");
+      if (!grouped[mod]) grouped[mod] = {};
+      grouped[mod][ent] = (grouped[mod][ent] ?? 0) + 1;
+    });
+    const ids: string[] = ["Contratos"];
+    const labels: string[] = [lang === "es" ? "Contratos" : "Contracts"];
+    const parents: string[] = [""];
+    const values: number[] = [0];
+    const colors: string[] = ["rgba(0,0,0,0)"];
+    Object.entries(grouped).forEach(([mod, entities]) => {
+      const modTotal = Object.values(entities).reduce((a, b) => a + b, 0);
+      ids.push(mod);
+      labels.push(mod.length > 28 ? `${mod.slice(0, 27)}…` : mod);
+      parents.push("Contratos");
+      values.push(modTotal);
+      colors.push(CHART_PALETTE[1]);
+      Object.entries(entities).slice(0, 5).forEach(([ent, count]) => {
+        ids.push(`${mod}::${ent}`);
+        labels.push(ent);
+        parents.push(mod);
+        values.push(count);
+        colors.push(CHART_PALETTE[2]);
+      });
+    });
+    return [
+      {
+        type: "treemap",
+        ids,
+        labels,
+        parents,
+        values,
+        branchvalues: "total",
+        marker: { colors, line: { color: "rgba(248,249,250,0.9)", width: 2 } },
+        textfont: { size: 13, color: "#1e1c17" },
+        hovertemplate:
+          lang === "es"
+            ? "<b>%{label}</b><br>%{value} contratos<extra></extra>"
+            : "<b>%{label}</b><br>%{value} contracts<extra></extra>",
+      },
+    ];
+  }, [lang, rows]);
+
   const visibleCount = rows.length;
   const tooFewRows = rows.length < 4 && (modalityMix.length + topEntities.length) < 4;
 
@@ -380,17 +453,27 @@ export function ContractsDashboard({
       <div className="cv-block__header cv-dashboard__header">
         <div>
           <p className="eyebrow">{lang === "es" ? "Visualiza el corte" : "Visualize the slice"}</p>
-          <h2>{lang === "es" ? "Cuatro lecturas que reaccionan al corte completo" : "Four reads that react to the full slice"}</h2>
+          <h2>{lang === "es" ? "Seis lecturas que reaccionan al corte activo" : "Six reads that react to the active slice"}</h2>
         </div>
-        <p>
-          {lang === "es"
-            ? activeDepartmentLabel
-              ? `Territorio activo: ${activeDepartmentLabel}. Todo este bloque se recalcula con el corte completo, no solo con la tabla visible.`
-              : "Territorio, tiempo, modalidad y entidades recalculados con el corte completo, no con una sola página de resultados."
-            : activeDepartmentLabel
-              ? `Active territory: ${activeDepartmentLabel}. This block recalculates from the full slice, not only the visible table page.`
-              : "Territory, time, modality, and entities recalculated from the full slice, not from a single page of results."}
-        </p>
+        <div className="cv-dashboard-legend">
+          <p>
+            {lang === "es"
+              ? activeDepartmentLabel
+                ? `Territorio activo: ${activeDepartmentLabel}. Cada gráfica se recalcula con el corte completo, no solo con la página de resultados visible.`
+                : "Cada gráfica se recalcula con el corte completo activo, no con una sola página de resultados."
+              : activeDepartmentLabel
+                ? `Active territory: ${activeDepartmentLabel}. Each chart recalculates from the full slice, not only the visible table page.`
+                : "Each chart recalculates from the full active slice, not from a single page of results."}
+          </p>
+          <ul className="cv-dashboard-legend__list">
+            <li><strong>{lang === "es" ? "Territorio" : "Territory"}</strong> — {lang === "es" ? "contratos por departamento, coloreados por intensidad" : "contracts by department, colored by intensity"}</li>
+            <li><strong>{lang === "es" ? "Tiempo" : "Time"}</strong> — {lang === "es" ? "curva mensual, clic para filtrar" : "monthly curve, click to filter"}</li>
+            <li><strong>{lang === "es" ? "Modalidad" : "Modality"}</strong> — {lang === "es" ? "distribución por tipo de contratación" : "distribution by contracting type"}</li>
+            <li><strong>{lang === "es" ? "Entidades" : "Entities"}</strong> — {lang === "es" ? "ranking de mayor carga del corte" : "slice load ranking"}</li>
+            <li><strong>{lang === "es" ? "Dispersión" : "Scatter"}</strong> — {lang === "es" ? "riesgo vs. valor por contrato visible" : "risk vs. value per visible contract"}</li>
+            <li><strong>{lang === "es" ? "Árbol" : "Treemap"}</strong> — {lang === "es" ? "modalidad → entidad → contratos" : "modality → entity → contracts"}</li>
+          </ul>
+        </div>
       </div>
 
       <div className="cv-dashboard__grid">
@@ -545,6 +628,72 @@ export function ContractsDashboard({
             />
           </div>
         </article>
+
+        {rows.length >= 4 ? (
+          <article className="cv-dashboard-card">
+            <div className="cv-dashboard-card__head">
+              <p className="cv-dashboard-card__kicker">{lang === "es" ? "Riesgo vs. Valor" : "Risk vs. Value"}</p>
+              <strong>{lang === "es" ? "Dispersión: puntaje frente al valor del contrato" : "Scatter: risk score against contract value"}</strong>
+              <span>
+                {lang === "es"
+                  ? "Cada punto es un contrato visible. Rojo = alta anomalía, ámbar = moderada, azul = baja. Identifica patrones de valor alto con riesgo alto."
+                  : "Each dot is a visible contract. Red = high anomaly, amber = moderate, blue = low. Spot high-value high-risk clusters."}
+              </span>
+            </div>
+            <div className="cv-dashboard-card__plot">
+              <Plot
+                data={bubbleData as any}
+                layout={{
+                  ...baseLayout,
+                  margin: { l: 62, r: 24, t: 16, b: 52 },
+                  xaxis: {
+                    title: { text: lang === "es" ? "Valor (COP)" : "Value (COP)", standoff: 8 },
+                    gridcolor: GRID_COLOR,
+                    zeroline: false,
+                    tickfont: { size: 12 },
+                    automargin: true,
+                    tickformat: "$.2s",
+                  },
+                  yaxis: {
+                    title: { text: lang === "es" ? "Puntaje" : "Score", standoff: 8 },
+                    gridcolor: GRID_COLOR,
+                    zeroline: false,
+                    tickfont: { size: 12 },
+                    range: [0, 105],
+                    automargin: true,
+                  },
+                }}
+                config={{ responsive: true, displaylogo: false, displayModeBar: false }}
+                style={{ width: "100%", height: 282 }}
+              />
+            </div>
+          </article>
+        ) : null}
+
+        {rows.length >= 4 ? (
+          <article className="cv-dashboard-card cv-dashboard-card--wide">
+            <div className="cv-dashboard-card__head">
+              <p className="cv-dashboard-card__kicker">{lang === "es" ? "Árbol de contratos" : "Contract tree"}</p>
+              <strong>{lang === "es" ? "Modalidad → entidades dentro del corte visible" : "Modality → entities inside the visible slice"}</strong>
+              <span>
+                {lang === "es"
+                  ? "Haz clic en una celda para navegar. El tamaño refleja el número de contratos visibles en esa rama."
+                  : "Click a cell to drill in. Size reflects the number of visible contracts in that branch."}
+              </span>
+            </div>
+            <div className="cv-dashboard-card__plot">
+              <Plot
+                data={treemapData as any}
+                layout={{
+                  ...baseLayout,
+                  margin: { l: 0, r: 0, t: 16, b: 0 },
+                }}
+                config={{ responsive: true, displaylogo: false, displayModeBar: false }}
+                style={{ width: "100%", height: 340 }}
+              />
+            </div>
+          </article>
+        ) : null}
       </div>
     </section>
   );
