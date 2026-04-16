@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { deptDisplayLabel, deptGeoName } from "@/lib/colombia-departments";
 
 /**
  * Server-only Supabase client for Next.js API routes.
@@ -14,18 +15,21 @@ export function createServerSupabase() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-// ── Colombia department name → GeoJSON feature name ──────────────────────────
-const DEPT_GEO: Record<string, string> = {
-  "BOGOTA": "SANTAFE DE BOGOTA D.C",
-  "BOGOTÁ": "SANTAFE DE BOGOTA D.C",
-  "BOGOTA D.C.": "SANTAFE DE BOGOTA D.C",
-  "BOGOTÁ D.C.": "SANTAFE DE BOGOTA D.C",
-  "SAN ANDRES": "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA",
-};
-
-export function deptGeoName(dept: string): string {
-  return DEPT_GEO[dept.toUpperCase().trim()] ?? dept.toUpperCase().trim();
+/**
+ * Server-only Supabase client for internal route handlers and admin pages.
+ * Prefers the dedicated service-role key but falls back to SUPABASE_KEY so the
+ * existing GitHub Actions / local setups keep working.
+ */
+export function createServiceSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_KEY;
+  if (!url || !key) {
+    throw new Error("SUPABASE_URL and SUPABASE_SERVICE_KEY (or SUPABASE_KEY) must be set");
+  }
+  return createClient(url, key, { auth: { persistSession: false } });
 }
+
+export { deptDisplayLabel, deptGeoName };
 
 export function formatCop(value: number, lang: string): string {
   if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;

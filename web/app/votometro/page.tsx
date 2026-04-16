@@ -1,20 +1,23 @@
-import { VotometroView } from "@/components/votometro-view";
+import { VotometroDirectoryPage } from "@/components/votometro/directory-page";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
+import { getPartySummaries, getVotometroDirectory } from "@/lib/votometro-server";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: Promise<{ lang?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const lang = resolveLang(params.lang);
+  const lang = resolveLang(Array.isArray(params.lang) ? params.lang[0] : params.lang);
 
   return buildPageMetadata({
     lang,
     path: `/votometro?lang=${lang}`,
     title: "VotóMeter — VeedurIA",
-    description: "Cruza votaciones nominales del Congreso con el perfil programático de cada legislador y abre la gaceta exacta detrás de cada voto.",
+    description: "Directorio vivo de legisladores colombianos con votos, asistencia y coherencia visible solo cuando hay promesas revisadas.",
     imagePath: "/votometro/opengraph-image",
   });
 }
@@ -22,10 +25,14 @@ export async function generateMetadata({
 export default async function VotometroPage({
   searchParams,
 }: {
-  searchParams: Promise<{ lang?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const lang = resolveLang(params.lang);
+  const lang = resolveLang(Array.isArray(params.lang) ? params.lang[0] : params.lang);
+  const [payload, parties] = await Promise.all([
+    getVotometroDirectory(params),
+    getPartySummaries(),
+  ]);
 
-  return <VotometroView lang={lang} />;
+  return <VotometroDirectoryPage lang={lang} payload={payload} parties={parties} />;
 }

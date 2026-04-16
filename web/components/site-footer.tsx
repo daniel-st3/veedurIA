@@ -23,7 +23,11 @@ export function SiteFooter({ lang }: { lang: Lang }) {
           <Link href="https://github.com/daniel-st3/veedurIA" target="_blank" rel="noreferrer">
             GitHub
           </Link>
-          <span>{lang === "es" ? "Datos: SECOP II, CNE, Registraduría" : "Data: SECOP II, CNE, Registraduría"}</span>
+          <span>
+            {lang === "es"
+              ? "Datos: SECOP II, datos.gov.co, Senado abierto y fuentes públicas"
+              : "Data: SECOP II, datos.gov.co, Senado open data, and public sources"}
+          </span>
           <Link href={`/etica-y-privacidad?lang=${lang}`}>
             {lang === "es" ? "Privacidad y ética" : "Privacy and ethics"}
           </Link>

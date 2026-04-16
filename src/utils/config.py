@@ -72,6 +72,16 @@ def _get(key: str) -> str:
     )
 
 
+def _get_optional(key: str) -> str | None:
+    value = os.getenv(key)
+    if value:
+        return value
+    value = _load_legacy_streamlit_secrets().get(key)
+    if value:
+        return value
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Public accessor functions — one per credential family.
 # Keep each function single-purpose so callers are explicit about what they need.
@@ -82,6 +92,12 @@ def _get(key: str) -> str:
 def get_socrata_app_token() -> str:
     """App Token for X-App-Token header on all datos.gov.co requests."""
     return _get("SOCRATA_APP_TOKEN")
+
+
+@lru_cache(maxsize=1)
+def get_optional_socrata_app_token() -> str | None:
+    """Optional app token for low-volume public reads against Socrata."""
+    return _get_optional("SOCRATA_APP_TOKEN")
 
 
 @lru_cache(maxsize=1)
@@ -115,3 +131,8 @@ def get_supabase_key() -> str:
 @lru_cache(maxsize=1)
 def get_supabase_storage_bucket() -> str:
     return _get("SUPABASE_STORAGE_BUCKET")
+
+
+@lru_cache(maxsize=1)
+def get_votometro_storage_bucket() -> str:
+    return _get_optional("VOTOMETRO_STORAGE_BUCKET") or "votometro-source-snapshots"
