@@ -95,6 +95,8 @@ export function LandingPage({
   initialOverview: OverviewPayload;
 }) {
   const scope = useRef<HTMLDivElement | null>(null);
+  const hillsWrapRef = useRef<HTMLDivElement | null>(null);
+  const introRef = useRef<HTMLElement | null>(null);
   const [overview, setOverview] = useState<OverviewPayload>(initialOverview);
   const [geojson, setGeojson] = useState<any | null>(null);
   const [activeDepartment, setActiveDepartment] = useState(initialOverview.map.departments[0]?.geoName);
@@ -118,6 +120,19 @@ export function LandingPage({
       .then((data) => { if (alive) setGeojson(data); })
       .catch(() => {});
     return () => { alive = false; };
+  }, []);
+
+  // Sync hills-wrap height to the intro section so it covers only the hero area
+  useEffect(() => {
+    const sync = () => {
+      if (introRef.current && hillsWrapRef.current) {
+        hillsWrapRef.current.style.height = `${introRef.current.offsetHeight}px`;
+      }
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    if (introRef.current) ro.observe(introRef.current);
+    return () => ro.disconnect();
   }, []);
 
   // Clear GSAP inline styles on page hide to prevent bfcache invisibility
@@ -224,15 +239,16 @@ export function LandingPage({
         scrollTrigger: { trigger: ".lp-story", start: "top bottom", end: "bottom top", scrub: true },
       });
 
-      // ── Andes hills — full-width parallax ──────────────
+      // ── Andes hills — parallax scoped to intro section ──
+      // Hills drift down slower than the scroll → classic parallax depth
       gsap.to(".lp-story__hills-wrap", {
-        yPercent: 28,
+        yPercent: 22,
         ease: "none",
         scrollTrigger: {
-          trigger: ".lp-story",
+          trigger: ".lp-story__intro",
           start: "top top",
-          end: "55% top",
-          scrub: true,
+          end: "bottom top",
+          scrub: 1.4,
         },
       });
 
@@ -301,8 +317,8 @@ export function LandingPage({
 
       <main className="page lp-page">
         <section className="lp-story">
-          {/* Andes hills — full-width behind the entire hero section */}
-          <div className="lp-story__hills-wrap" aria-hidden="true">
+          {/* Andes hills — covers only the hero intro, height synced via ResizeObserver */}
+          <div ref={hillsWrapRef} className="lp-story__hills-wrap" aria-hidden="true">
             <GLSLHills />
           </div>
 
@@ -315,7 +331,7 @@ export function LandingPage({
           <div className="lp-story__inner">
 
             {/* ── HERO INTRO ─────────────────────────────────── */}
-            <header className="lp-story__intro">
+            <header ref={introRef} className="lp-story__intro">
               <p className="eyebrow lp-story__eyebrow">
                 {lang === "es"
                   ? "VeedurIA · inteligencia cívica para Colombia"

@@ -7622,32 +7622,29 @@ input[type="date"] {
   gap: clamp(1.2rem, 2.5vw, 2.4rem);
 }
 
-/* Andes hills — full-width behind the hero section, breathes freely */
+/* Andes hills — covers only the hero intro; height is set by JS ResizeObserver */
 .lp-story__hills-wrap {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 32%;          /* covers approx the intro/stat area */
+  height: 62%;          /* fallback before JS measures intro */
   z-index: 0;
   pointer-events: none;
-  opacity: 0.30;
+  opacity: 0.32;
   will-change: transform;
+  /* Seamless fade at the bottom edge into the map section */
+  -webkit-mask-image: linear-gradient(to bottom, black 52%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 52%, transparent 100%);
 }
 
-/* Soft vignette so text stays readable over the terrain */
+/* Soft radial vignette so title text stays readable over the terrain */
 .lp-story__hills-wrap::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 90% 55% at 50% 28%, rgba(248,249,250,0.78) 0%, transparent 58%),
-    linear-gradient(180deg,
-      rgba(248,249,250,0.52) 0%,
-      transparent 30%,
-      transparent 70%,
-      rgba(248,249,250,0.72) 100%
-    );
+    radial-gradient(ellipse 90% 55% at 50% 28%, rgba(248,249,250,0.72) 0%, transparent 60%);
   pointer-events: none;
 }
 
