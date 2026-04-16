@@ -25,7 +25,7 @@ export const networkConfig = {
       selectedColor: "#c62839",
       hoverColor: "#2f7cff",
       minRadiusPx: 5,
-      maxRadiusPx: 22,
+      maxRadiusPx: 18,
     },
     {
       type: "provider" as NodeType,
@@ -34,7 +34,7 @@ export const networkConfig = {
       selectedColor: "#c62839",
       hoverColor: "#0fa869",
       minRadiusPx: 4,
-      maxRadiusPx: 17,
+      maxRadiusPx: 14,
     },
     {
       type: "cluster" as NodeType,
@@ -43,7 +43,7 @@ export const networkConfig = {
       selectedColor: "#c62839",
       hoverColor: "#8b5cf6",
       minRadiusPx: 8,
-      maxRadiusPx: 24,
+      maxRadiusPx: 19,
     },
     // Future node types — add here without touching UI components:
     // { type: "politician", label: { es: "Político", en: "Politician" }, color: "#f97316", ... },
@@ -74,19 +74,20 @@ export const networkConfig = {
 
   canvas: {
     maxNodes: 300,
-    initialHubs: 28,           // slightly smaller first scene keeps the spiderweb readable
+    initialHubs: 22,           // fewer initial anchors prevents the first layout from collapsing into a blob
     expandLimit: 48,
     backgroundColor: "rgba(0,0,0,0)",
     physics: {
-      alphaDecay: 0.018,       // let the layout settle faster after first render
-      velocityDecay: 0.28,     // enough damping to avoid jitter when expanding
-      cooldownTicks: 220,      // stabilize quickly so clicks feel fixed
-      chargeStrength: -820,    // wide spread without sending nodes to the edges
-      linkDistance: 190,       // cleaner web with shorter dead air between groups
+      alphaDecay: 0.014,       // a touch slower so collision force has time to breathe the layout open
+      velocityDecay: 0.24,     // keep motion smooth but less sticky
+      cooldownTicks: 260,      // extra settling time reduces final overlaps
+      chargeStrength: -980,    // stronger repulsion opens space between clusters
+      linkDistance: 210,       // keep a longer web spine so labels have room
+      collisionPadding: 18,    // minimum empty space around each node
     },
-    labelZoomThreshold: 1.55,  // reveal more labels without overcrowding the default view
-    hubLabelZoomThreshold: 1.08,
-    labelMaxLength: 20,
+    labelZoomThreshold: 1.9,   // full labels only once the user gets closer
+    hubLabelZoomThreshold: 1.18,
+    labelMaxLength: 18,
   },
 
   cache: {

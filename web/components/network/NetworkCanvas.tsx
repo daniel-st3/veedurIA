@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { forceCollide } from "d3-force-3d";
 import type { NetworkEdge, NetworkNode } from "@/lib/network/types";
 import { resolveNodeColor, nodeRadius } from "@/lib/network/buildNodes";
 import { edgeWidth } from "@/lib/network/buildEdges";
@@ -46,6 +47,7 @@ export function NetworkCanvas({
   const [mounted, setMounted] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const renderedLabelBoxesRef = useRef<Array<{ x: number; y: number; w: number; h: number }>>([]);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -64,7 +66,7 @@ export function NetworkCanvas({
         if (connectionDelta !== 0) return connectionDelta;
         return right.total_value - left.total_value;
       })
-      .slice(0, 12)
+      .slice(0, 7)
       .map((node) => node.id);
   }, [nodes]);
 
@@ -103,6 +105,12 @@ export function NetworkCanvas({
     if (chargeForce) chargeForce.strength(networkConfig.canvas.physics.chargeStrength);
     const linkForce = graphRef.current.d3Force("link");
     if (linkForce) linkForce.distance(networkConfig.canvas.physics.linkDistance);
+    graphRef.current.d3Force(
+      "collision",
+      forceCollide((node: NetworkNode) => nodeRadius(node) + networkConfig.canvas.physics.collisionPadding)
+        .strength(0.95)
+        .iterations(3),
+    );
     graphRef.current.d3ReheatSimulation();
   }, [nodes.length, edges.length]);
 
@@ -111,6 +119,9 @@ export function NetworkCanvas({
     (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
       try {
         const typedNode = node as NetworkNode & { x: number; y: number };
+        if (typedNode.id === graphData.nodes[0]?.id) {
+          renderedLabelBoxesRef.current = [];
+        }
         const r = nodeRadius(typedNode);
         const isSelected = typedNode.id === selectedNodeId;
         const isHovered = typedNode.id === hoveredNodeId;
@@ -231,6 +242,26 @@ export function NetworkCanvas({
           const labelDirection = typedNode.y > height * 0.58 ? -1 : 1;
           const ly = typedNode.y + labelDirection * labelOffset;
           const pr = (th + py * 2) / 2; // pill corner radius
+          const proposedBox = {
+            x: lx - tw / 2 - px - 4,
+            y: ly - th / 2 - py - 3,
+            w: tw + px * 2 + 8,
+            h: th + py * 2 + 6,
+          };
+
+          const collidesWithExistingLabel = renderedLabelBoxesRef.current.some((box) =>
+            !(
+              proposedBox.x + proposedBox.w < box.x ||
+              box.x + box.w < proposedBox.x ||
+              proposedBox.y + proposedBox.h < box.y ||
+              box.y + box.h < proposedBox.y
+            ),
+          );
+
+          if (collidesWithExistingLabel && !forceShow && !neighborShow) {
+            ctx.restore();
+            return;
+          }
 
           // Pill background
           const bx = lx - tw / 2 - px;
@@ -281,12 +312,13 @@ export function NetworkCanvas({
                 ? "#172033"
                 : "rgba(23,32,51,0.72)";
           ctx.fillText(label, lx, ly);
+          renderedLabelBoxesRef.current.push(proposedBox);
         }
 
         ctx.restore();
       } catch { /* ignore canvas errors */ }
     },
-    [selectedNodeId, hoveredNodeId, adjacencyMap, focusedNodeId, height, topLabelIds],
+    [selectedNodeId, hoveredNodeId, adjacencyMap, focusedNodeId, graphData.nodes, height, topLabelIds],
   );
 
   // ── Pointer hit area (must match visual radius so clicks register accurately) ─
