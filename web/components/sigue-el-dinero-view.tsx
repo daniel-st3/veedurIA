@@ -412,6 +412,14 @@ export function SigueElDineroView({ lang }: Props) {
       </section>
 
       {/* ── Workbench ──────────────────────────────────────────────────── */}
+      <div className="sed-intro-text" style={{ maxWidth: 840, margin: '2rem auto 1rem', padding: '0 1.25rem', textAlign: 'center' }}>
+        <p style={{ color: 'rgba(180, 210, 255, 0.65)', fontSize: '0.95rem', lineHeight: '1.6', margin: 0 }}>
+          {lang === "es"
+            ? "Explora de manera interactiva el complejo ecosistema de la contratación estatal. Este radar impulsado por análisis de redes y machine learning agrupa entidades y proveedores para revelar vínculos críticos, dependencias estructurales e índices de concentración de capital público."
+            : "Interactively explore the complex ecosystem of state contracting. This radar, powered by network analysis and machine learning, clusters entities and providers to reveal critical links, structural dependencies, and public capital concentration indices."}
+        </p>
+      </div>
+
       <div className="sed-workbench" ref={workbenchRef}>
 
         {/* Status banners */}
@@ -638,6 +646,21 @@ export function SigueElDineroView({ lang }: Props) {
         lang={lang}
         onClose={() => { setSelectedEdge(null); setSelectedEdgeId(null); }}
       />
+
+      {/* ── Footer explanation ────────────────────────────────────── */}
+      <section style={{ maxWidth: 900, margin: '4rem auto 6rem', padding: '0 1.25rem', textAlign: 'center', color: 'rgba(150,185,240,0.55)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+          <Network size={24} style={{ opacity: 0.4 }} />
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'rgba(210,228,255,0.85)', margin: 0 }}>
+            {lang === "es" ? "Sobre esta Arquitectura de Datos" : "About this Data Architecture"}
+          </h3>
+          <p style={{ fontSize: '0.88rem', lineHeight: '1.7', maxWidth: '64ch' }}>
+            {lang === "es"
+              ? "Las conexiones dibujadas en este grafo no implican delitos, sino relaciones documentadas de flujo de capitales en el SECOP. Las banderas de riesgo algorítmico se aplican usando densidades de red y el índice Herfindahl-Hirschman (HHI) para alertar sobre la monopolización de contratos."
+              : "The connections drawn in this graph do not imply crimes, but documented relationships of capital flow in SECOP. Algorithmic risk flags are applied using network densities and the Herfindahl-Hirschman Index (HHI) to alert on contract monopolization."}
+          </p>
+        </div>
+      </section>
 
       <SiteFooter lang={lang} />
     </div>

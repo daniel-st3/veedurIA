@@ -64,26 +64,6 @@ export function NetworkCanvas({
   const iconsRef = useRef<Record<string, HTMLImageElement>>({});
 
   useEffect(() => {
-    // Compile basic SVG icons for node types
-    const createSVGIcons = () => {
-      const entitySvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>`;
-      const providerSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
-      const clusterSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
-
-      const makeImg = (svg: string) => {
-        const img = new Image();
-        img.src = 'data:image/svg+xml;base64,' + btoa(svg);
-        return img;
-      };
-
-      iconsRef.current = {
-        entity: makeImg(entitySvg),
-        provider: makeImg(providerSvg),
-        cluster: makeImg(clusterSvg),
-      };
-    };
-    
-    createSVGIcons();
     setMounted(true);
   }, []);
 
@@ -156,8 +136,8 @@ export function NetworkCanvas({
     if (!selectedNodeId || !graphRef.current) return;
     const node = graphData.nodes.find((item) => item.id === selectedNodeId);
     if (node && typeof node.x === "number" && typeof node.y === "number") {
-      graphRef.current.centerAt(node.x, node.y, 550);
-      graphRef.current.zoom(1.42, 550);
+      graphRef.current.centerAt(node.x, node.y, 650);
+      graphRef.current.zoom(4.8, 650);
     }
   }, [graphData.nodes, selectedNodeId]);
 
@@ -239,8 +219,8 @@ export function NetworkCanvas({
           ctx.fill();
         }
 
-        // Solid fill (no per-node gradient allocation)
-        ctx.fillStyle = isSelected ? "#c62839" : color;
+        // Sleek Minimalist Node Design (Industrial Brutalist Style)
+        ctx.fillStyle = isSelected ? "#c62839" : "#0A0D14";
         ctx.beginPath();
         ctx.arc(typedNode.x, typedNode.y, radius, 0, 2 * Math.PI);
         ctx.fill();
@@ -248,25 +228,19 @@ export function NetworkCanvas({
         ctx.strokeStyle = isSelected
           ? "rgba(198,40,57,0.9)"
           : isHovered || isNeighbor || (selectedNodeId && typedNode.id !== selectedNodeId)
-            ? `${color}bb`
+            ? color
             : typedNode.is_hub
-              ? `${color}72`
-              : `${color}38`;
-        ctx.lineWidth = isSelected ? 2.2 : isHovered ? 1.5 : 0.9;
+              ? color
+              : `${color}88`;
+        ctx.lineWidth = isSelected ? 2.8 : isHovered ? 2.0 : 1.2;
         ctx.stroke();
 
-        if (radius > 7) {
+        if (radius > 5) {
           ctx.beginPath();
-          ctx.arc(typedNode.x - radius * 0.24, typedNode.y - radius * 0.24, radius * 0.24, 0, 2 * Math.PI);
-          ctx.fillStyle = "rgba(255,255,255,0.15)";
+          // Inner core dot to signify data
+          ctx.arc(typedNode.x, typedNode.y, radius * 0.35, 0, 2 * Math.PI);
+          ctx.fillStyle = isSelected ? "#FFF" : color;
           ctx.fill();
-        }
-
-        // Draw icon inside the node
-        const img = iconsRef.current[typedNode.type];
-        if (img && img.complete) {
-          const imgSize = radius * 1.1; // scale icon relative to node radius
-          ctx.drawImage(img, typedNode.x - imgSize / 2, typedNode.y - imgSize / 2, imgSize, imgSize);
         }
 
         const showLabel =
@@ -286,14 +260,7 @@ export function NetworkCanvas({
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
-          const maxLabelLength = isSelected
-            ? networkConfig.canvas.labelMaxLength + 8
-            : isPrioritized
-              ? networkConfig.canvas.labelMaxLength
-              : 11;
-          const label = typedNode.label.length > maxLabelLength
-            ? `${typedNode.label.slice(0, maxLabelLength - 1)}…`
-            : typedNode.label;
+          const label = typedNode.label;
 
           const metrics = ctx.measureText(label);
           const textWidth = metrics.width;
@@ -495,9 +462,9 @@ export function NetworkCanvas({
           if (!selectedNodeId && !autoFitRef.current && graphRef.current && graphData.nodes.length > 0) {
             autoFitRef.current = true;
             // Removed zoomToFit to make the graph look larger as requested, showing names of important nodes 
-            // even if not all fit on the screen
+            // even if not all fit on the screen. Made it 4.2 to force sliding and gliding.
             graphRef.current.centerAt(0, 0, 500);
-            graphRef.current.zoom(1.8, 500);
+            graphRef.current.zoom(4.2, 500);
           }
         }}
         d3AlphaDecay={networkConfig.canvas.physics.alphaDecay}

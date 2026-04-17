@@ -14345,7 +14345,7 @@ input[type="date"] {
   -webkit-backdrop-filter: blur(28px);
   border-left: 1px solid rgba(30,111,255,0.22);
   box-shadow: -16px 0 60px rgba(0,0,0,0.6), -1px 0 0 rgba(30,111,255,0.08);
-  z-index: 1501;
+  z-index: 999999 !important;
   transform: translateX(102%);
   transition: transform 0.34s cubic-bezier(0.16, 1, 0.3, 1);
   overflow-y: auto;
@@ -14364,7 +14364,7 @@ input[type="date"] {
   background: rgba(3, 7, 18, 0.45);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
-  z-index: 1500;
+  z-index: 999998 !important;
   animation: sed-backdrop-in 0.22s ease;
 }
 @keyframes sed-backdrop-in {
@@ -14398,15 +14398,16 @@ input[type="date"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
+  width: 32px;
+  height: 32px;
+  background: rgba(198,40,57,0.15);
+  border: 1px solid rgba(198,40,57,0.4);
   border-radius: 6px;
-  color: rgba(180,210,255,0.65);
+  color: #ff4057;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
+  z-index: 9999999 !important;
 }
 .sed-drawer-close:hover {
   background: rgba(255,255,255,0.12);
