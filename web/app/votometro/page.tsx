@@ -7,6 +7,16 @@ import { getPartySummariesPayload, getVotometroDirectory } from "@/lib/votometro
 
 export const dynamic = "force-dynamic";
 
+// If the server fetches take longer than this, render with empty data and show fallback.
+const SERVER_FETCH_TIMEOUT_MS = 2000;
+
+function raceTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  return Promise.race<T>([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), SERVER_FETCH_TIMEOUT_MS)),
+  ]);
+}
+
 function derivePartySummaries(items: LegislatorListItem[]): PartySummary[] {
   const groups = new Map<
     string,
@@ -87,7 +97,20 @@ export default async function VotometroPage({
 }) {
   const params = await searchParams;
   const lang = resolveLang(Array.isArray(params.lang) ? params.lang[0] : params.lang);
-  const payload = await getVotometroDirectory(params);
+  const emptyPayload = {
+    meta: { total: 0, page: 1, pageSize: 24, pageCount: 1, activeLegislators: 0, indexedVotes: 0, averageCoherence: null, generatedAt: new Date().toISOString() },
+    issue: null,
+    filters: { page: 1, pageSize: 24 },
+    options: { parties: [], circunscriptions: [], commissions: [] },
+    items: [],
+  } as Awaited<ReturnType<typeof getVotometroDirectory>>;
+
+  // Run both data fetches in parallel with a timeout so navigation is never blocked.
+  const [payload, partyPayload] = await Promise.all([
+    raceTimeout(getVotometroDirectory(params), emptyPayload),
+    getPartySummariesPayload().catch(() => ({ items: [] as PartySummary[] })),
+  ]);
+
   const forceLive =
     (Array.isArray(params.force_live) ? params.force_live[0] : params.force_live) === "1";
   const hasMeaningfulLiveCoverage =
@@ -102,13 +125,8 @@ export default async function VotometroPage({
     );
 
   let parties = derivePartySummaries(payload.items);
-  try {
-    const partyPayload = await getPartySummariesPayload();
-    if (partyPayload.items.length) {
-      parties = partyPayload.items;
-    }
-  } catch {
-    // Keep the directory-derived fallback above.
+  if (partyPayload.items.length) {
+    parties = partyPayload.items;
   }
 
   if (!forceLive && !hasMeaningfulLiveCoverage) {

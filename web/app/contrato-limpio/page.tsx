@@ -4,6 +4,16 @@ import { fetchContractsTable, fetchGeoJson, fetchOverview } from "@/lib/api";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
 
+// If the API takes longer than this, render with null and let the client refetch.
+const SERVER_FETCH_TIMEOUT_MS = 1500;
+
+function raceTimeout<T>(promise: Promise<T>): Promise<T | null> {
+  return Promise.race<T | null>([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), SERVER_FETCH_TIMEOUT_MS)),
+  ]);
+}
+
 export async function generateMetadata({
   searchParams,
 }: {
@@ -50,9 +60,9 @@ export default async function ContratoLimpioPage({
   } as const;
   
   const [overview, table, geojson] = await Promise.all([
-    fetchOverview({ lang, ...initialFilters }).catch(() => null),
-    fetchContractsTable({ lang, ...initialFilters, offset: 0, limit: 24 }).catch(() => null),
-    fetchGeoJson().catch(() => null),
+    raceTimeout(fetchOverview({ lang, ...initialFilters })).catch(() => null),
+    raceTimeout(fetchContractsTable({ lang, ...initialFilters, offset: 0, limit: 24 })).catch(() => null),
+    raceTimeout(fetchGeoJson()).catch(() => null),
   ]);
 
   return (
