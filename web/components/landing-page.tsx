@@ -239,8 +239,8 @@ export function LandingPage({
         scrollTrigger: { trigger: ".lp-story", start: "top bottom", end: "bottom top", scrub: true },
       });
 
-      // ── Andes hills — parallax scoped to intro section ──
-      // Hills drift down slower than the scroll → classic parallax depth
+      // Andes hills: parallax scoped to the intro section.
+      // Hills drift down slower than the scroll for depth.
       gsap.to(".lp-story__hills-wrap", {
         yPercent: 22,
         ease: "none",
@@ -252,8 +252,8 @@ export function LandingPage({
         },
       });
 
-      // ── Title scroll animation ──────────────────────────
-      // Title lines drift upward at different rates → layered depth
+      // Title scroll animation.
+      // Title lines drift upward at different rates for layered depth.
       gsap.to(".lp-story__title", {
         yPercent: -18,
         ease: "none",
@@ -280,7 +280,10 @@ export function LandingPage({
   );
 
   const totalContracts = overview.meta.sourceRows || overview.meta.totalRows || overview.slice.totalContracts;
-  const latestDate = overview.meta.sourceLatestContractDate ?? overview.meta.latestContractDate ?? "—";
+  const latestDate =
+    overview.meta.sourceLatestContractDate ??
+    overview.meta.latestContractDate ??
+    (lang === "es" ? "sin fecha visible" : "no visible date");
   const currentDepartmentData =
     overview.map.departments.find((item) => item.geoName === activeDepartment) ?? overview.map.departments[0];
   const focusedDepartment = hoveredDepartment ?? activeDepartment ?? overview.map.departments[0]?.geoName ?? null;
@@ -317,9 +320,9 @@ export function LandingPage({
 
       <main className="page lp-page">
         <section className="lp-story">
-          {/* Andes hills — covers only the hero intro, height synced via ResizeObserver */}
+          {/* Andes hills, scoped to the intro hero and height-synced via ResizeObserver */}
           <div ref={hillsWrapRef} className="lp-story__hills-wrap" aria-hidden="true">
-            <GLSLHills />
+            <GLSLHills speed={0.3} cameraZ={102} planeSize={288} />
           </div>
 
           <div className="lp-story__backdrop" aria-hidden="true">
@@ -363,8 +366,8 @@ export function LandingPage({
 
               <p className="lp-story__body">
                 {lang === "es"
-                  ? "Contratos con señales de riesgo, votos cruzados con programas legislativos y redes de financiación — todo trazado desde la fuente oficial. Sin intermediarios."
-                  : "Contracts with risk signals, votes crossed with legislative programmes, and financing networks — all traced from the official source. No intermediaries."}
+                  ? "Contratos con señales de riesgo, votos cruzados con programas legislativos y redes de financiación, todo trazado desde la fuente oficial. Sin intermediarios."
+                  : "Contracts with risk signals, votes crossed with legislative programmes, and financing networks, all traced from the official source. No intermediaries."}
               </p>
 
               <div className="lp-story__stats">
@@ -389,7 +392,13 @@ export function LandingPage({
                 <article className="lp-story-stat lp-story-stat--red">
                   <span>{lang === "es" ? "Territorio más encendido" : "Most active territory"}</span>
                   <strong>{currentDepartmentData?.label ?? "Colombia"}</strong>
-                  <p>{currentDepartmentData ? `${Math.round(currentDepartmentData.avgRisk * 100)}/100 intensidad` : "—"}</p>
+                  <p>
+                    {currentDepartmentData
+                      ? `${Math.round(currentDepartmentData.avgRisk * 100)}/100 intensidad`
+                      : lang === "es"
+                        ? "sin dato visible"
+                        : "no visible data"}
+                  </p>
                 </article>
               </div>
             </header>
@@ -429,7 +438,7 @@ export function LandingPage({
                   )}
                 </div>
 
-                {/* Static info box — updates on hover/click, no floating tooltip */}
+                {/* Static info box, updates on hover or click with no floating tooltip */}
                 <div className={`lp-map-info lp-map-info--${focusTone}`} aria-live="polite">
                   <div className="lp-map-info__body">
                     <p className="lp-map-info__label">
