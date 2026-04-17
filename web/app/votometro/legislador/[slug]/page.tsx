@@ -19,11 +19,13 @@ export async function generateMetadata({
   if (!profile) {
     const description = issue
       ? issue.message
-      : "El perfil solicitado no está disponible en este corte de VotóMeter.";
+      : lang === "es"
+        ? "El perfil solicitado no está disponible en este corte de VotóMeter."
+        : "The requested profile is not available in this Votometer slice.";
     return buildPageMetadata({
       lang,
       path: `/votometro/legislador/${slug}?lang=${lang}`,
-      title: "Legislador no encontrado — VotóMeter",
+      title: lang === "es" ? "Legislador no encontrado — VotóMeter" : "Legislator not found — Votometer",
       description,
       imagePath: "/votometro/opengraph-image",
     });
@@ -32,8 +34,11 @@ export async function generateMetadata({
   return buildPageMetadata({
     lang,
     path: `/votometro/legislador/${slug}?lang=${lang}`,
-    title: `${profile.canonicalName} — VotóMeter`,
-    description: `${profile.roleLabel} de ${profile.party} con ${profile.votesIndexed} votos indexados y ${profile.coherenceScore == null ? "sin" : `${Math.round(profile.coherenceScore)}% de`} coherencia revisada.`,
+    title: `${profile.canonicalName} — ${lang === "es" ? "VotóMeter" : "Votometer"}`,
+    description:
+      lang === "es"
+        ? `${profile.roleLabel} de ${profile.party} con ${profile.votesIndexed} votos indexados y ${profile.coherenceScore == null ? "sin coherencia revisada aún" : `${Math.round(profile.coherenceScore)}% de coherencia revisada`}.`
+        : `${profile.roleLabel} from ${profile.party} with ${profile.votesIndexed} indexed votes and ${profile.coherenceScore == null ? "no reviewed coherence yet" : `${Math.round(profile.coherenceScore)}% reviewed coherence`}.`,
     imagePath: "/votometro/opengraph-image",
   });
 }

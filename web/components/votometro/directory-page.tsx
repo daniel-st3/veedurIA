@@ -25,12 +25,24 @@ function buildHref(path: string, params: Record<string, string | number | undefi
   return query ? `${path}?${query}` : path;
 }
 
-function percentLabel(value: number | null) {
-  return value == null ? "Sin revisar" : `${Math.round(value)}%`;
+function percentLabel(value: number | null, lang: Lang) {
+  return value == null ? (lang === "es" ? "Sin revisar" : "Not reviewed") : `${Math.round(value)}%`;
 }
 
 function statNumber(value: number) {
   return new Intl.NumberFormat("es-CO").format(value);
+}
+
+function localizedChamberLabel(chamber: LegislatorListItem["chamber"], lang: Lang) {
+  if (lang === "es") {
+    return chamber === "camara" ? "Cámara de Representantes" : "Senado";
+  }
+  return chamber === "camara" ? "House of Representatives" : "Senate";
+}
+
+function localizedRoleLabel(profile: LegislatorListItem, lang: Lang) {
+  if (lang === "es") return profile.roleLabel;
+  return profile.chamber === "camara" ? "Representative" : "Senator";
 }
 
 function avatarFor(profile: LegislatorListItem) {
@@ -58,32 +70,54 @@ function IssuePanel({
 }) {
   const steps =
     issue.code === "missing_schema"
-      ? [
-          "Ejecuta scripts/setup_supabase.sql en el proyecto Supabase conectado a este entorno.",
-          "Corre un primer sync con python scripts/sync_votometro.py --mode=daily.",
-          "Verifica que el frontend tenga SUPABASE_URL y que el entorno server-side tenga SUPABASE_SERVICE_KEY o SUPABASE_KEY.",
-        ]
-      : issue.code === "missing_env"
+      ? lang === "es"
         ? [
-            "Define SUPABASE_URL en el entorno del frontend.",
-            "Define SUPABASE_SERVICE_KEY o SUPABASE_KEY para las rutas server-side y review.",
-            "Si usas lectura pública con RLS, define también SUPABASE_ANON_KEY.",
+            "Ejecuta scripts/setup_supabase.sql en el proyecto Supabase conectado a este entorno.",
+            "Corre un primer sync con python scripts/sync_votometro.py --mode=daily.",
+            "Verifica que el frontend tenga SUPABASE_URL y que el entorno server-side tenga SUPABASE_SERVICE_KEY o SUPABASE_KEY.",
           ]
         : [
-            "Revisa la conectividad del proyecto Supabase.",
-            "Valida que las vistas públicas de VotóMeter sigan existiendo y respondan.",
-            "Inspecciona el último run de sync y confirma que no quedó en warning.",
-          ];
+            "Run scripts/setup_supabase.sql in the Supabase project connected to this environment.",
+            "Run an initial sync with python scripts/sync_votometro.py --mode=daily.",
+            "Confirm the frontend has SUPABASE_URL and the server-side environment has SUPABASE_SERVICE_KEY or SUPABASE_KEY.",
+          ]
+      : issue.code === "missing_env"
+        ? lang === "es"
+          ? [
+              "Define SUPABASE_URL en el entorno del frontend.",
+              "Define SUPABASE_SERVICE_KEY o SUPABASE_KEY para las rutas server-side y review.",
+              "Si usas lectura pública con RLS, define también SUPABASE_ANON_KEY.",
+            ]
+          : [
+              "Set SUPABASE_URL in the frontend environment.",
+              "Set SUPABASE_SERVICE_KEY or SUPABASE_KEY for the server-side and review routes.",
+              "If you use public reads with RLS, also set SUPABASE_ANON_KEY.",
+            ]
+        : lang === "es"
+          ? [
+              "Revisa la conectividad del proyecto Supabase.",
+              "Valida que las vistas públicas de VotóMeter sigan existiendo y respondan.",
+              "Inspecciona el último run de sync y confirma que no quedó en warning.",
+            ]
+          : [
+              "Check connectivity to the Supabase project.",
+              "Validate that the public Votometer views still exist and respond.",
+              "Inspect the latest sync run and confirm it did not finish with warnings.",
+            ];
 
   return (
     <section className={styles.alertCard}>
       <span className={styles.eyebrow}>{lang === "es" ? "Estado del módulo" : "Module status"}</span>
       <h2 className={styles.alertTitle}>{issue.title}</h2>
       <p className={styles.alertBody}>{issue.message}</p>
-      {issue.detail ? <p className={styles.smallMuted}>Detalle técnico: {issue.detail}</p> : null}
+      {issue.detail ? (
+        <p className={styles.smallMuted}>
+          {lang === "es" ? "Detalle técnico" : "Technical detail"}: {issue.detail}
+        </p>
+      ) : null}
       <ol className={styles.alertList}>
         {steps.map((step) => (
-          <li key={step}>{lang === "es" ? step : step}</li>
+          <li key={step}>{step}</li>
         ))}
       </ol>
     </section>
@@ -98,11 +132,11 @@ function Card({ profile, lang }: { profile: LegislatorListItem; lang: Lang }) {
         <div>
           <h3 className={styles.cardTitle}>{profile.canonicalName}</h3>
           <p className={styles.cardMeta}>
-            {profile.roleLabel} · {profile.party}
+            {localizedRoleLabel(profile, lang)} · {profile.party}
             {profile.circunscription ? ` · ${profile.circunscription}` : ""}
           </p>
           <div className={styles.chips}>
-            <span className={styles.chip}>{profile.chamberLabel}</span>
+            <span className={styles.chip}>{localizedChamberLabel(profile.chamber, lang)}</span>
             {profile.commission ? <span className={styles.chip}>{profile.commission}</span> : null}
           </div>
         </div>
@@ -110,11 +144,11 @@ function Card({ profile, lang }: { profile: LegislatorListItem; lang: Lang }) {
 
       <div className={styles.metricRow}>
         <div className={styles.metricTile}>
-          <strong>{percentLabel(profile.coherenceScore)}</strong>
+          <strong>{percentLabel(profile.coherenceScore, lang)}</strong>
           <span>{lang === "es" ? "Coherencia" : "Coherence"}</span>
         </div>
         <div className={styles.metricTile}>
-          <strong>{percentLabel(profile.attendanceRate)}</strong>
+          <strong>{percentLabel(profile.attendanceRate, lang)}</strong>
           <span>{lang === "es" ? "Asistencia" : "Attendance"}</span>
         </div>
         <div className={styles.metricTile}>
@@ -201,17 +235,25 @@ export function VotometroDirectoryPage({
   payload: VotometroDirectoryPayload;
   parties: PartySummary[];
 }) {
+  const hasIndexedCoverage = payload.meta.indexedVotes > 0;
+  const showCoverageNotice =
+    !payload.issue && payload.meta.activeLegislators > 0 && payload.meta.indexedVotes === 0;
+
   const copy =
     lang === "es"
       ? {
-          eyebrow: "Cobertura oficial viva 2022-2026",
-          title: "VotóMeter dejó el mock y ahora lee el Congreso desde fuentes sincronizadas.",
+          eyebrow: hasIndexedCoverage ? "Cobertura oficial viva 2022-2026" : "Roster público sincronizado 2022-2026",
+          title: hasIndexedCoverage
+            ? "VotóMeter ya está leyendo el Congreso desde fuentes sincronizadas."
+            : "El directorio público ya está sincronizado, pero la indexación de votos sigue pendiente.",
           body:
-            "El directorio usa Supabase como capa pública, sincroniza roster y actividad desde fuentes oficiales, y solo expone coherencia donde exista una promesa revisada por backoffice.",
+            hasIndexedCoverage
+              ? "El directorio usa Supabase como capa pública, sincroniza roster y actividad desde fuentes oficiales, y solo expone coherencia donde exista una promesa revisada por backoffice."
+              : "Este entorno ya muestra la nómina pública de congresistas y el reparto por partido. Las votaciones nominales, asistencia y coherencia seguirán vacías hasta que corra la indexación de actividad y se aprueben relaciones promesa → voto.",
           stats: [
             { label: "Legisladores activos", value: statNumber(payload.meta.activeLegislators), icon: Users },
             { label: "Votos indexados", value: statNumber(payload.meta.indexedVotes), icon: Landmark },
-            { label: "Coherencia promedio", value: percentLabel(payload.meta.averageCoherence), icon: ShieldCheck },
+            { label: "Coherencia promedio", value: percentLabel(payload.meta.averageCoherence, lang), icon: ShieldCheck },
             { label: "Partidos visibles", value: statNumber(parties.length), icon: Filter },
           ],
           filtersTitle: "Filtros compartibles por URL",
@@ -221,6 +263,9 @@ export function VotometroDirectoryPage({
           partyTitle: "Lectura por partido",
           partyIntro:
             "Las métricas de partido salen de agregados precalculados. Si un partido todavía no tiene promesas revisadas, la coherencia se deja vacía en lugar de inventarla.",
+          coverageTitle: "Cobertura pendiente de indexación",
+          coverageBody:
+            "La app ya no cae al mock cuando hay roster real disponible. Por eso este directorio enseña los 45 legisladores sembrados en Supabase, aunque las métricas de voto sigan en cero hasta completar el sync de actividad.",
           empty: "Todavía no hay datos sincronizados para este corte o el filtro dejó el conjunto vacío.",
           clear: "Limpiar filtros",
           apply: "Aplicar filtros",
@@ -230,16 +275,25 @@ export function VotometroDirectoryPage({
           searchTopic: "Tema",
           searchAttendance: "Asistencia mínima",
           searchCoherence: "Coherencia mínima",
+          searchChamber: "Cámara",
+          bothChambers: "Ambas",
+          senate: "Senado",
+          house: "Cámara",
+          technicalDetail: "Detalle técnico",
         }
       : {
-          eyebrow: "Live official coverage 2022-2026",
-          title: "VotóMeter now reads Congress from synced sources instead of a static mock.",
+          eyebrow: hasIndexedCoverage ? "Live official coverage 2022-2026" : "Public roster synced for 2022-2026",
+          title: hasIndexedCoverage
+            ? "Votometer is now reading Congress from synced sources."
+            : "The public directory is synced, but vote indexing is still pending.",
           body:
-            "The directory uses Supabase as the public layer, syncs roster and activity from official sources, and only exposes coherence when a reviewed promise exists.",
+            hasIndexedCoverage
+              ? "The directory uses Supabase as the public layer, syncs roster and activity from official sources, and only exposes coherence when a reviewed promise exists."
+              : "This environment already shows the public legislator roster and party distribution. Nominal votes, attendance, and coherence stay empty until activity indexing runs and promise-to-vote links are reviewed.",
           stats: [
             { label: "Active legislators", value: statNumber(payload.meta.activeLegislators), icon: Users },
             { label: "Indexed votes", value: statNumber(payload.meta.indexedVotes), icon: Landmark },
-            { label: "Average coherence", value: percentLabel(payload.meta.averageCoherence), icon: ShieldCheck },
+            { label: "Average coherence", value: percentLabel(payload.meta.averageCoherence, lang), icon: ShieldCheck },
             { label: "Visible parties", value: statNumber(parties.length), icon: Filter },
           ],
           filtersTitle: "Shareable URL filters",
@@ -249,6 +303,9 @@ export function VotometroDirectoryPage({
           partyTitle: "Party view",
           partyIntro:
             "Party metrics come from precomputed aggregates. If a party still has no reviewed promises, coherence stays empty instead of being guessed.",
+          coverageTitle: "Coverage still waiting for indexing",
+          coverageBody:
+            "The app no longer falls back to the 12-profile mock when a real roster exists. That is why this directory shows the 45 legislators currently seeded in Supabase, even though vote metrics remain at zero until the activity sync finishes.",
           empty: "There is no synced data for this slice yet, or the filter left the set empty.",
           clear: "Clear filters",
           apply: "Apply filters",
@@ -258,6 +315,11 @@ export function VotometroDirectoryPage({
           searchTopic: "Topic",
           searchAttendance: "Min attendance",
           searchCoherence: "Min coherence",
+          searchChamber: "Chamber",
+          bothChambers: "Both",
+          senate: "Senate",
+          house: "House",
+          technicalDetail: "Technical detail",
         };
 
   return (
@@ -287,6 +349,13 @@ export function VotometroDirectoryPage({
         </section>
 
         {payload.issue ? <IssuePanel lang={lang} issue={payload.issue} /> : null}
+        {showCoverageNotice ? (
+          <section className={styles.surface}>
+            <span className={styles.eyebrow}>{copy.eyebrow}</span>
+            <h2 className={styles.surfaceTitle}>{copy.coverageTitle}</h2>
+            <p className={styles.surfaceIntro}>{copy.coverageBody}</p>
+          </section>
+        ) : null}
 
         <section className={styles.surface}>
           <h2 className={styles.surfaceTitle}>{copy.filtersTitle}</h2>
@@ -367,11 +436,11 @@ export function VotometroDirectoryPage({
             </div>
 
             <div className={styles.filterField}>
-              <label htmlFor="chamber">Cámara</label>
+              <label htmlFor="chamber">{copy.searchChamber}</label>
               <select id="chamber" name="chamber" defaultValue={payload.filters.chamber ?? ""}>
-                <option value="">{lang === "es" ? "Ambas" : "Both"}</option>
-                <option value="senado">Senado</option>
-                <option value="camara">Cámara</option>
+                <option value="">{copy.bothChambers}</option>
+                <option value="senado">{copy.senate}</option>
+                <option value="camara">{copy.house}</option>
               </select>
             </div>
 
@@ -434,8 +503,8 @@ export function VotometroDirectoryPage({
                 <tr key={party.partyKey}>
                   <td>{party.party}</td>
                   <td>{statNumber(party.memberCount)}</td>
-                  <td>{percentLabel(party.coherenceScore)}</td>
-                  <td>{percentLabel(party.attendanceRate)}</td>
+                  <td>{percentLabel(party.coherenceScore, lang)}</td>
+                  <td>{percentLabel(party.attendanceRate, lang)}</td>
                   <td>{statNumber(party.indexedVotes)}</td>
                 </tr>
               ))}
