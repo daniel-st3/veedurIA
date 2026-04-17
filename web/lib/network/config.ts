@@ -78,15 +78,15 @@ export const networkConfig = {
     expandLimit: 48,
     backgroundColor: "rgba(0,0,0,0)",
     physics: {
-      alphaDecay: 0.010,       // slower decay keeps the web breathing longer
-      velocityDecay: 0.18,     // less damping for wider, more organic spread
-      cooldownTicks: 380,      // longer settle time for wide horizontal spacing
-      chargeStrength: -1800,   // stronger repulsion to push nodes apart horizontally
-      linkDistance: 310,       // longer links — wider web at first glance
-      collisionPadding: 32,    // more breathing room between nodes
+      alphaDecay: 0.028,       // fast settling — sim reaches equilibrium in ~3s instead of 15s
+      velocityDecay: 0.40,     // standard D3 damping — eliminates jitter after settle
+      cooldownTicks: 200,      // enough ticks for full convergence with new decay
+      chargeStrength: -400,    // balanced repulsion — nodes spread naturally without flying apart
+      linkDistance: 200,       // tighter web — edges form a clear structure
+      collisionPadding: 18,    // comfortable spacing without over-spreading
     },
-    labelZoomThreshold: 1.85,  // show labels sooner — names are important
-    hubLabelZoomThreshold: 1.0, // hub labels always visible
+    labelZoomThreshold: 1.5,   // show labels earlier
+    hubLabelZoomThreshold: 0.7, // hub labels visible at any reasonable zoom
     labelMaxLength: 26,        // allow longer names before truncating
   },
 

@@ -52,8 +52,14 @@ export function NetworkCanvas({
   const graphRef = useRef<any>(null);
   const autoFitRef = useRef(false);
   const renderedLabelBoxesRef = useRef<LabelBox[]>([]);
+  const hoveredNodeIdRef = useRef<string | null>(null);
+  const focusedNodeIdRef = useRef<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+
+  // Sync volatile hover state into refs so renderNode never needs to be recreated on hover
+  hoveredNodeIdRef.current = hoveredNodeId;
+  focusedNodeIdRef.current = hoveredNodeId ?? selectedNodeId;
 
   useEffect(() => {
     setMounted(true);
@@ -178,48 +184,41 @@ export function NetworkCanvas({
           renderedLabelBoxesRef.current = [];
         }
 
+        // Read from refs — these are always current without requiring closure recreation
+        const hoveredId = hoveredNodeIdRef.current;
+        const focusedId = focusedNodeIdRef.current;
+
         const radius = nodeRadius(typedNode);
         const isSelected = typedNode.id === selectedNodeId;
-        const isHovered = typedNode.id === hoveredNodeId;
-        const neighbors = focusedNodeId ? adjacencyMap.get(focusedNodeId) : null;
+        const isHovered = typedNode.id === hoveredId;
+        const neighbors = focusedId ? adjacencyMap.get(focusedId) : null;
         const isNeighbor = !selectedNodeId && (neighbors?.has(typedNode.id) ?? false);
-        const isDimmed = !selectedNodeId && !!focusedNodeId && !isSelected && !isHovered && !isNeighbor;
+        const isDimmed = !selectedNodeId && !!focusedId && !isSelected && !isHovered && !isNeighbor;
         const isPrioritized = prioritizedLabelIds.includes(typedNode.id);
-        const color = resolveNodeColor(typedNode, selectedNodeId, hoveredNodeId);
+        const color = resolveNodeColor(typedNode, selectedNodeId, hoveredId);
 
         ctx.save();
         ctx.globalAlpha = isDimmed ? 0.14 : 1;
 
         if (isSelected) {
+          // Gradient glow only for selected node (max 1 at a time — GC safe)
           ctx.beginPath();
-          ctx.arc(typedNode.x, typedNode.y, radius + 10, 0, 2 * Math.PI);
+          ctx.arc(typedNode.x, typedNode.y, radius + 12, 0, 2 * Math.PI);
           const glow = ctx.createRadialGradient(typedNode.x, typedNode.y, radius, typedNode.x, typedNode.y, radius + 16);
-          glow.addColorStop(0, "rgba(198,40,57,0.34)");
+          glow.addColorStop(0, "rgba(198,40,57,0.30)");
           glow.addColorStop(1, "rgba(198,40,57,0)");
           ctx.fillStyle = glow;
           ctx.fill();
         } else if (isHovered || isNeighbor || (selectedNodeId && typedNode.id !== selectedNodeId)) {
+          // Flat ring — no gradient, fast fill
           ctx.beginPath();
           ctx.arc(typedNode.x, typedNode.y, radius + 5, 0, 2 * Math.PI);
-          const glow = ctx.createRadialGradient(typedNode.x, typedNode.y, radius * 0.35, typedNode.x, typedNode.y, radius + 9);
-          glow.addColorStop(0, `${color}40`);
-          glow.addColorStop(1, `${color}00`);
-          ctx.fillStyle = glow;
+          ctx.fillStyle = `${color}26`;
           ctx.fill();
         }
 
-        const gradient = ctx.createRadialGradient(
-          typedNode.x - radius * 0.28,
-          typedNode.y - radius * 0.28,
-          radius * 0.08,
-          typedNode.x,
-          typedNode.y,
-          radius * 1.08,
-        );
-        gradient.addColorStop(0, lightenHex(isSelected ? "#c62839" : color, isSelected ? 0.12 : 0.2));
-        gradient.addColorStop(1, isSelected ? "#c62839" : color);
-
-        ctx.fillStyle = gradient;
+        // Solid fill (no per-node gradient allocation)
+        ctx.fillStyle = isSelected ? "#c62839" : color;
         ctx.beginPath();
         ctx.arc(typedNode.x, typedNode.y, radius, 0, 2 * Math.PI);
         ctx.fill();
@@ -325,16 +324,16 @@ export function NetworkCanvas({
         // Canvas exceptions should never take down the page.
       }
     },
-    [
-      adjacencyMap,
-      focusedNodeId,
-      graphData.nodes,
-      height,
-      hoveredNodeId,
-      prioritizedLabelIds,
-      selectedNodeId,
-    ],
+    // hoveredNodeId / focusedNodeId intentionally excluded — read via refs to avoid
+    // recreating this callback (and triggering a ForceGraph prop flush) on every hover.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [adjacencyMap, graphData.nodes, height, prioritizedLabelIds, selectedNodeId],
   );
+
+  // When hover changes, signal a single canvas repaint without re-running physics
+  useEffect(() => {
+    graphRef.current?.refresh?.();
+  }, [hoveredNodeId]);
 
   const paintPointerArea = useCallback(
     (node: any, color: string, ctx: CanvasRenderingContext2D) => {
@@ -472,7 +471,7 @@ export function NetworkCanvas({
         d3VelocityDecay={networkConfig.canvas.physics.velocityDecay}
         cooldownTicks={networkConfig.canvas.physics.cooldownTicks}
         autoPauseRedraw
-        warmupTicks={40}
+        warmupTicks={80}
       />
 
       <div className="sed-canvas-controls" aria-label={lang === "es" ? "Controles de zoom" : "Zoom controls"}>
@@ -513,36 +512,36 @@ function buildOverviewTargetMap(nodes: NetworkNode[]): Map<string, { x: number; 
   );
 
   placeNodesOnRings(map, hubs, {
-    baseRadius: 160,
-    ringStep: 100,
+    baseRadius: 100,
+    ringStep: 75,
     baseCountPerRing: 4,
-    yScale: 0.52,             // flat ellipse — spread horizontally
+    yScale: 0.52,
     angleOffset: -Math.PI / 2,
   });
   placeNodesOnRings(map, clusters, {
-    baseRadius: 320,
-    ringStep: 120,
+    baseRadius: 200,
+    ringStep: 85,
     baseCountPerRing: 5,
     yScale: 0.48,
     angleOffset: Math.PI / 5,
   });
   placeNodesOnRings(map, entities, {
-    baseRadius: 480,
-    ringStep: 140,
+    baseRadius: 300,
+    ringStep: 95,
     baseCountPerRing: 7,
     yScale: 0.55,
     angleOffset: -Math.PI / 3,
   });
   placeNodesOnRings(map, providers, {
-    baseRadius: 680,
-    ringStep: 150,
+    baseRadius: 420,
+    ringStep: 105,
     baseCountPerRing: 10,
     yScale: 0.60,
     angleOffset: Math.PI / 9,
   });
   placeNodesOnRings(map, remainder, {
-    baseRadius: 880,
-    ringStep: 140,
+    baseRadius: 540,
+    ringStep: 95,
     baseCountPerRing: 12,
     yScale: 0.62,
     angleOffset: -Math.PI / 8,
@@ -568,8 +567,8 @@ function buildFocusTargetMap(
     });
 
   placeNodesOnRings(map, neighbors, {
-    baseRadius: 248,
-    ringStep: 114,
+    baseRadius: 160,
+    ringStep: 85,
     baseCountPerRing: 7,
     yScale: 0.82,
     angleOffset: -Math.PI / 2,
