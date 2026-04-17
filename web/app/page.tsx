@@ -13,10 +13,10 @@ export async function generateMetadata({
   return buildPageMetadata({
     lang,
     path: `/?lang=${lang}`,
-    title:
-      lang === "es"
-        ? "VeedurIA — Radar ciudadano de contratos públicos"
-        : "VeedurIA — Citizen radar for public contracts",
+      title:
+        lang === "es"
+          ? "VeedurIA: radar ciudadano de contratos públicos"
+          : "VeedurIA: citizen radar for public contracts",
     description:
       lang === "es"
         ? "Explora contratación pública, votaciones legislativas y redes de poder desde una sola plataforma cívica."

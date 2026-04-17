@@ -1,4 +1,5 @@
 import { VotometroDirectoryPage } from "@/components/votometro/directory-page";
+import { VotometroFallback } from "@/components/votometro/fallback-wrapper";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
 import { getPartySummariesPayload, getVotometroDirectory } from "@/lib/votometro-server";
@@ -29,10 +30,26 @@ export default async function VotometroPage({
 }) {
   const params = await searchParams;
   const lang = resolveLang(Array.isArray(params.lang) ? params.lang[0] : params.lang);
-  const [payload, parties] = await Promise.all([
-    getVotometroDirectory(params),
-    getPartySummariesPayload(),
-  ]);
 
-  return <VotometroDirectoryPage lang={lang} payload={payload} parties={parties.items} />;
+  try {
+    const [payload, parties] = await Promise.all([
+      getVotometroDirectory(params),
+      getPartySummariesPayload(),
+    ]);
+
+    // If there's real data from Supabase (items with votes), use the SSR directory
+    const hasRealData =
+      payload.items.length > 0 &&
+      !payload.issue &&
+      payload.items.some((item) => item.votesIndexed > 0);
+
+    if (hasRealData) {
+      return <VotometroDirectoryPage lang={lang} payload={payload} parties={parties.items} />;
+    }
+  } catch {
+    // Fall through to the fallback view
+  }
+
+  // Fall back to the rich client-side view with populated static data
+  return <VotometroFallback lang={lang} />;
 }

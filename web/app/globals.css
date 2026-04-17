@@ -7552,13 +7552,13 @@ input[type="date"] {
 /* 2026-04 landing vertical rebuild */
 
 .lp-page {
-  gap: clamp(2rem, 4vw, 3.2rem);
+  gap: clamp(2.4rem, 4.8vw, 4rem);
 }
 
 .lp-story {
   position: relative;
   overflow: hidden;
-  padding: clamp(1.4rem, 3vw, 2.6rem) clamp(0.5rem, 1vw, 0.8rem) clamp(2rem, 4vw, 3.2rem);
+  padding: clamp(1.6rem, 3.4vw, 3rem) clamp(0.5rem, 1vw, 0.8rem) clamp(3rem, 6vw, 4.8rem);
   border-radius: 0;
   border: 0;
   /* Subtle inner vignette to focus on content */
@@ -7568,22 +7568,8 @@ input[type="date"] {
   box-shadow: none;
 }
 
-/* Bottom separator — thin tricolor line */
 .lp-story::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 8%;
-  right: 8%;
-  height: 1.5px;
-  background: linear-gradient(90deg,
-    rgba(211, 162, 26, 0) 0%,
-    rgba(211, 162, 26, 0.5) 18%,
-    rgba(13, 91, 215, 0.4) 50%,
-    rgba(198, 40, 57, 0.4) 82%,
-    rgba(198, 40, 57, 0) 100%
-  );
-  border-radius: 999px;
+  display: none;
 }
 
 .lp-story__backdrop {
@@ -7705,41 +7691,41 @@ input[type="date"] {
 
 .lp-story__inner {
   display: grid;
-  gap: clamp(1.2rem, 2.5vw, 2.4rem);
+  gap: clamp(1.6rem, 3vw, 3rem);
 }
 
-/* Andes hills — covers only the hero intro; height is set by JS ResizeObserver */
 .lp-story__hills-wrap {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 62%;          /* fallback before JS measures intro */
+  height: 70%;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.32;
+  opacity: 0.58;
   will-change: transform;
-  /* Seamless fade at the bottom edge into the map section */
-  -webkit-mask-image: linear-gradient(to bottom, black 52%, transparent 100%);
-  mask-image: linear-gradient(to bottom, black 52%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
 }
 
-/* Soft radial vignette so title text stays readable over the terrain */
 .lp-story__hills-wrap::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 90% 55% at 50% 28%, rgba(248,249,250,0.72) 0%, transparent 60%);
+    radial-gradient(ellipse 94% 58% at 50% 20%, rgba(248,249,250,0.52) 0%, transparent 62%);
   pointer-events: none;
 }
 
 .lp-story__intro {
   display: grid;
-  gap: 0.85rem;
+  gap: 1rem;
+  min-height: clamp(31rem, 72vh, 42rem);
   max-width: 62rem;
+  padding-block: clamp(1rem, 2vw, 1.4rem) clamp(1.8rem, 3vw, 2.4rem);
   margin-inline: auto;
   justify-items: center;
+  align-content: start;
   text-align: center;
 }
 
@@ -7780,9 +7766,9 @@ input[type="date"] {
 }
 
 .lp-story__title {
-  width: min(100%, 22ch);
+  width: min(100%, 24ch);
   margin: 0;
-  font-size: clamp(2.4rem, 5.5vw, 4.2rem);
+  font-size: clamp(2.6rem, 5.9vw, 4.6rem);
   line-height: 0.96;
   letter-spacing: -0.065em;
   overflow: visible;
@@ -7820,8 +7806,8 @@ input[type="date"] {
 
 .lp-story__body {
   margin: 0;
-  max-width: 44rem;
-  font-size: clamp(0.97rem, 1.2vw, 1.08rem);
+  max-width: 46rem;
+  font-size: clamp(1rem, 1.24vw, 1.12rem);
   line-height: 1.7;
   color: rgba(23, 32, 51, 0.8);
 }
@@ -7861,21 +7847,20 @@ input[type="date"] {
 .lp-story__stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 1.1rem;
   width: min(100%, 980px);
   margin-inline: auto;
 }
 
 .lp-story-stat {
-  min-height: auto;
+  min-height: 100%;
   display: grid;
-  gap: 0.32rem;
-  padding: 1rem 0 0.2rem;
-  border-radius: 0;
-  border: 0;
-  border-top: 1px solid rgba(23, 32, 51, 0.16);
-  background: transparent;
-  box-shadow: none;
+  gap: 0.38rem;
+  padding: 1.05rem 1rem 0.95rem;
+  border-radius: 20px;
+  border: 1px solid rgba(23, 32, 51, 0.08);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 12px 28px rgba(20, 30, 50, 0.05);
 }
 
 .lp-story-stat span {
@@ -8255,7 +8240,8 @@ input[type="date"] {
 }
 
 .lp-portfolio {
-  padding-bottom: 0.2rem;
+  padding-top: 0.4rem;
+  padding-bottom: 0.7rem;
 }
 
 .lp-portfolio-card {
@@ -8263,12 +8249,11 @@ input[type="date"] {
   align-items: center;
   justify-content: space-between;
   gap: 1rem 1.4rem;
-  padding: 1.5rem 0 0;
-  border-radius: 0;
-  border: 0;
-  border-top: 1px solid rgba(23, 32, 51, 0.12);
-  background: transparent;
-  box-shadow: none;
+  padding: 1.4rem 1.2rem 1.2rem;
+  border-radius: 22px;
+  border: 1px solid rgba(23, 32, 51, 0.08);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 12px 28px rgba(20, 30, 50, 0.04);
 }
 
 .lp-portfolio-card h2 {
@@ -16542,20 +16527,20 @@ input[type="date"] {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   LP MAP GRID  — 2-column layout: map left, modules right
+   LP MAP GRID: 2-column layout with map left and modules right
    ══════════════════════════════════════════════════════════════ */
 
 .lp-map-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(280px, 1fr);
-  gap: 2rem 2.5rem;
+  gap: 2.4rem 2.8rem;
   align-items: stretch;
 }
 
 .lp-map-grid__left {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .lp-map-grid__head {
@@ -16574,8 +16559,8 @@ input[type="date"] {
   position: relative;
   width: 100%;
   flex: 1;              /* grows to fill left column height after head + info box */
-  min-height: 280px;
-  max-height: 540px;
+  min-height: 320px;
+  max-height: 580px;
   border-radius: 20px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.46);
@@ -16589,7 +16574,7 @@ input[type="date"] {
   height: 100%;
 }
 
-/* Static department info box — replaces the floating tooltip */
+/* Static department info box that replaces the floating tooltip */
 .lp-map-info {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -16671,11 +16656,11 @@ input[type="date"] {
   box-shadow: 0 10px 22px rgba(1, 95, 101, 0.22);
 }
 
-/* Module cards column (right side) — flex so cards share height with left column */
+/* Module cards column on the right; flex keeps card heights aligned with the left column */
 .lp-map-grid__modules {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 1rem;
 }
 
 .lp-map-grid__modules-eyebrow {

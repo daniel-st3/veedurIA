@@ -103,17 +103,17 @@ precision highp float;
 varying vec3 vPosition;
 
 void main(void) {
-  float fade = clamp((96.0 - length(vPosition)) / 256.0, 0.0, 1.0);
-  float opacity = fade * 0.62;
+  float fade = clamp((148.0 - length(vPosition)) / 224.0, 0.0, 1.0);
+  float opacity = fade * 0.88;
 
-  // Normalize height to [0,1] — tune -6.0/50.0 to shift the gradient band
+  // Normalize height to [0,1]; tune -6.0/50.0 to shift the gradient band
   float h = clamp((vPosition.y + 6.0) / 50.0, 0.0, 1.0);
   h = h * h; // non-linear: spend more range in the green zone
 
   // Deep valley → vivid Andes green → sunlit Colombian gold
-  vec3 valleyGreen = vec3(0.06, 0.23, 0.10);   // #0f3b1a deep forest
-  vec3 andesGreen  = vec3(0.18, 0.46, 0.17);   // #2e752b vivid hillside
-  vec3 peakGold    = vec3(0.60, 0.52, 0.06);   // #998512 Colombian gold
+  vec3 valleyGreen = vec3(0.08, 0.25, 0.11);   // deeper valley
+  vec3 andesGreen  = vec3(0.22, 0.52, 0.20);   // brighter hillside
+  vec3 peakGold    = vec3(0.72, 0.62, 0.10);   // warmer sunlit ridge
 
   vec3 color = h < 0.5
     ? mix(valleyGreen, andesGreen, h * 2.0)
@@ -179,8 +179,8 @@ export function GLSLHills({ speed = 0.35, cameraZ = 118, planeSize = 256, classN
 
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 1.5));
-    camera.position.set(0, 16, cameraZ);
-    camera.lookAt(new THREE.Vector3(0, 28, 0));
+    camera.position.set(0, 12, cameraZ);
+    camera.lookAt(new THREE.Vector3(0, 22, 0));
     scene.add(plane.mesh);
     resize();
 
