@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -8,13 +9,21 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, FileSearch, Radar, Waypoints, Database, Shield, Eye, BarChart3, Users, Globe } from "lucide-react";
 
-import { ColombiaMap } from "@/components/colombia-map";
-import { GLSLHills } from "@/components/ui/glsl-hills";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { fetchGeoJson, fetchOverview } from "@/lib/api";
 import { deptDisplayLabel } from "@/lib/colombia-departments";
 import type { Lang, OverviewPayload } from "@/lib/types";
+
+// Heavy bundles deferred — Three.js (~400KB) and D3 geo not in initial JS parse
+const GLSLHills = dynamic(
+  () => import("@/components/ui/glsl-hills").then((m) => ({ default: m.GLSLHills })),
+  { ssr: false, loading: () => <div style={{ width: "100%", height: "100%" }} /> },
+);
+const ColombiaMap = dynamic(
+  () => import("@/components/colombia-map").then((m) => ({ default: m.ColombiaMap })),
+  { ssr: false },
+);
 
 gsap.registerPlugin(ScrollTrigger);
 

@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 
 import { getSiteUrl } from "@/lib/metadata";
 
 import "./globals.css";
+
+const FONTSHARE_URL =
+  "https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700&f[]=satoshi@400,500,700&display=swap";
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
@@ -40,11 +44,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://api.fontshare.com" />
-        <link
-          rel="stylesheet"
-          href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700&f[]=satoshi@400,500,700&display=swap"
+        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://api.fontshare.com" />
+        {/* Non-blocking font load — text renders immediately in system fallback, swaps when ready */}
+        <Script
+          id="fontshare-loader"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='${FONTSHARE_URL}';document.head.appendChild(l);})();`,
+          }}
         />
+        <noscript>
+          <link rel="stylesheet" href={FONTSHARE_URL} />
+        </noscript>
       </head>
       <body>{children}</body>
     </html>
