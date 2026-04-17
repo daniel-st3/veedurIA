@@ -146,6 +146,13 @@ export type VotometroDirectoryPayload = {
   items: LegislatorListItem[];
 };
 
+export type VotometroLandingStats = {
+  activeLegislators: number | null;
+  indexedVotes: number | null;
+  averageCoherence: number | null;
+  available: boolean;
+};
+
 export type VotometroVotesPayload = {
   meta: {
     total: number;

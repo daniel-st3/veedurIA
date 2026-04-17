@@ -1,10 +1,14 @@
+import { NextRequest } from "next/server";
+
 import { LandingPage } from "@/components/landing-page";
-import { fetchOverview } from "@/lib/api";
+import { GET as getContractsOverview } from "@/app/api/contracts/overview/route";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
 import type { Lang, OverviewPayload } from "@/lib/types";
+import { getVotometroDirectory } from "@/lib/votometro-server";
+import type { VotometroLandingStats } from "@/lib/votometro-types";
 
-const FCP_TIMEOUT_MS = 600;
+const FCP_TIMEOUT_MS = 5000;
 
 function emptyOverview(lang: Lang): OverviewPayload {
   return {
@@ -22,6 +26,23 @@ function emptyOverview(lang: Lang): OverviewPayload {
       trainedAt: null, redThreshold: 0.7, yellowThreshold: 0.4 },
     liveFeed: { latestDate: null, rowsAtSource: null, contracts: [] },
   };
+}
+
+function emptyVotometroStats(): VotometroLandingStats {
+  return {
+    activeLegislators: null,
+    indexedVotes: null,
+    averageCoherence: null,
+    available: false,
+  };
+}
+
+async function fetchOverviewForHome(lang: Lang): Promise<OverviewPayload | null> {
+  const response = await getContractsOverview(
+    new NextRequest(`http://veeduria.local/api/contracts/overview?lang=${lang}`),
+  );
+  if (!response.ok) return null;
+  return (await response.json()) as OverviewPayload;
 }
 
 export async function generateMetadata({
@@ -57,14 +78,38 @@ export default async function Home({
   // Race the API against a timeout so a slow backend never delays the first byte.
   // The client-side refetch in LandingPage fills in real data after hydration.
   let overview: OverviewPayload | null = null;
+  let votometroStats: VotometroLandingStats | null = null;
   try {
-    overview = await Promise.race<OverviewPayload | null>([
-      fetchOverview({ lang, full: false }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), FCP_TIMEOUT_MS)),
+    const [overviewResult, votometroResult] = await Promise.all([
+      Promise.race<OverviewPayload | null>([
+        fetchOverviewForHome(lang),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), FCP_TIMEOUT_MS)),
+      ]),
+      Promise.race<Awaited<ReturnType<typeof getVotometroDirectory>> | null>([
+        getVotometroDirectory({ page: "1", page_size: "1" }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), FCP_TIMEOUT_MS)),
+      ]),
     ]);
+
+    overview = overviewResult;
+    votometroStats = votometroResult
+      ? {
+          activeLegislators: votometroResult.meta.activeLegislators,
+          indexedVotes: votometroResult.meta.indexedVotes,
+          averageCoherence: votometroResult.meta.averageCoherence,
+          available: !votometroResult.issue,
+        }
+      : null;
   } catch {
     overview = null;
+    votometroStats = null;
   }
 
-  return <LandingPage lang={lang} initialOverview={overview ?? emptyOverview(lang)} />;
+  return (
+    <LandingPage
+      lang={lang}
+      initialOverview={overview ?? emptyOverview(lang)}
+      initialVotometroStats={votometroStats ?? emptyVotometroStats()}
+    />
+  );
 }

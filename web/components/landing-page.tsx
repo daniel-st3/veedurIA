@@ -14,6 +14,7 @@ import { SiteNav } from "@/components/site-nav";
 import { fetchGeoJson, fetchOverview } from "@/lib/api";
 import { deptDisplayLabel } from "@/lib/colombia-departments";
 import type { Lang, OverviewPayload } from "@/lib/types";
+import type { VotometroLandingStats } from "@/lib/votometro-types";
 
 // Heavy bundles deferred — Three.js (~400KB) and D3 geo not in initial JS parse
 const GLSLHills = dynamic(
@@ -152,20 +153,20 @@ const IMPACT_TEXT = {
     eyebrow: "Impacto en cifras",
     title: "Radiografía del poder público",
     stats: [
-      { icon: BarChart3, value: "5.6M+", label: "Contratos procesados", sublabel: "desde SECOP II" },
-      { icon: Users, value: "1.774", label: "Votos nominales indexados", sublabel: "con coherencia verificada" },
-      { icon: Globe, value: "32", label: "Departamentos cubiertos", sublabel: "mapeo territorial completo" },
-      { icon: Shield, value: "22.8K", label: "Alertas activas", sublabel: "priorizadas por ML" },
+      { icon: BarChart3, label: "Contratos procesados", sublabel: "desde SECOP II" },
+      { icon: Users, label: "Votos nominales indexados", sublabel: "capa pública en sincronización" },
+      { icon: Globe, label: "Territorios cubiertos", sublabel: "mapeo territorial visible" },
+      { icon: Shield, label: "Alertas activas", sublabel: "priorizadas por ML" },
     ],
   },
   en: {
     eyebrow: "Impact numbers",
     title: "X-ray of public power",
     stats: [
-      { icon: BarChart3, value: "5.6M+", label: "Contracts processed", sublabel: "from SECOP II" },
-      { icon: Users, value: "1,774", label: "Roll-call votes indexed", sublabel: "with verified coherence" },
-      { icon: Globe, value: "32", label: "Departments covered", sublabel: "full territorial mapping" },
-      { icon: Shield, value: "22.8K", label: "Active alerts", sublabel: "ML‑prioritized" },
+      { icon: BarChart3, label: "Contracts processed", sublabel: "from SECOP II" },
+      { icon: Users, label: "Roll-call votes indexed", sublabel: "public layer syncing" },
+      { icon: Globe, label: "Territories covered", sublabel: "visible territorial mapping" },
+      { icon: Shield, label: "Active alerts", sublabel: "ML‑prioritized" },
     ],
   },
 };
@@ -229,16 +230,53 @@ const SIGNAL_TEXT = {
   },
 };
 
+function hasNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function formatLandingNumber(value: number | null | undefined, lang: Lang) {
+  if (!hasNumber(value)) {
+    return lang === "es" ? "Sin dato" : "No data";
+  }
+
+  return value.toLocaleString(lang === "es" ? "es-CO" : "en-US");
+}
+
+function normalizeVotometroLandingStats(value: unknown): VotometroLandingStats | null {
+  if (!value || typeof value !== "object") return null;
+  const payload = value as {
+    meta?: {
+      activeLegislators?: unknown;
+      indexedVotes?: unknown;
+      averageCoherence?: unknown;
+    };
+    issue?: unknown;
+  };
+
+  return {
+    activeLegislators: hasNumber(payload.meta?.activeLegislators) ? payload.meta.activeLegislators : null,
+    indexedVotes: hasNumber(payload.meta?.indexedVotes) ? payload.meta.indexedVotes : null,
+    averageCoherence:
+      hasNumber(payload.meta?.averageCoherence) || payload.meta?.averageCoherence === null
+        ? (payload.meta?.averageCoherence as number | null)
+        : null,
+    available: payload.issue == null,
+  };
+}
+
 export function LandingPage({
   lang,
   initialOverview,
+  initialVotometroStats,
 }: {
   lang: Lang;
   initialOverview: OverviewPayload;
+  initialVotometroStats: VotometroLandingStats;
 }) {
   const scope = useRef<HTMLDivElement | null>(null);
   const hillsWrapRef = useRef<HTMLDivElement | null>(null);
   const [overview, setOverview] = useState<OverviewPayload>(initialOverview);
+  const [votometroStats, setVotometroStats] = useState<VotometroLandingStats>(initialVotometroStats);
   const [geojson, setGeojson] = useState<any | null>(null);
   const [activeDepartment, setActiveDepartment] = useState(initialOverview.map.departments[0]?.geoName);
   const [hoveredDepartment, setHoveredDepartment] = useState<string | null>(null);
@@ -259,6 +297,25 @@ export function LandingPage({
     let alive = true;
     fetchGeoJson()
       .then((data) => { if (alive) setGeojson(data); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/votometro/legislators?page=1&page_size=1", { cache: "no-store" })
+      .then(async (response) => {
+        const contentType = response.headers.get("content-type") ?? "";
+        if (!response.ok || !contentType.includes("application/json")) {
+          throw new Error("Votómetro summary unavailable");
+        }
+        return response.json();
+      })
+      .then((payload) => {
+        if (!alive) return;
+        const nextStats = normalizeVotometroLandingStats(payload);
+        if (nextStats) setVotometroStats(nextStats);
+      })
       .catch(() => {});
     return () => { alive = false; };
   }, []);
@@ -542,15 +599,58 @@ export function LandingPage({
   const processData = PROCESS_TEXT[lang];
   const impactData = IMPACT_TEXT[lang];
   const signalData = SIGNAL_TEXT[lang];
+  const hasOverviewData =
+    overview.map.departments.length > 0 ||
+    hasNumber(overview.meta.sourceRows) ||
+    overview.meta.totalRows > 0 ||
+    overview.slice.totalContracts > 0;
+  const totalContractsValue = hasOverviewData && hasNumber(totalContracts) ? totalContracts : null;
+  const redAlertsValue = hasOverviewData && hasNumber(overview.slice.redAlerts) ? overview.slice.redAlerts : null;
+  const territoryCoverageCount = overview.map.departments.length;
+  const territoryCoverageValue = territoryCoverageCount > 0 ? territoryCoverageCount : null;
+  const hasTotalContracts = totalContractsValue !== null;
+  const hasRedAlerts = redAlertsValue !== null;
+  const territoryCoverageSubLabel =
+    territoryCoverageCount === 33
+      ? lang === "es"
+        ? "32 departamentos + Bogotá D.C."
+        : "32 departments + Bogotá D.C."
+      : lang === "es"
+        ? "mapeo territorial visible"
+        : "visible territorial mapping";
+  const votometroCoverageSubLabel =
+    votometroStats.available && hasNumber(votometroStats.activeLegislators)
+      ? lang === "es"
+        ? `${formatLandingNumber(votometroStats.activeLegislators, lang)} legisladores activos`
+        : `${formatLandingNumber(votometroStats.activeLegislators, lang)} active legislators`
+      : impactData.stats[1].sublabel;
+  const impactStats = [
+    {
+      ...impactData.stats[0],
+      value: formatLandingNumber(totalContractsValue, lang),
+    },
+    {
+      ...impactData.stats[1],
+      value: formatLandingNumber(votometroStats.available ? votometroStats.indexedVotes : null, lang),
+      sublabel: votometroCoverageSubLabel,
+    },
+    {
+      ...impactData.stats[2],
+      value: formatLandingNumber(territoryCoverageValue, lang),
+      sublabel: territoryCoverageSubLabel,
+    },
+    {
+      ...impactData.stats[3],
+      value: formatLandingNumber(redAlertsValue, lang),
+    },
+  ];
   const signalCards = [
     {
       href: featureSet.contract.href,
       kicker: featureSet.contract.title,
       icon: FileSearch,
       tone: "yellow" as FeatureTone,
-      value: totalContracts
-        ? totalContracts.toLocaleString(lang === "es" ? "es-CO" : "en-US")
-        : impactData.stats[0]?.value ?? "5.6M+",
+      value: formatLandingNumber(totalContractsValue, lang),
       metric: signalData.metrics.contracts,
       title: signalData.cards.contracts.title,
       body: signalData.cards.contracts.body,
@@ -560,7 +660,7 @@ export function LandingPage({
       kicker: featureSet.promises.title,
       icon: Radar,
       tone: "blue" as FeatureTone,
-      value: impactData.stats[1]?.value ?? (lang === "es" ? "1.774" : "1,774"),
+      value: formatLandingNumber(votometroStats.available ? votometroStats.indexedVotes : null, lang),
       metric: signalData.metrics.votes,
       title: signalData.cards.votes.title,
       body: signalData.cards.votes.body,
@@ -570,10 +670,7 @@ export function LandingPage({
       kicker: featureSet.money.title,
       icon: Waypoints,
       tone: "red" as FeatureTone,
-      value:
-        overview.slice.redAlerts > 0
-          ? overview.slice.redAlerts.toLocaleString(lang === "es" ? "es-CO" : "en-US")
-          : impactData.stats[3]?.value ?? "22.8K",
+      value: formatLandingNumber(redAlertsValue, lang),
       metric: signalData.metrics.money,
       title: signalData.cards.money.title,
       body: signalData.cards.money.body,
@@ -684,9 +781,9 @@ export function LandingPage({
             {/* KPI stats row */}
             <div className="lp-story__stats">
               <article className="lp-story-stat lp-story-stat--yellow">
-                <span>{lang === "es" ? "Registros oficiales hoy" : "Official records today"}</span>
-                {totalContracts ? (
-                  <strong>{totalContracts.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
+                <span>{lang === "es" ? "Registros en fuente oficial" : "Records in official source"}</span>
+                {hasTotalContracts ? (
+                  <strong>{formatLandingNumber(totalContractsValue, lang)}</strong>
                 ) : (
                   <div className="lp-stat-skeleton" aria-hidden="true" />
                 )}
@@ -694,8 +791,8 @@ export function LandingPage({
               </article>
               <article className="lp-story-stat lp-story-stat--blue">
                 <span>{lang === "es" ? "Alertas listas" : "Alerts ready"}</span>
-                {overview.slice.redAlerts ? (
-                  <strong>{overview.slice.redAlerts.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
+                {hasRedAlerts ? (
+                  <strong>{formatLandingNumber(redAlertsValue, lang)}</strong>
                 ) : (
                   <div className="lp-stat-skeleton" aria-hidden="true" />
                 )}
@@ -908,7 +1005,7 @@ export function LandingPage({
             </div>
 
             <div className="lp-impact__grid">
-              {impactData.stats.map((stat) => {
+              {impactStats.map((stat) => {
                 const StatIcon = stat.icon;
                 return (
                   <div key={stat.label} className="lp-impact-stat">
