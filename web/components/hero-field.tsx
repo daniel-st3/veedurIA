@@ -150,7 +150,7 @@ export function HeroField({ lang, status, title, body, legend, graphLabel, notes
             </article>
             <article className="hero-field__summary-card">
               <span className="label">{lang === "es" ? "Lectura sugerida" : "Suggested reading"}</span>
-              <strong>{currentDepartment.avgRisk >= 0.7 ? "ContratoLimpio" : "VotóMeter"}</strong>
+              <strong>{currentDepartment.avgRisk >= 0.7 ? "ContratoLimpio" : "Votómetro"}</strong>
             </article>
             <article className="hero-field__summary-card">
               <span className="label">{lang === "es" ? "Interacción" : "Interaction"}</span>

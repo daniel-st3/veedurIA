@@ -30,8 +30,8 @@ export function ModulePlaceholder({
     previewTitle: lang === "es" ? "Vista previa del frente relacional" : "Preview of the relationship layer",
     previewBody:
       lang === "es"
-        ? "Las alertas altas de ContratoLimpio, los cruces de VotóMeter y la capa de donaciones serán la semilla del grafo relacional."
-        : "High-alert contracts, VotóMeter crossings, and the donations layer will seed the relationship graph.",
+        ? "Las alertas altas de ContratoLimpio, los cruces de Votómetro y la capa de donaciones serán la semilla del grafo relacional."
+        : "High-alert contracts, Votómetro crossings, and the donations layer will seed the relationship graph.",
     stats: [
       [lang === "es" ? "12.450" : "12,450", lang === "es" ? "Contratistas únicos identificados" : "Unique contractors identified"],
       [lang === "es" ? "3.280" : "3,280", lang === "es" ? "Relaciones preliminares detectadas" : "Preliminary relationships detected"],
@@ -74,7 +74,7 @@ export function ModulePlaceholder({
         lang={lang}
         links={[
           { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
-          { href: `/votometro?lang=${lang}`, label: "VotóMeter" },
+          { href: `/votometro?lang=${lang}`, label: "Votómetro" },
           { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
         ]}
       />

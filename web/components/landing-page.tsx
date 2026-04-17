@@ -33,10 +33,10 @@ const FEATURE_TEXT = {
       signal: "Expediente · Mapa · Análisis",
     },
     promises: {
-      title: "VotóMeter",
+      title: "Votómetro",
       kicker: "VOTACIONES DEL CONGRESO",
       body: "Cruza votos nominales con el perfil programático de cada legislador. Abre la gaceta y verifica coherencia tema por tema.",
-      cta: "Abrir VotóMeter",
+      cta: "Abrir Votómetro",
       href: "/votometro?lang=es",
       icon: Radar,
       tone: "blue" as FeatureTone,
@@ -65,10 +65,10 @@ const FEATURE_TEXT = {
       signal: "Record · Map · Analysis",
     },
     promises: {
-      title: "VotóMeter",
+      title: "Votómetro",
       kicker: "CONGRESSIONAL VOTES",
       body: "Cross nominal votes with each legislator's programmatic profile. Open the gazette and verify topic-by-topic coherence.",
-      cta: "Open VotóMeter",
+      cta: "Open Votómetro",
       href: "/votometro?lang=en",
       icon: Radar,
       tone: "blue" as FeatureTone,
@@ -311,7 +311,7 @@ export function LandingPage({
         { autoAlpha: 1, duration: 1.2, ease: "power2.out", delay: 1.2 },
       );
 
-      gsap.set(".lp-hero__story-panel", { autoAlpha: 0, y: 54, scale: 0.965 });
+      gsap.set(".lp-hero__story-panel", { autoAlpha: 0, y: 46, scale: 0.972 });
 
       /* ── HERO SCROLL STAGE: title on the horizon, story rises after scroll ── */
       const heroTimeline = gsap.timeline({
@@ -327,8 +327,8 @@ export function LandingPage({
         .to(
           ".lp-hero__hills-wrap",
           {
-            yPercent: 20,
-            scale: 1.045,
+            yPercent: 12,
+            scale: 1.08,
             ease: "none",
           },
           0,
@@ -336,7 +336,7 @@ export function LandingPage({
         .to(
           ".lp-hero__content",
           {
-            yPercent: -16,
+            yPercent: -10,
             ease: "none",
           },
           0,
@@ -344,8 +344,8 @@ export function LandingPage({
         .to(
           ".lp-hero__title-group",
           {
-            yPercent: -24,
-            scale: 0.95,
+            yPercent: -15,
+            scale: 0.972,
             ease: "none",
           },
           0,
@@ -354,7 +354,7 @@ export function LandingPage({
           ".lp-hero__eyebrow, .lp-hero__flagbar",
           {
             yPercent: -10,
-            autoAlpha: 0.32,
+            autoAlpha: 0.45,
             ease: "none",
           },
           0,
@@ -376,7 +376,7 @@ export function LandingPage({
             scale: 1,
             ease: "none",
           },
-          0.18,
+          0.12,
         );
 
       /* ── SCROLL-REVEAL SECTIONS ── */
@@ -577,7 +577,7 @@ export function LandingPage({
         lang={lang}
         links={[
           { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
-          { href: `/votometro?lang=${lang}`, label: "VotóMeter" },
+          { href: `/votometro?lang=${lang}`, label: "Votómetro" },
           { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
         ]}
       />
@@ -591,7 +591,7 @@ export function LandingPage({
           <div className="lp-hero__stage">
             {/* Andes hills — full bleed behind the hero */}
             <div ref={hillsWrapRef} className="lp-hero__hills-wrap" aria-hidden="true">
-              <GLSLHills speed={0.3} cameraZ={102} planeSize={288} />
+              <GLSLHills speed={0.26} cameraZ={94} planeSize={420} />
             </div>
 
             <div className="lp-hero__backdrop" aria-hidden="true">

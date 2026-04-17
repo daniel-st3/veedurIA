@@ -96,7 +96,7 @@ function IssuePanel({
         : lang === "es"
           ? [
               "Revisa la conectividad del proyecto Supabase.",
-              "Valida que las vistas públicas de VotóMeter sigan existiendo y respondan.",
+              "Valida que las vistas públicas de Votómetro sigan existiendo y respondan.",
               "Inspecciona el último run de sync y confirma que no quedó en warning.",
             ]
           : [
@@ -244,7 +244,7 @@ export function VotometroDirectoryPage({
       ? {
           eyebrow: hasIndexedCoverage ? "Cobertura oficial viva 2022-2026" : "Roster público sincronizado 2022-2026",
           title: hasIndexedCoverage
-            ? "VotóMeter ya está leyendo el Congreso desde fuentes sincronizadas."
+            ? "Votómetro ya está leyendo el Congreso desde fuentes sincronizadas."
             : "El directorio público ya está sincronizado, pero la indexación de votos sigue pendiente.",
           body:
             hasIndexedCoverage
