@@ -1,10 +1,63 @@
 import { VotometroDirectoryPage } from "@/components/votometro/directory-page";
-import { VotometroFallback } from "@/components/votometro/fallback-wrapper";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
+import type { LegislatorListItem, PartySummary } from "@/lib/votometro-types";
 import { getPartySummariesPayload, getVotometroDirectory } from "@/lib/votometro-server";
 
 export const dynamic = "force-dynamic";
+
+function derivePartySummaries(items: LegislatorListItem[]): PartySummary[] {
+  const groups = new Map<
+    string,
+    {
+      partyKey: string;
+      party: string;
+      memberCount: number;
+      indexedVotes: number;
+      attendanceValues: number[];
+      coherenceValues: number[];
+    }
+  >();
+
+  for (const item of items) {
+    const current = groups.get(item.partyKey) ?? {
+      partyKey: item.partyKey,
+      party: item.party,
+      memberCount: 0,
+      indexedVotes: 0,
+      attendanceValues: [],
+      coherenceValues: [],
+    };
+    current.memberCount += 1;
+    current.indexedVotes += item.votesIndexed;
+    if (typeof item.attendanceRate === "number") current.attendanceValues.push(item.attendanceRate);
+    if (typeof item.coherenceScore === "number") current.coherenceValues.push(item.coherenceScore);
+    groups.set(item.partyKey, current);
+  }
+
+  return [...groups.values()]
+    .map((party) => ({
+      partyKey: party.partyKey,
+      party: party.party,
+      chamber: "",
+      memberCount: party.memberCount,
+      activeMembers: party.memberCount,
+      indexedVotes: party.indexedVotes,
+      attendanceRate: party.attendanceValues.length
+        ? Math.round(
+            party.attendanceValues.reduce((sum, value) => sum + value, 0) / party.attendanceValues.length,
+          )
+        : null,
+      coherenceScore: party.coherenceValues.length
+        ? Math.round(
+            party.coherenceValues.reduce((sum, value) => sum + value, 0) / party.coherenceValues.length,
+          )
+        : null,
+      approvedPromiseMatches: 0,
+      topicScores: [],
+    }))
+    .sort((left, right) => right.memberCount - left.memberCount || left.party.localeCompare(right.party, "es-CO"));
+}
 
 export async function generateMetadata({
   searchParams,
@@ -17,8 +70,11 @@ export async function generateMetadata({
   return buildPageMetadata({
     lang,
     path: `/votometro?lang=${lang}`,
-    title: "VotóMeter — VeedurIA",
-    description: "Directorio vivo de legisladores colombianos con votos, asistencia y coherencia visible solo cuando hay promesas revisadas.",
+    title: lang === "es" ? "VotóMeter — VeedurIA" : "Votometer — VeedurIA",
+    description:
+      lang === "es"
+        ? "Directorio vivo de legisladores colombianos con votos, asistencia y coherencia visible solo cuando hay promesas revisadas."
+        : "Live directory of Colombian legislators with votes, attendance, and coherence shown only when reviewed promises exist.",
     imagePath: "/votometro/opengraph-image",
   });
 }
@@ -30,26 +86,17 @@ export default async function VotometroPage({
 }) {
   const params = await searchParams;
   const lang = resolveLang(Array.isArray(params.lang) ? params.lang[0] : params.lang);
+  const payload = await getVotometroDirectory(params);
 
+  let parties = derivePartySummaries(payload.items);
   try {
-    const [payload, parties] = await Promise.all([
-      getVotometroDirectory(params),
-      getPartySummariesPayload(),
-    ]);
-
-    // If there's real data from Supabase (items with votes), use the SSR directory
-    const hasRealData =
-      payload.items.length > 0 &&
-      !payload.issue &&
-      payload.items.some((item) => item.votesIndexed > 0);
-
-    if (hasRealData) {
-      return <VotometroDirectoryPage lang={lang} payload={payload} parties={parties.items} />;
+    const partyPayload = await getPartySummariesPayload();
+    if (partyPayload.items.length) {
+      parties = partyPayload.items;
     }
   } catch {
-    // Fall through to the fallback view
+    // Keep the directory-derived fallback above.
   }
 
-  // Fall back to the rich client-side view with populated static data
-  return <VotometroFallback lang={lang} />;
+  return <VotometroDirectoryPage lang={lang} payload={payload} parties={parties} />;
 }

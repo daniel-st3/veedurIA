@@ -8,8 +8,24 @@ import type { LegislatorProfile, VotometroDataIssue } from "@/lib/votometro-type
 
 import styles from "./votometro.module.css";
 
-function percentLabel(value: number | null) {
-  return value == null ? "Sin revisar" : `${Math.round(value)}%`;
+function percentLabel(value: number | null, lang: Lang) {
+  return value == null ? (lang === "es" ? "Sin revisar" : "Not reviewed") : `${Math.round(value)}%`;
+}
+
+function statNumber(value: number) {
+  return new Intl.NumberFormat("es-CO").format(value);
+}
+
+function localizedChamberLabel(chamber: LegislatorProfile["chamber"], lang: Lang) {
+  if (lang === "es") {
+    return chamber === "camara" ? "Cámara de Representantes" : "Senado";
+  }
+  return chamber === "camara" ? "House of Representatives" : "Senate";
+}
+
+function localizedRoleLabel(profile: LegislatorProfile, lang: Lang) {
+  if (lang === "es") return profile.roleLabel;
+  return profile.chamber === "camara" ? "Representative" : "Senator";
 }
 
 function avatar(profile: LegislatorProfile) {
@@ -51,7 +67,11 @@ export function VotometroProfilePage({
                   ? "El legislador solicitado no existe en este corte público."
                   : "The requested legislator is not available in this public slice.")}
             </p>
-            {issue?.detail ? <p className={styles.smallMuted}>Detalle técnico: {issue.detail}</p> : null}
+            {issue?.detail ? (
+              <p className={styles.smallMuted}>
+                {lang === "es" ? "Detalle técnico" : "Technical detail"}: {issue.detail}
+              </p>
+            ) : null}
             <Link href={`/votometro?lang=${lang}`} className={styles.inlineLink}>
               {lang === "es" ? "Volver al directorio" : "Back to directory"}
             </Link>
@@ -75,11 +95,11 @@ export function VotometroProfilePage({
             <div>
               <div className={styles.profileTop}>
                 <h1 className={styles.profileName}>{profile.canonicalName}</h1>
-                <span className={styles.chip}>{profile.chamberLabel}</span>
+                <span className={styles.chip}>{localizedChamberLabel(profile.chamber, lang)}</span>
                 <span className={`${styles.chip} ${styles.chipGood}`}>{profile.party}</span>
               </div>
               <p className={styles.profileMeta}>
-                {profile.roleLabel}
+                {localizedRoleLabel(profile, lang)}
                 {profile.circunscription ? ` · ${profile.circunscription}` : ""}
                 {profile.commission ? ` · ${profile.commission}` : ""}
               </p>
@@ -87,15 +107,15 @@ export function VotometroProfilePage({
 
               <div className={styles.metricRow}>
                 <div className={styles.metricTile}>
-                  <strong>{percentLabel(profile.coherenceScore)}</strong>
+                  <strong>{percentLabel(profile.coherenceScore, lang)}</strong>
                   <span>{lang === "es" ? "Coherencia" : "Coherence"}</span>
                 </div>
                 <div className={styles.metricTile}>
-                  <strong>{percentLabel(profile.attendance.rate)}</strong>
+                  <strong>{percentLabel(profile.attendance.rate, lang)}</strong>
                   <span>{lang === "es" ? "Asistencia" : "Attendance"}</span>
                 </div>
                 <div className={styles.metricTile}>
-                  <strong>{profile.votesIndexed}</strong>
+                  <strong>{statNumber(profile.votesIndexed)}</strong>
                   <span>{lang === "es" ? "Votos indexados" : "Indexed votes"}</span>
                 </div>
               </div>
@@ -182,7 +202,7 @@ export function VotometroProfilePage({
                   <div key={score.key} className={styles.detailItem}>
                     <strong>{score.label}</strong>
                     <span>
-                      {percentLabel(score.score)} · {score.votes}{" "}
+                      {percentLabel(score.score, lang)} · {statNumber(score.votes)}{" "}
                       {lang === "es" ? "votaciones" : "votes"}
                     </span>
                   </div>
@@ -219,10 +239,10 @@ export function VotometroProfilePage({
                     <td>
                       {promise.sourceUrl ? (
                         <a href={promise.sourceUrl} target="_blank" rel="noreferrer" className={styles.inlineLink}>
-                          {promise.sourceLabel || promise.sourceDate || "Fuente"}
+                          {promise.sourceLabel || promise.sourceDate || (lang === "es" ? "Fuente" : "Source")}
                         </a>
                       ) : (
-                        promise.sourceLabel || promise.sourceDate || "Fuente"
+                        promise.sourceLabel || promise.sourceDate || (lang === "es" ? "Fuente" : "Source")
                       )}
                     </td>
                   </tr>
