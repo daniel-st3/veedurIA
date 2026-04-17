@@ -714,6 +714,13 @@
   margin-inline: auto;
 }
 
+.lp-page > .lp-hero {
+  width: 100vw;
+  max-width: none;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
 .lp-hero-shell--cinematic {
   min-height: 60vh;
   height: auto;
