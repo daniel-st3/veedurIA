@@ -1,4 +1,5 @@
 import { VotometroDirectoryPage } from "@/components/votometro/directory-page";
+import { VotometroFallback } from "@/components/votometro/fallback-wrapper";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
 import type { LegislatorListItem, PartySummary } from "@/lib/votometro-types";
@@ -87,6 +88,18 @@ export default async function VotometroPage({
   const params = await searchParams;
   const lang = resolveLang(Array.isArray(params.lang) ? params.lang[0] : params.lang);
   const payload = await getVotometroDirectory(params);
+  const forceLive =
+    (Array.isArray(params.force_live) ? params.force_live[0] : params.force_live) === "1";
+  const hasMeaningfulLiveCoverage =
+    !payload.issue &&
+    payload.items.some(
+      (item) =>
+        item.votesIndexed > 0 ||
+        item.attendanceRate != null ||
+        item.coherenceScore != null ||
+        item.topTopics.length > 0 ||
+        item.topicScores.length > 0,
+    );
 
   let parties = derivePartySummaries(payload.items);
   try {
@@ -96,6 +109,10 @@ export default async function VotometroPage({
     }
   } catch {
     // Keep the directory-derived fallback above.
+  }
+
+  if (!forceLive && !hasMeaningfulLiveCoverage) {
+    return <VotometroFallback lang={lang} />;
   }
 
   return <VotometroDirectoryPage lang={lang} payload={payload} parties={parties} />;
