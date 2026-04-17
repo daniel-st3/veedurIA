@@ -319,7 +319,7 @@ export function SigueElDineroView({ lang }: Props) {
         lang={lang}
         links={[
           { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
-          { href: `/votometro?lang=${lang}`, label: "VotóMeter" },
+          { href: `/votometro?lang=${lang}`, label: "Votómetro" },
           { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
         ]}
       />

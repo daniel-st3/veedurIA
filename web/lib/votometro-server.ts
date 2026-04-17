@@ -89,7 +89,7 @@ function issueFromError(error: unknown, context: string): VotometroDataIssue {
   if (message.includes("must be set")) {
     return {
       code: "missing_env",
-      title: "Configuración incompleta de VotóMeter",
+      title: "Configuración incompleta de Votómetro",
       message:
         "Faltan variables de entorno de Supabase para leer la capa pública del módulo.",
       detail: message,
@@ -104,9 +104,9 @@ function issueFromError(error: unknown, context: string): VotometroDataIssue {
   ) {
     return {
       code: "missing_schema",
-      title: "VotóMeter no está inicializado en Supabase",
+      title: "Votómetro no está inicializado en Supabase",
       message:
-        "La base pública conectada no tiene todavía las tablas o vistas de VotóMeter. Ejecuta scripts/setup_supabase.sql en el proyecto Supabase correcto y luego corre el primer sync.",
+        "La base pública conectada no tiene todavía las tablas o vistas de Votómetro. Ejecuta scripts/setup_supabase.sql en el proyecto Supabase correcto y luego corre el primer sync.",
       detail: message,
       httpStatus: 503,
     };
@@ -114,7 +114,7 @@ function issueFromError(error: unknown, context: string): VotometroDataIssue {
 
   return {
     code: "query_error",
-    title: "VotóMeter no pudo leer su capa pública",
+    title: "Votómetro no pudo leer su capa pública",
     message: context,
     detail: message,
     httpStatus: 503,
@@ -280,7 +280,7 @@ export async function getVotometroDirectory(filtersInput: SearchParamInput | Vot
     if (error || !data) {
       return emptyDirectory(
         filters,
-        issueFromError(error ?? new Error("No data returned from votometro_directory_public"), "VotóMeter no pudo leer el directorio público."),
+        issueFromError(error ?? new Error("No data returned from votometro_directory_public"), "Votómetro no pudo leer el directorio público."),
       );
     }
 
@@ -347,7 +347,7 @@ export async function getVotometroDirectory(filtersInput: SearchParamInput | Vot
   } catch (error) {
     return emptyDirectory(
       filters,
-      issueFromError(error, "VotóMeter no pudo inicializar la lectura del directorio."),
+      issueFromError(error, "Votómetro no pudo inicializar la lectura del directorio."),
     );
   }
 }
@@ -369,7 +369,7 @@ export async function getVotometroProfileResult(slug: string): Promise<Votometro
     if (profileError) {
       return {
         profile: null,
-        issue: issueFromError(profileError, "VotóMeter no pudo leer este perfil."),
+        issue: issueFromError(profileError, "Votómetro no pudo leer este perfil."),
       };
     }
 
@@ -439,7 +439,7 @@ export async function getVotometroProfileResult(slug: string): Promise<Votometro
   } catch (error) {
     return {
       profile: null,
-      issue: issueFromError(error, "VotóMeter no pudo construir este perfil."),
+      issue: issueFromError(error, "Votómetro no pudo construir este perfil."),
     };
   }
 }
@@ -482,7 +482,7 @@ export async function getVotometroVotes({
     if (error || !data) {
       return {
         meta: { total: 0, page, pageSize, generatedAt: new Date().toISOString() },
-        issue: issueFromError(error ?? new Error("No data returned from votometro_vote_records_public"), "VotóMeter no pudo leer las votaciones públicas."),
+        issue: issueFromError(error ?? new Error("No data returned from votometro_vote_records_public"), "Votómetro no pudo leer las votaciones públicas."),
         items: [],
       };
     }
@@ -500,7 +500,7 @@ export async function getVotometroVotes({
   } catch (error) {
     return {
       meta: { total: 0, page, pageSize, generatedAt: new Date().toISOString() },
-      issue: issueFromError(error, "VotóMeter no pudo inicializar la lectura de votaciones."),
+      issue: issueFromError(error, "Votómetro no pudo inicializar la lectura de votaciones."),
       items: [],
     };
   }
@@ -525,7 +525,7 @@ export async function getPartySummariesPayload(
           total: 0,
           generatedAt: new Date().toISOString(),
         },
-        issue: issueFromError(error ?? new Error("No data returned from party_metrics_current"), "VotóMeter no pudo leer los agregados por partido."),
+        issue: issueFromError(error ?? new Error("No data returned from party_metrics_current"), "Votómetro no pudo leer los agregados por partido."),
         items: [],
       };
     }
@@ -554,7 +554,7 @@ export async function getPartySummariesPayload(
         total: 0,
         generatedAt: new Date().toISOString(),
       },
-      issue: issueFromError(error, "VotóMeter no pudo inicializar la lectura por partido."),
+      issue: issueFromError(error, "Votómetro no pudo inicializar la lectura por partido."),
       items: [],
     };
   }
@@ -643,7 +643,7 @@ export async function getReviewDashboard(): Promise<ReviewDashboardPayload> {
       promiseQueue: [],
       identityQueue: [],
       runs: [],
-      issue: issueFromError(error, "VotóMeter no pudo abrir el backoffice de revisión."),
+      issue: issueFromError(error, "Votómetro no pudo abrir el backoffice de revisión."),
     };
   }
 }

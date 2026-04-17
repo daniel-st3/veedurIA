@@ -20,12 +20,12 @@ export async function generateMetadata({
     const description = issue
       ? issue.message
       : lang === "es"
-        ? "El perfil solicitado no está disponible en este corte de VotóMeter."
+        ? "El perfil solicitado no está disponible en este corte de Votómetro."
         : "The requested profile is not available in this Votometer slice.";
     return buildPageMetadata({
       lang,
       path: `/votometro/legislador/${slug}?lang=${lang}`,
-      title: lang === "es" ? "Legislador no encontrado — VotóMeter" : "Legislator not found — Votometer",
+      title: lang === "es" ? "Legislador no encontrado — Votómetro" : "Legislator not found — Votometer",
       description,
       imagePath: "/votometro/opengraph-image",
     });
@@ -34,7 +34,7 @@ export async function generateMetadata({
   return buildPageMetadata({
     lang,
     path: `/votometro/legislador/${slug}?lang=${lang}`,
-    title: `${profile.canonicalName} — ${lang === "es" ? "VotóMeter" : "Votometer"}`,
+    title: `${profile.canonicalName} — ${lang === "es" ? "Votómetro" : "Votometer"}`,
     description:
       lang === "es"
         ? `${profile.roleLabel} de ${profile.party} con ${profile.votesIndexed} votos indexados y ${profile.coherenceScore == null ? "sin coherencia revisada aún" : `${Math.round(profile.coherenceScore)}% de coherencia revisada`}.`

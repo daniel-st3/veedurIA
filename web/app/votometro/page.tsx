@@ -71,7 +71,7 @@ export async function generateMetadata({
   return buildPageMetadata({
     lang,
     path: `/votometro?lang=${lang}`,
-    title: lang === "es" ? "VotóMeter — VeedurIA" : "Votometer — VeedurIA",
+    title: lang === "es" ? "Votómetro — VeedurIA" : "Votometer — VeedurIA",
     description:
       lang === "es"
         ? "Directorio vivo de legisladores colombianos con votos, asistencia y coherencia visible solo cuando hay promesas revisadas."

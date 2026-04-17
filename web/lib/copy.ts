@@ -15,11 +15,11 @@ export const landingCopy = {
     heroTitleB: "y redes",
     heroTitleC: "en una sola lectura",
     heroBody:
-      "VeedurIA ya vive como una sola app web. ContratoLimpio detecta señales atipicas en SECOP II, VotóMeter contrasta votos nominales con perfil programático visible, y SigueElDinero prepara la capa de redes para seguir el rastro completo.",
+      "VeedurIA ya vive como una sola app web. ContratoLimpio detecta señales atipicas en SECOP II, Votómetro contrasta votos nominales con perfil programático visible, y SigueElDinero prepara la capa de redes para seguir el rastro completo.",
     heroPrimary: "Abrir ContratoLimpio",
-    heroSecondary: "Abrir VotóMeter",
+    heroSecondary: "Abrir Votómetro",
     heroProtocolA: "ContratoLimpio ordena primero lo que rompe el patron contractual.",
-    heroProtocolB: "VotóMeter contrasta voto nominal, gaceta y coherencia programática.",
+    heroProtocolB: "Votómetro contrasta voto nominal, gaceta y coherencia programática.",
     heroProtocolC: "SigueElDinero sumara redes, flujos y concentracion politica.",
     heroDataLabel: "Dato visible",
     heroPlay: "Superficie de plataforma",
@@ -33,7 +33,7 @@ export const landingCopy = {
     heroCardSourceTitle: "ContratoLimpio",
     heroCardSourceBody: "Contratos oficiales, filtros abiertos y retorno directo al expediente publico.",
     heroCardModelLabel: "modelo",
-    heroCardModelTitle: "VotóMeter",
+    heroCardModelTitle: "Votómetro",
     heroCardModelBody: "Voto nominal, perfil programático y gaceta quedan en una sola lectura para periodistas, ONG y ciudadanía.",
     heroCardReviewLabel: "lectura",
     heroCardReviewTitle: "SigueElDinero",
@@ -43,7 +43,7 @@ export const landingCopy = {
       ["2.8M", "contratos procesados", "Base histórica suficiente para que el modelo no dependa de intuiciones aisladas."],
       ["25", "variables por contrato", "Monto, plazo, competencia, proveedor, temporalidad y concentración."],
       ["5%", "franja priorizada", "La porción más inusual es la primera capa de revisión, no una condena."],
-      ["3", "fases activas o en despliegue", "ContratoLimpio y VotóMeter ya viven en web; SigueElDinero entra como la siguiente capa."],
+      ["3", "fases activas o en despliegue", "ContratoLimpio y Votómetro ya viven en web; SigueElDinero entra como la siguiente capa."],
     ],
     modelEyebrow: "Modelo",
     modelTitle: "IA explicable para vigilar, no para adivinar",
@@ -70,12 +70,12 @@ export const landingCopy = {
       "Fase 1 ya está viva. Las siguientes fases conectan promesas, dinero, redes y contratistas para convertir VeedurIA en una superficie completa de escrutinio público.",
     phases: [
       ["Activa", "ContratoLimpio", "Semáforo de riesgo sobre SECOP II con mapa, casos guiados, factores explicables y vínculo oficial."],
-      ["Activa", "VotóMeter", "Votaciones nominales frente a perfil programático, con gaceta, coherencia y trazabilidad."],
+      ["Activa", "Votómetro", "Votaciones nominales frente a perfil programático, con gaceta, coherencia y trazabilidad."],
       ["En diseño", "SigueElDinero", "Redes entre donantes, contratistas, funcionarios y sanciones para detectar patrones de captura."],
     ],
     ctaTitle: "Empieza por lo que hoy ya se puede auditar",
     ctaBody:
-      "La experiencia principal ya corre dentro de Next.js. ContratoLimpio y VotóMeter comparten shell, diseño, navegación y capa de API para crecer como un solo producto.",
+      "La experiencia principal ya corre dentro de Next.js. ContratoLimpio y Votómetro comparten shell, diseño, navegación y capa de API para crecer como un solo producto.",
     ctaButton: "Abrir ContratoLimpio",
     footer: "VeedurIA · plataforma cívica bilingüe para leer contratación pública con evidencia y contexto",
     languageLabel: "Idioma",
@@ -94,11 +94,11 @@ export const landingCopy = {
     heroTitleB: "and networks",
     heroTitleC: "in one reading layer",
     heroBody:
-      "VeedurIA now runs as one web product. ContratoLimpio detects atypical SECOP II signals, VotóMeter contrasts nominal votes against visible programmatic profiles, and SigueElDinero prepares the network layer to follow the full trail.",
+      "VeedurIA now runs as one web product. ContratoLimpio detects atypical SECOP II signals, Votómetro contrasts nominal votes against visible programmatic profiles, and SigueElDinero prepares the network layer to follow the full trail.",
     heroPrimary: "Open ContratoLimpio",
-    heroSecondary: "Open VotóMeter",
+    heroSecondary: "Open Votómetro",
     heroProtocolA: "ContratoLimpio brings forward what breaks the contract pattern.",
-    heroProtocolB: "VotóMeter contrasts nominal vote, gazette, and programmatic coherence.",
+    heroProtocolB: "Votómetro contrasts nominal vote, gazette, and programmatic coherence.",
     heroProtocolC: "SigueElDinero will add networks, flows, and political concentration.",
     heroDataLabel: "Visible data",
     heroPlay: "Platform surface",
@@ -112,7 +112,7 @@ export const landingCopy = {
     heroCardSourceTitle: "ContratoLimpio",
     heroCardSourceBody: "Official contracts, open filters, and a direct path back to the public file.",
     heroCardModelLabel: "model",
-    heroCardModelTitle: "VotóMeter",
+    heroCardModelTitle: "Votómetro",
     heroCardModelBody: "Nominal vote, programme, and gazette now sit in one reading flow for journalists, NGOs, and citizens.",
     heroCardReviewLabel: "review",
     heroCardReviewTitle: "SigueElDinero",
@@ -122,7 +122,7 @@ export const landingCopy = {
       ["2.8M", "contracts processed", "Enough historical base for the model to avoid relying on isolated hunches."],
       ["25", "variables per contract", "Value, timing, competition, provider, electoral timing, and concentration."],
       ["5%", "priority band", "The most unusual slice is reviewed first, not treated as a verdict."],
-      ["3", "active or rolling phases", "ContratoLimpio and VotóMeter already live on web; SigueElDinero is the next layer."],
+      ["3", "active or rolling phases", "ContratoLimpio and Votómetro already live on web; SigueElDinero is the next layer."],
     ],
     modelEyebrow: "Model",
     modelTitle: "Explainable AI built for scrutiny, not guesswork",
@@ -149,12 +149,12 @@ export const landingCopy = {
       "Phase 1 is already live. The next phases connect promises, money, networks, and contractors so VeedurIA becomes a complete accountability surface.",
     phases: [
       ["Active", "ContratoLimpio", "Risk signal over SECOP II with map, guided cases, explainable factors, and the official source link."],
-      ["Active", "VotóMeter", "Nominal votes against programmatic profiles, with gazettes, coherence, and traceability."],
+      ["Active", "Votómetro", "Nominal votes against programmatic profiles, with gazettes, coherence, and traceability."],
       ["In design", "SigueElDinero", "Networks across donors, contractors, public officials, and sanctions to spot capture patterns."],
     ],
     ctaTitle: "Start with what can already be audited today",
     ctaBody:
-      "The main experience now runs in Next.js. ContratoLimpio and VotóMeter share shell, design, navigation, and API so VeedurIA can grow as one product.",
+      "The main experience now runs in Next.js. ContratoLimpio and Votómetro share shell, design, navigation, and API so VeedurIA can grow as one product.",
     ctaButton: "Open ContratoLimpio",
     footer: "VeedurIA · bilingual civic platform for reading public procurement with evidence and context",
     languageLabel: "Language",
@@ -168,7 +168,7 @@ export const landingCopy = {
 export const contractsCopy = {
   es: {
     navPhase1: "ContratoLimpio",
-    navPhase2: "VotóMeter",
+    navPhase2: "Votómetro",
     navPhase3: "SigueElDinero",
     stateActive: "Activa",
     stateSoon: "En diseño",
@@ -292,7 +292,7 @@ export const contractsCopy = {
   },
   en: {
     navPhase1: "ContratoLimpio",
-    navPhase2: "VotóMeter",
+    navPhase2: "Votómetro",
     navPhase3: "SigueElDinero",
     stateActive: "Active",
     stateSoon: "In design",
@@ -419,12 +419,12 @@ export const contractsCopy = {
 export const promisesCopy = {
   es: {
     navPhase1: "ContratoLimpio",
-    navPhase2: "VotóMeter",
+    navPhase2: "Votómetro",
     navPhase3: "SigueElDinero",
     pageEyebrow: "Fase 2 · Promesas y acción política",
     pageTitle: "Promesas públicas frente a evidencia verificable",
     pageBody:
-      "VotóMeter contrasta votaciones nominales con el perfil programático disponible. No sentencia legisladores: ordena coherencia, abre gacetas y deja explícito cuándo la cobertura sigue siendo parcial.",
+      "Votómetro contrasta votaciones nominales con el perfil programático disponible. No sentencia legisladores: ordena coherencia, abre gacetas y deja explícito cuándo la cobertura sigue siendo parcial.",
     activePilot: "Cobertura piloto",
     activeLive: "Cobertura activa",
     activeRealNames: "Perfiles reales",
@@ -474,16 +474,16 @@ export const promisesCopy = {
     verifyPromise: "Abrir fuente",
     verifyAction: "Abrir evidencia",
     footerPilot:
-      "VotóMeter ya corre dentro del producto web. La cobertura sigue siendo piloto, pero los nombres visibles ya corresponden a perfiles rastreables del ciclo 2026.",
+      "Votómetro ya corre dentro del producto web. La cobertura sigue siendo piloto, pero los nombres visibles ya corresponden a perfiles rastreables del ciclo 2026.",
   },
   en: {
     navPhase1: "ContratoLimpio",
-    navPhase2: "VotóMeter",
+    navPhase2: "Votómetro",
     navPhase3: "SigueElDinero",
     pageEyebrow: "Phase 2 · Promises and political action",
     pageTitle: "Public promises against verifiable evidence",
     pageBody:
-      "VotóMeter contrasts nominal votes with the available programmatic profile. It does not judge legislators: it orders coherence, opens gazettes, and makes partial coverage explicit.",
+      "Votómetro contrasts nominal votes with the available programmatic profile. It does not judge legislators: it orders coherence, opens gazettes, and makes partial coverage explicit.",
     activePilot: "Pilot coverage",
     activeLive: "Live coverage",
     activeRealNames: "Real profiles",
@@ -533,7 +533,7 @@ export const promisesCopy = {
     verifyPromise: "Open source",
     verifyAction: "Open evidence",
     footerPilot:
-      "VotóMeter already runs in the web layer. Coverage is still pilot, but visible names already match traceable 2026 profiles.",
+      "Votómetro already runs in the web layer. Coverage is still pilot, but visible names already match traceable 2026 profiles.",
   },
 } as const;
 
@@ -708,7 +708,7 @@ export const sigueDineroCopy = {
 
 export type SigueDineroCopyLang = (typeof sigueDineroCopy)["es"];
 
-// ─── VotóMeter copy ───────────────────────────────────────────────────────────
+// ─── Votómetro copy ───────────────────────────────────────────────────────────
 
 export const votoMetroCopy = {
   es: {

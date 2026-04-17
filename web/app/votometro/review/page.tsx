@@ -28,8 +28,8 @@ export async function generateMetadata({
   return buildPageMetadata({
     lang,
     path: `/votometro/review?lang=${lang}`,
-    title: "VotóMeter Review — VeedurIA",
-    description: "Backoffice mínimo para revisar promesas, matches y colisiones de identidad de VotóMeter.",
+    title: "Votómetro Review — VeedurIA",
+    description: "Backoffice mínimo para revisar promesas, matches y colisiones de identidad de Votómetro.",
     imagePath: "/votometro/opengraph-image",
   });
 }

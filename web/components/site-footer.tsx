@@ -18,7 +18,7 @@ export function SiteFooter({ lang }: { lang: Lang }) {
         <div className="site-footer__meta">
           <span>{lang === "es" ? "Desarrollado por Daniel Steven Rodríguez Sandoval" : "Developed by Daniel Steven Rodríguez Sandoval"}</span>
           <Link href={`/contrato-limpio?lang=${lang}`}>ContratoLimpio</Link>
-          <Link href={`/votometro?lang=${lang}`}>VotóMeter</Link>
+          <Link href={`/votometro?lang=${lang}`}>Votómetro</Link>
           <Link href={`/sigue-el-dinero?lang=${lang}`}>SigueElDinero</Link>
           <Link href="https://github.com/daniel-st3/veedurIA" target="_blank" rel="noreferrer">
             GitHub

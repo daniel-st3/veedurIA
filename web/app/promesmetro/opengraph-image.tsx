@@ -12,7 +12,7 @@ export const contentType = "image/png";
 export default function Image() {
   return new ImageResponse(
     <OgCard
-      title="VotóMeter"
+      title="Votómetro"
       subtitle="Votaciones nominales del Congreso frente al perfil programático de cada legislador."
       accent="#015f65"
     />,

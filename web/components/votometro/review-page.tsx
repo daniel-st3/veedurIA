@@ -72,7 +72,7 @@ export function VotometroReviewPage({
       <SiteNav lang={lang} />
       <main className={styles.main}>
         <section className={`${styles.hero} ${styles.loginCard}`}>
-          <span className={styles.eyebrow}>VotóMeter / Review</span>
+          <span className={styles.eyebrow}>Votómetro / Review</span>
           <h1 className={styles.title}>{copy.title}</h1>
           <p className={styles.body}>{copy.intro}</p>
 
