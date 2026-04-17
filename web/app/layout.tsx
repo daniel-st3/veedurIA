@@ -46,7 +46,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="" />
         <link rel="dns-prefetch" href="https://api.fontshare.com" />
-        {/* Non-blocking font load — text renders immediately in system fallback, swaps when ready */}
+        <noscript>
+          <link rel="stylesheet" href={FONTSHARE_URL} />
+        </noscript>
+      </head>
+      <body>
+        {children}
         <Script
           id="fontshare-loader"
           strategy="afterInteractive"
@@ -54,11 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='${FONTSHARE_URL}';document.head.appendChild(l);})();`,
           }}
         />
-        <noscript>
-          <link rel="stylesheet" href={FONTSHARE_URL} />
-        </noscript>
-      </head>
-      <body>{children}</body>
+      </body>
     </html>
   );
 }
