@@ -314,7 +314,16 @@ export function LandingPage({
       .then((payload) => {
         if (!alive) return;
         const nextStats = normalizeVotometroLandingStats(payload);
-        if (nextStats) setVotometroStats(nextStats);
+        if (!nextStats) return;
+        setVotometroStats((current) => {
+          const nextHasCoverage =
+            nextStats.available &&
+            (hasNumber(nextStats.indexedVotes) ? nextStats.indexedVotes > 0 : nextStats.averageCoherence !== null);
+          const currentHasCoverage =
+            current.available &&
+            (hasNumber(current.indexedVotes) ? current.indexedVotes > 0 : current.averageCoherence !== null);
+          return !nextHasCoverage && currentHasCoverage ? current : nextStats;
+        });
       })
       .catch(() => {});
     return () => { alive = false; };

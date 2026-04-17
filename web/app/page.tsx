@@ -5,6 +5,7 @@ import { GET as getContractsOverview } from "@/app/api/contracts/overview/route"
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
 import type { Lang, OverviewPayload } from "@/lib/types";
+import { getVotometroReferenceStats } from "@/lib/votometro-data";
 import { getVotometroDirectory } from "@/lib/votometro-server";
 import type { VotometroLandingStats } from "@/lib/votometro-types";
 
@@ -34,6 +35,42 @@ function emptyVotometroStats(): VotometroLandingStats {
     indexedVotes: null,
     averageCoherence: null,
     available: false,
+  };
+}
+
+function resolveVotometroLandingStats(
+  payload: Awaited<ReturnType<typeof getVotometroDirectory>> | null,
+): VotometroLandingStats | null {
+  if (!payload) return null;
+
+  const reference = getVotometroReferenceStats();
+  const hasLiveCoverage =
+    !payload.issue &&
+    (payload.meta.indexedVotes > 0 || payload.meta.averageCoherence !== null);
+
+  if (hasLiveCoverage) {
+    return {
+      activeLegislators: payload.meta.activeLegislators,
+      indexedVotes: payload.meta.indexedVotes,
+      averageCoherence: payload.meta.averageCoherence,
+      available: true,
+    };
+  }
+
+  if (payload.issue) {
+    return {
+      activeLegislators: reference.activeLegislators,
+      indexedVotes: reference.indexedVotes,
+      averageCoherence: reference.averageCoherence,
+      available: true,
+    };
+  }
+
+  return {
+    activeLegislators: payload.meta.activeLegislators || reference.activeLegislators,
+    indexedVotes: reference.indexedVotes,
+    averageCoherence: reference.averageCoherence,
+    available: true,
   };
 }
 
@@ -92,14 +129,7 @@ export default async function Home({
     ]);
 
     overview = overviewResult;
-    votometroStats = votometroResult
-      ? {
-          activeLegislators: votometroResult.meta.activeLegislators,
-          indexedVotes: votometroResult.meta.indexedVotes,
-          averageCoherence: votometroResult.meta.averageCoherence,
-          available: !votometroResult.issue,
-        }
-      : null;
+    votometroStats = resolveVotometroLandingStats(votometroResult);
   } catch {
     overview = null;
     votometroStats = null;

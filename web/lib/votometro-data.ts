@@ -805,6 +805,23 @@ export const VOTOMETRO_LEGISLATORS: VotometroLegislator[] = LEGISLATOR_SEEDS.map
   };
 });
 
+export function getVotometroReferenceStats() {
+  const indexedVotes = VOTOMETRO_LEGISLATORS.reduce((sum, profile) => sum + profile.totalVotes, 0);
+  const activeLegislators = VOTOMETRO_LEGISLATORS.length;
+  const averageCoherence = activeLegislators
+    ? Math.round(
+        VOTOMETRO_LEGISLATORS.reduce((sum, profile) => sum + profile.coherenceScore, 0) /
+          activeLegislators,
+      )
+    : null;
+
+  return {
+    activeLegislators,
+    indexedVotes,
+    averageCoherence,
+  };
+}
+
 export function getHeroStats(period: VotePeriodKey, chamber: VoteChamberKey) {
   return HERO_STATS[period][chamber];
 }

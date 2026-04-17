@@ -1,13 +1,12 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Database, Landmark, Layers3, Users } from "lucide-react";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -23,8 +22,6 @@ import {
   type VoteRecord,
 } from "@/lib/votometro-data";
 import { votoMetroCopy } from "@/lib/copy";
-
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -42,6 +39,13 @@ type TooltipState = {
   content: string;
 };
 
+type LiveCoverageSnapshot = {
+  activeLegislators: number | null;
+  visibleParties: number | null;
+  publicVotes: number | null;
+  available: boolean;
+};
+
 const DEFAULT_FILTERS: TableFilters = {
   theme: "all",
   result: "all",
@@ -53,7 +57,18 @@ const DEFAULT_FILTERS: TableFilters = {
 const PAGE_SIZE = 6;
 type ProfilePeriodFilter = "all" | VotePeriodKey;
 
-export function VotometroView({ lang }: { lang: Lang }) {
+function formatVmNumber(value: number | null, lang: Lang) {
+  if (value == null) return lang === "es" ? "Sin dato" : "No data";
+  return value.toLocaleString(lang === "es" ? "es-CO" : "en-US");
+}
+
+export function VotometroView({
+  lang,
+  initialLiveCoverage,
+}: {
+  lang: Lang;
+  initialLiveCoverage?: LiveCoverageSnapshot;
+}) {
   const t = votoMetroCopy[lang];
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [profilePeriod, setProfilePeriod] = useState<ProfilePeriodFilter>("all");
@@ -62,6 +77,14 @@ export function VotometroView({ lang }: { lang: Lang }) {
   const [barsVisible, setBarsVisible] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [photoMap, setPhotoMap] = useState<Record<string, string>>({});
+  const [liveCoverage, setLiveCoverage] = useState<LiveCoverageSnapshot>(
+    initialLiveCoverage ?? {
+      activeLegislators: null,
+      visibleParties: null,
+      publicVotes: null,
+      available: false,
+    },
+  );
   const scope = useRef<HTMLDivElement | null>(null);
   const spotlightRef = useRef<HTMLDivElement | null>(null);
 
@@ -99,6 +122,62 @@ export function VotometroView({ lang }: { lang: Lang }) {
   }, [photoMap]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadLiveCoverage = async () => {
+      try {
+        const [directoryResponse, partiesResponse, votesResponse] = await Promise.all([
+          fetch("/api/votometro/legislators?page=1&page_size=1", { cache: "no-store" }),
+          fetch("/api/votometro/parties", { cache: "no-store" }),
+          fetch("/api/votometro/votes?page=1&page_size=1", { cache: "no-store" }),
+        ]);
+
+        const [directoryPayload, partiesPayload, votesPayload] = await Promise.all([
+          directoryResponse.ok ? directoryResponse.json() : null,
+          partiesResponse.ok ? partiesResponse.json() : null,
+          votesResponse.ok ? votesResponse.json() : null,
+        ]);
+
+        if (cancelled) return;
+
+        setLiveCoverage({
+          activeLegislators:
+            typeof directoryPayload?.meta?.activeLegislators === "number"
+              ? directoryPayload.meta.activeLegislators
+              : null,
+          visibleParties:
+            typeof partiesPayload?.meta?.total === "number"
+              ? partiesPayload.meta.total
+              : Array.isArray(partiesPayload?.items)
+                ? partiesPayload.items.length
+                : null,
+          publicVotes:
+            typeof votesPayload?.meta?.total === "number" ? votesPayload.meta.total : null,
+          available:
+            !directoryPayload?.issue &&
+            !partiesPayload?.issue &&
+            !votesPayload?.issue,
+        });
+      } catch {
+        if (!cancelled) {
+          setLiveCoverage({
+            activeLegislators: null,
+            visibleParties: null,
+            publicVotes: null,
+            available: false,
+          });
+        }
+      }
+    };
+
+    void loadLiveCoverage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!visibleProfiles.length) {
       setSelectedId(null);
       return;
@@ -129,6 +208,64 @@ export function VotometroView({ lang }: { lang: Lang }) {
     const trackedProjects = new Set(visibleProfiles.flatMap((profile) => profile.voteRows.map((row) => row.project))).size;
     return { indexedVotes, legislators, coherenceAverage, trackedProjects };
   }, [visibleProfiles]);
+
+  const syncCards = useMemo(() => {
+    return [
+      {
+        key: "roster",
+        icon: Users,
+        kicker: lang === "es" ? "API pública" : "Public API",
+        label: lang === "es" ? "Directorio sincronizado" : "Synced roster",
+        value: formatVmNumber(liveCoverage.activeLegislators, lang),
+        note:
+          lang === "es"
+            ? "Legisladores visibles en la capa pública"
+            : "Legislators visible in the public layer",
+      },
+      {
+        key: "parties",
+        icon: Layers3,
+        kicker: lang === "es" ? "API partidos" : "Party API",
+        label: lang === "es" ? "Partidos visibles" : "Visible parties",
+        value: formatVmNumber(liveCoverage.visibleParties, lang),
+        note:
+          lang === "es"
+            ? "Agregados partidistas ya expuestos"
+            : "Party aggregates already exposed",
+      },
+      {
+        key: "votes",
+        icon: Landmark,
+        kicker: lang === "es" ? "API votos" : "Votes API",
+        label: lang === "es" ? "Voto nominal público" : "Public vote feed",
+        value:
+          liveCoverage.publicVotes && liveCoverage.publicVotes > 0
+            ? formatVmNumber(liveCoverage.publicVotes, lang)
+            : lang === "es"
+              ? "En sync"
+              : "Syncing",
+        note:
+          liveCoverage.publicVotes && liveCoverage.publicVotes > 0
+            ? lang === "es"
+              ? "Registros listos para consulta"
+              : "Records ready for inspection"
+            : lang === "es"
+              ? "La indexación pública sigue corriendo"
+              : "Public indexing is still running",
+      },
+      {
+        key: "reference",
+        icon: Database,
+        kicker: lang === "es" ? "Capa analítica" : "Analytical layer",
+        label: lang === "es" ? "Votos ya trazados" : "Votes already traced",
+        value: formatVmNumber(heroStats.indexedVotes, lang),
+        note:
+          lang === "es"
+            ? "Base visible para lectura comparativa"
+            : "Visible base for comparative reading",
+      },
+    ];
+  }, [heroStats.indexedVotes, lang, liveCoverage.activeLegislators, liveCoverage.publicVotes, liveCoverage.visibleParties]);
 
   const selectedProfileRows = useMemo(() => {
     if (!selectedProfile) return [];
@@ -299,64 +436,17 @@ export function VotometroView({ lang }: { lang: Lang }) {
     [profilePeriod, visibleProfiles],
   );
 
-  // Diverging bar: coherent votes (right, %) vs inconsistent+absent (left, %)
-  const divergingData = useMemo(() => {
-    const names = scatterProfiles.map((p) => p.name);
-    const coherentPct = scatterProfiles.map((p) => {
-      const total = p.consistentVotes + p.inconsistentVotes + p.absencesOnKeyThemes || 1;
-      return Math.round((p.consistentVotes / total) * 100);
+  const divergingRows = useMemo(() => {
+    return scatterProfiles.map((profile) => {
+      const total = profile.consistentVotes + profile.inconsistentVotes + profile.absencesOnKeyThemes || 1;
+      return {
+        profile,
+        coherentPct: Math.round((profile.consistentVotes / total) * 100),
+        inconsistentPct: Math.round((profile.inconsistentVotes / total) * 100),
+        absentPct: Math.round((profile.absencesOnKeyThemes / total) * 100),
+      };
     });
-    const inconsistentPct = scatterProfiles.map((p) => {
-      const total = p.consistentVotes + p.inconsistentVotes + p.absencesOnKeyThemes || 1;
-      return -Math.round((p.inconsistentVotes / total) * 100);
-    });
-    const absentPct = scatterProfiles.map((p) => {
-      const total = p.consistentVotes + p.inconsistentVotes + p.absencesOnKeyThemes || 1;
-      return -Math.round((p.absencesOnKeyThemes / total) * 100);
-    });
-
-    return [
-      {
-        name: lang === "es" ? "Coherente" : "Coherent",
-        x: coherentPct,
-        y: names,
-        type: "bar",
-        orientation: "h",
-        marker: { color: "rgba(13,91,215,0.8)", line: { color: "rgba(13,91,215,0.28)", width: 1 } },
-        customdata: scatterProfiles.map((p) => [p.id, p.coherenceScore, p.totalVotes]),
-        hovertemplate:
-          lang === "es"
-            ? "<b>%{y}</b><br>%{x}% votos coherentes · coherencia %{customdata[1]}%<extra></extra>"
-            : "<b>%{y}</b><br>%{x}% coherent votes · score %{customdata[1]}%<extra></extra>",
-      },
-      {
-        name: lang === "es" ? "Inconsistente" : "Inconsistent",
-        x: inconsistentPct,
-        y: names,
-        type: "bar",
-        orientation: "h",
-        marker: { color: "rgba(198,40,57,0.78)", line: { color: "rgba(198,40,57,0.26)", width: 1 } },
-        customdata: scatterProfiles.map((p) => [p.id, p.inconsistentVotes]),
-        hovertemplate:
-          lang === "es"
-            ? "<b>%{y}</b><br>%{customdata[1]} votos inconsistentes<extra></extra>"
-            : "<b>%{y}</b><br>%{customdata[1]} inconsistent votes<extra></extra>",
-      },
-      {
-        name: lang === "es" ? "Ausencias clave" : "Key absences",
-        x: absentPct,
-        y: names,
-        type: "bar",
-        orientation: "h",
-        marker: { color: "rgba(211,162,26,0.72)", line: { color: "rgba(211,162,26,0.22)", width: 1 } },
-        customdata: scatterProfiles.map((p) => [p.id, p.absencesOnKeyThemes]),
-        hovertemplate:
-          lang === "es"
-            ? "<b>%{y}</b><br>%{customdata[1]} ausencias en temas clave<extra></extra>"
-            : "<b>%{y}</b><br>%{customdata[1]} absences on key themes<extra></extra>",
-      },
-    ];
-  }, [scatterProfiles, lang]);
+  }, [scatterProfiles]);
   const spotlightPeriodLabel =
     profilePeriod === "all"
       ? lang === "es"
@@ -613,6 +703,43 @@ export function VotometroView({ lang }: { lang: Lang }) {
           </div>
         </section>
 
+        <section className="vm-section vm-scroll-section">
+          <div className="vm-container">
+            <header className="vm-section__header vm-section__header--inline">
+              <div>
+                <p className="vm-eyebrow">{lang === "es" ? "Cobertura visible" : "Visible coverage"}</p>
+                <h2>
+                  {lang === "es"
+                    ? "Lo que ya está expuesto en APIs y lo que sostiene la lectura"
+                    : "What is already exposed in APIs and what powers the reading"}
+                </h2>
+              </div>
+              <p className="vm-section__note">
+                {lang === "es"
+                  ? "La capa pública sigue sincronizando votos nominales. Mientras termina, la lectura usa una base analítica visible para no dejar el módulo vacío."
+                  : "The public layer is still syncing nominal votes. Until it finishes, the reading uses a visible analytical base so the module does not collapse into emptiness."}
+              </p>
+            </header>
+
+            <div className="vm-sync-grid">
+              {syncCards.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <article key={card.key} className="vm-sync-card">
+                    <div className="vm-sync-card__head">
+                      <span className="vm-eyebrow">{card.kicker}</span>
+                      <Icon size={18} aria-hidden={true} />
+                    </div>
+                    <strong>{card.value}</strong>
+                    <span>{card.label}</span>
+                    <p>{card.note}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
         <section className="vm-overview vm-scroll-section">
           <div className="vm-container">
             <header className="vm-section__header vm-section__header--inline">
@@ -745,45 +872,56 @@ export function VotometroView({ lang }: { lang: Lang }) {
             </header>
 
             <div className="vm-panel vm-panel--plot">
-              <Plot
-                data={divergingData as any}
-                layout={{
-                  autosize: true,
-                  paper_bgcolor: "rgba(0,0,0,0)",
-                  plot_bgcolor: "rgba(0,0,0,0)",
-                  barmode: "relative",
-                  margin: { l: 148, r: 32, t: 16, b: 48 },
-                  font: { color: "#172033", family: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace", size: 12 },
-                  xaxis: {
-                    title: { text: lang === "es" ? "← Inconsistente / Ausente   |   Coherente →" : "← Inconsistent / Absent   |   Coherent →", standoff: 10 },
-                    gridcolor: "rgba(23, 32, 51, 0.08)",
-                    zeroline: true,
-                    zerolinecolor: "rgba(23, 32, 51, 0.22)",
-                    zerolinewidth: 1.5,
-                    ticksuffix: "%",
-                    tickfont: { size: 11 },
-                  },
-                  yaxis: {
-                    automargin: true,
-                    tickfont: { size: 11 },
-                  },
-                  hovermode: "closest",
-                  showlegend: true,
-                  legend: {
-                    orientation: "h",
-                    x: 0,
-                    y: -0.18,
-                    font: { size: 11 },
-                    bgcolor: "rgba(0,0,0,0)",
-                  },
-                }}
-                config={{ responsive: true, displaylogo: false, displayModeBar: false }}
-                onClick={(event: any) => {
-                  const profileId = event.points?.[0]?.customdata?.[0];
-                  if (typeof profileId === "string") setSelectedId(profileId);
-                }}
-                style={{ width: "100%", height: Math.max(320, scatterProfiles.length * 28 + 80) }}
-              />
+              <div className="vm-diverging-chart">
+                <div className="vm-diverging-chart__legend" aria-hidden="true">
+                  <span className="is-absent">{lang === "es" ? "Ausencias clave" : "Key absences"}</span>
+                  <span className="is-bad">{lang === "es" ? "Inconsistente" : "Inconsistent"}</span>
+                  <span className="is-good">{lang === "es" ? "Coherente" : "Coherent"}</span>
+                </div>
+
+                <div className="vm-diverging-chart__axis" aria-hidden="true">
+                  <span>{lang === "es" ? "Inconsistente / Ausente" : "Inconsistent / Absent"}</span>
+                  <strong>0</strong>
+                  <span>{lang === "es" ? "Coherente" : "Coherent"}</span>
+                </div>
+
+                <div className="vm-diverging-chart__rows" role="list">
+                  {divergingRows.map((row) => (
+                    <button
+                      key={row.profile.id}
+                      type="button"
+                      role="listitem"
+                      className={`vm-diverging-row ${selectedProfile?.id === row.profile.id ? "is-active" : ""}`}
+                      onClick={() => setSelectedId(row.profile.id)}
+                    >
+                      <span className="vm-diverging-row__name">{row.profile.name}</span>
+                      <div className="vm-diverging-row__track" aria-hidden="true">
+                        <div className="vm-diverging-row__half is-left">
+                          <span
+                            className="vm-diverging-row__fill is-bad"
+                            style={{ width: `${row.inconsistentPct}%` }}
+                          />
+                          <span
+                            className="vm-diverging-row__fill is-absent"
+                            style={{ width: `${row.absentPct}%` }}
+                          />
+                        </div>
+                        <span className="vm-diverging-row__zero" />
+                        <div className="vm-diverging-row__half is-right">
+                          <span
+                            className="vm-diverging-row__fill is-good"
+                            style={{ width: `${row.coherentPct}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className="vm-diverging-row__score">
+                        {row.profile.coherenceScore}%
+                        <small>{formatVmNumber(row.profile.totalVotes, lang)}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -1146,16 +1284,32 @@ export function VotometroView({ lang }: { lang: Lang }) {
 
 function VoteRowView({ row, lang }: { row: VoteRecord; lang: Lang }) {
   const t = votoMetroCopy[lang];
+  const deviationLabel =
+    row.deviatesFromBench
+      ? lang === "es"
+        ? "Se aparta de bancada"
+        : "Bench deviation"
+      : lang === "es"
+        ? "Sin desvío de bancada"
+        : "No bench deviation";
+
   return (
     <tr>
-      <td>{row.project}</td>
-      <td>{formatPeriodLabel(row.period)}</td>
-      <td>{row.dateLabel}</td>
-      <td>{row.theme}</td>
+      <td>
+        <div className="vm-project-cell">
+          <strong>{row.project}</strong>
+          <span>{deviationLabel}</span>
+        </div>
+      </td>
+      <td className="vm-cell-meta">{formatPeriodLabel(row.period)}</td>
+      <td className="vm-cell-meta">{row.dateLabel}</td>
+      <td>
+        <span className="vm-theme-chip">{row.theme}</span>
+      </td>
       <td>
         <span className={`vm-status-badge ${getPositionClass(row.position)}`}>{row.position}</span>
       </td>
-      <td>{row.result}</td>
+      <td className="vm-cell-meta">{row.result}</td>
       <td className={`vm-coherence-cell ${getCoherenceClass(row.coherence)}`}>{getCoherenceLabel(row.coherence, t)}</td>
       <td>
         {row.gacetaHref && row.gacetaHref !== "#" ? (

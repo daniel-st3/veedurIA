@@ -130,7 +130,17 @@ export default async function VotometroPage({
   }
 
   if (!forceLive && !hasMeaningfulLiveCoverage) {
-    return <VotometroFallback lang={lang} />;
+    return (
+      <VotometroFallback
+        lang={lang}
+        initialLiveCoverage={{
+          activeLegislators: payload.meta.activeLegislators,
+          visibleParties: parties.length,
+          publicVotes: payload.meta.indexedVotes,
+          available: !payload.issue,
+        }}
+      />
+    );
   }
 
   return <VotometroDirectoryPage lang={lang} payload={payload} parties={parties} />;
