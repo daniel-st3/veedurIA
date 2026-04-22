@@ -702,7 +702,7 @@ export function ContractsView({
   const selectedTone = selectedCase ? scoreTone(selectedCase.score) : "low";
   const staleScore = freshnessGap !== null && freshnessGap > 0;
   const lastPipelineRun = overview?.meta.lastRunTs ? formatPortalUpdated(lang, overview.meta.lastRunTs) : null;
-  const scoringCadence = lang === "es" ? "corrida diaria a las 10:00 p. m. (Colombia)" : "daily run at 10:00 p.m. Colombia time";
+  const scoringCadence = lang === "es" ? "corrida diaria a las 12:00 a. m. (Colombia)" : "daily run at 12:00 a.m. Colombia time";
   const sliceMeanRisk = overview?.benchmarks?.sliceMeanRisk ?? leadCases.reduce((sum, item) => sum + item.score / 100, 0) / Math.max(leadCases.length, 1);
   const nationalMeanRisk = overview?.benchmarks?.nationalMeanRisk ?? sliceMeanRisk;
   const departmentMeanRisk = overview?.benchmarks?.departmentMeanRisk ?? currentDepartment?.avgRisk ?? null;

@@ -16,6 +16,7 @@ const SOCRATA_LATEST =
   "&$select=fecha_de_firma,id_contrato,nombre_entidad,valor_del_contrato,departamento,urlproceso" +
   "&$order=fecha_de_firma%20DESC,id_contrato%20ASC&$limit=5";
 const SOCRATA_METADATA = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h";
+const SOURCE_FETCH_TIMEOUT_MS = 4000;
 
 function readableText(value: unknown, fallback: string) {
   const text = String(value ?? "").trim();
@@ -24,12 +25,13 @@ function readableText(value: unknown, fallback: string) {
 
 export async function GET(req: NextRequest) {
   const lang = req.nextUrl.searchParams.get("lang") ?? "es";
+  const signal = AbortSignal.timeout(SOURCE_FETCH_TIMEOUT_MS);
 
   // Fetch SECOP live data and local stats in parallel
   const [socrataRes, latestRes, metadataRes, statsRes] = await Promise.allSettled([
-    fetch(SOCRATA_SUMMARY, { cache: "no-store" }),
-    fetch(SOCRATA_LATEST, { cache: "no-store" }),
-    fetch(SOCRATA_METADATA, { cache: "no-store" }),
+    fetch(SOCRATA_SUMMARY, { cache: "no-store", signal }),
+    fetch(SOCRATA_LATEST, { cache: "no-store", signal }),
+    fetch(SOCRATA_METADATA, { cache: "no-store", signal }),
     createServerSupabase()
       .from("contracts_stats")
       .select("data, updated_at")
@@ -72,7 +74,7 @@ export async function GET(req: NextRequest) {
           id: String(r.id_contrato ?? ""),
           entity: readableText(r.nombre_entidad, lang === "es" ? "Entidad sin nombre disponible" : "Entity name unavailable"),
           department: deptDisplayLabel(String(r.departamento ?? "")),
-          date: String(r.fecha_de_firma ?? "").slice(0, 10),
+          date: r.fecha_de_firma ? String(r.fecha_de_firma).slice(0, 10) : (lang === "es" ? "Sin fecha" : "No date"),
           value,
           valueLabel: formatCop(value, lang),
           secopUrl,
@@ -86,14 +88,24 @@ export async function GET(req: NextRequest) {
       ? (statsRes.value.data?.data as Record<string, unknown>)
       : null;
 
-  // Use the live SECOP date as the "latest contract date" so the UI shows
-  // no gap — the pipeline syncs daily and the parquet is refreshed each run.
-  const effectiveLatestDate = sourceLatestDate ?? (statsData?.latestDate as string | null ?? null);
+  const scoredLatestDate = (statsData?.latestDate as string | null) ?? null;
+  const effectiveLatestDate = scoredLatestDate ?? sourceLatestDate;
+  const sourceFreshnessGapDays =
+    scoredLatestDate && sourceLatestDate
+      ? Math.max(
+          0,
+          Math.round(
+            (new Date(`${sourceLatestDate}T00:00:00Z`).getTime() -
+              new Date(`${scoredLatestDate}T00:00:00Z`).getTime()) /
+              86_400_000,
+          ),
+        )
+      : null;
 
   const payload: ContractsFreshnessPayload = {
     latestContractDate: effectiveLatestDate,
     sourceLatestContractDate: sourceLatestDate,
-    sourceFreshnessGapDays: 0,
+    sourceFreshnessGapDays,
     sourceRows,
     sourceUpdatedAt,
     liveFeed: {

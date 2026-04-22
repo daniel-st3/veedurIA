@@ -110,9 +110,8 @@ function isRichPromisesPayload(value: unknown): value is PromisesPayload {
     Array.isArray(payload.cards) &&
     Array.isArray(payload.sandboxCards) &&
     Array.isArray(payload.options.politicians) &&
-    payload.options.politicians.length >= 10 &&
     typeof payload.kpis.promisesTracked === "number" &&
-    payload.kpis.promisesTracked >= 48
+    payload.kpis.promisesTracked >= 0
   );
 }
 

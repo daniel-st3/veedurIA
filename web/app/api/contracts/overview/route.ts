@@ -11,6 +11,26 @@ const SOCRATA_SUMMARY =
   "https://www.datos.gov.co/resource/jbjy-vk9h.json" +
   "?$select=max(fecha_de_firma)%20as%20max_fecha,%20count(*)%20as%20total&$limit=1";
 const SOCRATA_METADATA = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h";
+const SOURCE_FETCH_TIMEOUT_MS = 4000;
+
+const CONTRACT_SLICE_AGGREGATE_COLUMNS = "department, entity, modality, date, value, risk_score, risk_bucket";
+const CONTRACT_SLICE_LEAD_COLUMNS =
+  "id, entity, provider, department, modality, date, value, risk_score, risk_bucket, secop_url, object_desc";
+const CONTRACT_SLICE_PAGE_SIZE = 1000;
+
+type SliceRow = {
+  id: string | null;
+  entity: string | null;
+  provider: string | null;
+  department: string | null;
+  modality: string | null;
+  date: string | null;
+  value: number | string | null;
+  risk_score: number | string | null;
+  risk_bucket: string | null;
+  secop_url: string | null;
+  object_desc: string | null;
+};
 
 function searchableClause(raw: string) {
   const term = raw.trim().replace(/[%(),]/g, " ");
@@ -33,11 +53,307 @@ function readableUrl(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function numericValue(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function bucketRisk(value: unknown): "high" | "medium" | "low" {
+  if (value === "high") return "high";
+  if (value === "medium") return "medium";
+  return "low";
+}
+
+function normalizeGroupKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, " ");
+}
+
+function buildLeadCases(rows: SliceRow[], lang: "es" | "en", limit = 48): OverviewPayload["leadCases"] {
+  return rows.slice(0, limit).map((row) => {
+    const value = numericValue(row.value);
+    return {
+      id: String(row.id ?? ""),
+      score: Math.round(numericValue(row.risk_score) * 100),
+      riskBand: bucketRisk(row.risk_bucket),
+      entity: readableText(row.entity, lang === "es" ? "Entidad sin nombre disponible" : "Entity name unavailable"),
+      provider: readableText(row.provider, lang === "es" ? "Proveedor no disponible" : "Provider unavailable"),
+      department: deptDisplayLabel(String(row.department ?? "")),
+      modality: readableText(row.modality, lang === "es" ? "Modalidad no disponible" : "Modality unavailable"),
+      date: String(row.date ?? ""),
+      value,
+      valueLabel: formatCop(value, lang),
+      secopUrl: readableUrl(row.secop_url),
+      pickReason: "",
+      signal: "",
+      factors: [],
+    };
+  });
+}
+
+function buildSliceDepartments(rows: SliceRow[]) {
+  const byGeoName = new Map<string, { key: string; label: string; geoName: string; avgRisk: number; contractCount: number }>();
+
+  rows.forEach((row) => {
+    const rawDepartment = String(row.department ?? "").trim();
+    if (!rawDepartment) return;
+    const geoName = deptGeoName(rawDepartment);
+    const current = byGeoName.get(geoName) ?? {
+      key: geoName,
+      label: deptDisplayLabel(rawDepartment),
+      geoName,
+      avgRisk: 0,
+      contractCount: 0,
+    };
+    current.contractCount += 1;
+    current.avgRisk += numericValue(row.risk_score);
+    byGeoName.set(geoName, current);
+  });
+
+  for (const item of byGeoName.values()) {
+    item.avgRisk = item.contractCount ? item.avgRisk / item.contractCount : 0;
+  }
+
+  for (const geoName of getAllGeoNames()) {
+    if (!byGeoName.has(geoName)) {
+      byGeoName.set(geoName, {
+        key: geoName,
+        label: deptDisplayLabel(geoName),
+        geoName,
+        avgRisk: 0,
+        contractCount: 0,
+      });
+    }
+  }
+
+  return [...byGeoName.values()].filter((department) => department.geoName !== "NO DEFINIDO");
+}
+
+function buildTopEntities(rows: SliceRow[]): OverviewPayload["summaries"]["entities"] {
+  const buckets = new Map<string, { nombre_entidad: string; contracts: number; totalRisk: number; maxRisk: number }>();
+
+  rows.forEach((row) => {
+    const label = readableText(row.entity, "Entidad sin dato");
+    const key = normalizeGroupKey(label);
+    const current = buckets.get(key) ?? {
+      nombre_entidad: label,
+      contracts: 0,
+      totalRisk: 0,
+      maxRisk: 0,
+    };
+    const risk = numericValue(row.risk_score);
+    current.contracts += 1;
+    current.totalRisk += risk;
+    current.maxRisk = Math.max(current.maxRisk, risk);
+    buckets.set(key, current);
+  });
+
+  return [...buckets.values()]
+    .map((item) => ({
+      nombre_entidad: item.nombre_entidad,
+      contracts: item.contracts,
+      meanRisk: item.contracts ? Number((item.totalRisk / item.contracts).toFixed(4)) : 0,
+      maxRisk: Number(item.maxRisk.toFixed(4)),
+    }))
+    .sort((left, right) => right.contracts - left.contracts || right.meanRisk - left.meanRisk)
+    .slice(0, 24);
+}
+
+function buildTopModalities(rows: SliceRow[]): OverviewPayload["summaries"]["modalities"] {
+  const buckets = new Map<string, { modalidad_de_contratacion: string; contracts: number; totalRisk: number }>();
+
+  rows.forEach((row) => {
+    const label = readableText(row.modality, "Modalidad sin dato");
+    const key = normalizeGroupKey(label);
+    const current = buckets.get(key) ?? {
+      modalidad_de_contratacion: label,
+      contracts: 0,
+      totalRisk: 0,
+    };
+    current.contracts += 1;
+    current.totalRisk += numericValue(row.risk_score);
+    buckets.set(key, current);
+  });
+
+  return [...buckets.values()]
+    .map((item) => ({
+      modalidad_de_contratacion: item.modalidad_de_contratacion,
+      contracts: item.contracts,
+      meanRisk: item.contracts ? Number((item.totalRisk / item.contracts).toFixed(4)) : 0,
+    }))
+    .sort((left, right) => right.contracts - left.contracts || right.meanRisk - left.meanRisk)
+    .slice(0, 12);
+}
+
+function buildMonthlyAnalytics(rows: SliceRow[]): OverviewPayload["analytics"]["months"] {
+  const buckets = new Map<string, { month: string; contracts: number; totalRisk: number }>();
+
+  rows.forEach((row) => {
+    const month = String(row.date ?? "").slice(0, 7);
+    if (!month) return;
+    const current = buckets.get(month) ?? { month, contracts: 0, totalRisk: 0 };
+    current.contracts += 1;
+    current.totalRisk += numericValue(row.risk_score);
+    buckets.set(month, current);
+  });
+
+  return [...buckets.values()]
+    .map((item) => ({
+      month: item.month,
+      contracts: item.contracts,
+      meanRisk: item.contracts ? Number((item.totalRisk / item.contracts).toFixed(4)) : 0,
+    }))
+    .sort((left, right) => left.month.localeCompare(right.month))
+    .slice(-24);
+}
+
+function buildRiskBands(rows: SliceRow[]): OverviewPayload["analytics"]["riskBands"] {
+  const buckets = new Map<"high" | "medium" | "low", { contracts: number; totalRisk: number }>([
+    ["high", { contracts: 0, totalRisk: 0 }],
+    ["medium", { contracts: 0, totalRisk: 0 }],
+    ["low", { contracts: 0, totalRisk: 0 }],
+  ]);
+
+  rows.forEach((row) => {
+    const band = bucketRisk(row.risk_bucket);
+    const current = buckets.get(band)!;
+    current.contracts += 1;
+    current.totalRisk += numericValue(row.risk_score);
+  });
+
+  return (["high", "medium", "low"] as const)
+    .map((riskBand) => {
+      const current = buckets.get(riskBand)!;
+      return {
+        riskBand,
+        contracts: current.contracts,
+        meanRisk: current.contracts ? Number((current.totalRisk / current.contracts).toFixed(4)) : 0,
+      };
+    })
+    .filter((item) => item.contracts > 0);
+}
+
+function dominantDepartment(rows: SliceRow[]) {
+  const buckets = new Map<string, number>();
+  rows.forEach((row) => {
+    const rawDepartment = String(row.department ?? "").trim();
+    if (!rawDepartment) return;
+    const label = deptDisplayLabel(rawDepartment);
+    buckets.set(label, (buckets.get(label) ?? 0) + 1);
+  });
+
+  return [...buckets.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? "Colombia";
+}
+
+function meanRisk(rows: SliceRow[]) {
+  if (!rows.length) return 0;
+  const total = rows.reduce((sum, row) => sum + numericValue(row.risk_score), 0);
+  return total / rows.length;
+}
+
+function medianValue(rows: SliceRow[]) {
+  if (!rows.length) return 0;
+  const values = rows.map((row) => numericValue(row.value)).sort((left, right) => left - right);
+  const midpoint = Math.floor(values.length / 2);
+  if (values.length % 2 === 0) {
+    return Math.round((values[midpoint - 1] + values[midpoint]) / 2);
+  }
+  return Math.round(values[midpoint] ?? 0);
+}
+
+function applyContractFilters<T>(query: T, args: {
+  departmentFilters: string[];
+  risk: string;
+  modality?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  queryText?: string;
+}) {
+  let next = query as any;
+  if (args.departmentFilters.length) next = next.in("department", args.departmentFilters);
+  if (args.risk === "high") next = next.eq("risk_bucket", "high");
+  else if (args.risk === "medium") next = next.eq("risk_bucket", "medium");
+  else if (args.risk === "low") next = next.eq("risk_bucket", "low");
+  if (args.modality) next = next.eq("modality", args.modality);
+  if (args.dateFrom) next = next.gte("date", args.dateFrom);
+  if (args.dateTo) next = next.lte("date", args.dateTo);
+  if (args.queryText) {
+    const clause = searchableClause(args.queryText);
+    if (clause) next = next.or(clause);
+  }
+  return next as T;
+}
+
+async function fetchSliceRows(
+  sb: ReturnType<typeof createServerSupabase>,
+  args: {
+    departmentFilters: string[];
+    risk: string;
+    modality?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    queryText?: string;
+  },
+) {
+  const rows: SliceRow[] = [];
+  let countQuery = sb.from("contracts").select("id", { count: "exact", head: true });
+  countQuery = applyContractFilters(countQuery, args);
+
+  let leadQuery = sb
+    .from("contracts")
+    .select(CONTRACT_SLICE_LEAD_COLUMNS)
+    .order("risk_score", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(48);
+  leadQuery = applyContractFilters(leadQuery, args);
+
+  const [{ count, error: countError }, { data: leadRows, error: leadError }] = await Promise.all([
+    countQuery,
+    leadQuery,
+  ]);
+
+  if (countError) throw countError;
+  if (leadError) throw leadError;
+
+  const totalCount = count ?? 0;
+  if (totalCount === 0) {
+    return { rows, totalCount, leadRows: [] as SliceRow[] };
+  }
+
+  for (let offset = 0; offset < totalCount; offset += CONTRACT_SLICE_PAGE_SIZE) {
+    let pageQuery = sb
+      .from("contracts")
+      .select(CONTRACT_SLICE_AGGREGATE_COLUMNS)
+      .range(offset, offset + CONTRACT_SLICE_PAGE_SIZE - 1);
+
+    pageQuery = applyContractFilters(pageQuery, args);
+
+    const { data, error } = await pageQuery;
+    if (error) throw error;
+
+    const pageRows = (data ?? []) as SliceRow[];
+    rows.push(...pageRows);
+
+    if (pageRows.length < CONTRACT_SLICE_PAGE_SIZE) break;
+  }
+
+  return { rows, totalCount, leadRows: (leadRows ?? []) as SliceRow[] };
+}
+
 async function fetchSourceStatus(): Promise<{ rows: number | null; latestDate: string | null; updatedAt: string | null }> {
   try {
+    const signal = AbortSignal.timeout(SOURCE_FETCH_TIMEOUT_MS);
     const [summaryRes, metadataRes] = await Promise.all([
-      fetch(SOCRATA_SUMMARY, { cache: "no-store" }),
-      fetch(SOCRATA_METADATA, { cache: "no-store" }),
+      fetch(SOCRATA_SUMMARY, { cache: "no-store", signal }),
+      fetch(SOCRATA_METADATA, { cache: "no-store", signal }),
     ]);
     if (!summaryRes.ok || !metadataRes.ok) {
       return { rows: null, latestDate: null, updatedAt: null };
@@ -90,63 +406,48 @@ export async function GET(req: NextRequest) {
     let sliceMedian = g.medianValue as number;
     let sliceDominant = g.dominantDepartment as string;
     let filteredLeadCases = g.leadCases as OverviewPayload["leadCases"];
+    let filteredDepartments: OverviewPayload["analytics"]["departments"] | null = null;
+    let filteredEntities: OverviewPayload["summaries"]["entities"] | null = null;
+    let filteredModalities: OverviewPayload["summaries"]["modalities"] | null = null;
+    let filteredMonths: OverviewPayload["analytics"]["months"] | null = null;
+    let filteredRiskBands: OverviewPayload["analytics"]["riskBands"] | null = null;
 
     if (hasFilters) {
-      let q = sb
-        .from("contracts")
-        .select("id, entity, provider, department, modality, date, value, risk_score, risk_bucket, secop_url, object_desc", { count: "exact" })
-        .order("risk_score", { ascending: false })
-        .limit(48);
+      const { rows, totalCount, leadRows } = await fetchSliceRows(sb, {
+        departmentFilters,
+        risk,
+        modality,
+        dateFrom,
+        dateTo,
+        queryText,
+      });
 
-      if (departmentFilters.length) q = q.in("department", departmentFilters);
-      if (risk === "high") q = q.eq("risk_bucket", "high");
-      else if (risk === "medium") q = q.eq("risk_bucket", "medium");
-      else if (risk === "low") q = q.eq("risk_bucket", "low");
-      if (modality) q = q.eq("modality", modality);
-      if (dateFrom) q = q.gte("date", dateFrom);
-      if (dateTo) q = q.lte("date", dateTo);
-      if (queryText) {
-        const clause = searchableClause(queryText);
-        if (clause) q = q.or(clause);
-      }
+      sliceTotal = totalCount;
+      sliceRed = rows.filter((row) => bucketRisk(row.risk_bucket) === "high").length;
 
-      const { data: rows, count } = await q;
-
-      sliceTotal = count ?? 0;
-      sliceRed = rows?.filter((r: { risk_bucket: string }) => r.risk_bucket === "high").length ?? 0;
-
-      if (rows && rows.length > 0) {
-        const scores = rows.map((r: { risk_score: number }) => r.risk_score);
-        sliceMean = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
-        const vals = rows.map((r: { value: number }) => r.value ?? 0).sort((a: number, b: number) => a - b);
-        sliceMedian = vals[Math.floor(vals.length / 2)] ?? 0;
-        const depts = rows.map((r: { department: string }) => r.department).filter(Boolean);
-        const deptFreq: Record<string, number> = {};
-        for (const d of depts) deptFreq[d] = (deptFreq[d] ?? 0) + 1;
-        sliceDominant = Object.entries(deptFreq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Colombia";
+      if (rows.length > 0) {
+        sliceMean = meanRisk(rows);
+        sliceMedian = medianValue(rows);
+        sliceDominant = dominantDepartment(rows);
+        filteredLeadCases = buildLeadCases(leadRows, lang);
+        filteredDepartments = buildSliceDepartments(rows);
+        filteredEntities = buildTopEntities(rows);
+        filteredModalities = buildTopModalities(rows);
+        filteredMonths = buildMonthlyAnalytics(rows);
+        filteredRiskBands = buildRiskBands(rows);
       } else {
         sliceTotal = 0;
         sliceRed = 0;
         sliceMean = 0;
         sliceMedian = 0;
+        sliceDominant = "Colombia";
+        filteredLeadCases = [];
+        filteredDepartments = buildSliceDepartments([]);
+        filteredEntities = [];
+        filteredModalities = [];
+        filteredMonths = [];
+        filteredRiskBands = [];
       }
-
-      filteredLeadCases = (rows ?? []).slice(0, 48).map((r: Record<string, unknown>) => ({
-        id: String(r.id ?? ""),
-        score: Math.round((r.risk_score as number) * 100),
-        riskBand: ((r.risk_bucket as string) === "high" ? "high" : (r.risk_bucket as string) === "medium" ? "medium" : "low") as "high" | "medium" | "low",
-        entity: readableText(r.entity, lang === "es" ? "Entidad sin nombre disponible" : "Entity name unavailable"),
-        provider: readableText(r.provider, lang === "es" ? "Proveedor no disponible" : "Provider unavailable"),
-        department: deptDisplayLabel(String(r.department ?? "")),
-        modality: readableText(r.modality, lang === "es" ? "Modalidad no disponible" : "Modality unavailable"),
-        date: String(r.date ?? ""),
-        value: Number(r.value ?? 0),
-        valueLabel: formatCop(Number(r.value ?? 0), lang),
-        secopUrl: readableUrl(r.secop_url),
-        pickReason: "",
-        signal: "",
-        factors: [],
-      }));
     }
 
     // ── 3. Fetch live SECOP source count (non-blocking) ──────────────────────
@@ -183,9 +484,10 @@ export async function GET(req: NextRequest) {
     }
     const paddedAllDepts = [...allDeptsByGeoName.values()];
 
+    const effectiveDepartments = hasFilters && filteredDepartments ? filteredDepartments : paddedAllDepts;
     const filteredDepts = (activeDepartmentGeoName
-      ? paddedAllDepts.filter((d) => d.geoName === activeDepartmentGeoName)
-      : paddedAllDepts).filter((department) => department.geoName !== "NO DEFINIDO");
+      ? effectiveDepartments.filter((d) => d.geoName === activeDepartmentGeoName)
+      : effectiveDepartments).filter((department) => department.geoName !== "NO DEFINIDO");
 
     const departmentOptions = [...new Map(
       (((g.deptOptions as string[]) ?? []) as string[])
@@ -252,21 +554,21 @@ export async function GET(req: NextRequest) {
         nationalMeanRisk: g.meanRisk as number,
         sliceMeanRisk: sliceMean,
         departmentMeanRisk: activeDepartmentGeoName
-          ? allDepts.find((department) => department.geoName === activeDepartmentGeoName)?.avgRisk ?? null
+          ? effectiveDepartments.find((department) => department.geoName === activeDepartmentGeoName)?.avgRisk ?? null
           : null,
         sliceMedianValue: sliceMedian,
       },
       leadCases: filteredLeadCases,
       summaries: {
-        entities: (g.entities as OverviewPayload["summaries"]["entities"]) ?? [],
-        modalities: (g.modalities as OverviewPayload["summaries"]["modalities"]) ?? [],
+        entities: hasFilters ? filteredEntities ?? [] : (g.entities as OverviewPayload["summaries"]["entities"]) ?? [],
+        modalities: hasFilters ? filteredModalities ?? [] : (g.modalities as OverviewPayload["summaries"]["modalities"]) ?? [],
       },
       analytics: {
-        departments: paddedAllDepts.filter((department) => department.geoName !== "NO DEFINIDO"),
-        modalities: (g.modalities as OverviewPayload["analytics"]["modalities"]) ?? [],
-        entities: (g.entities as OverviewPayload["analytics"]["entities"]) ?? [],
-        months: (g.months as OverviewPayload["analytics"]["months"]) ?? [],
-        riskBands: (g.riskBands as OverviewPayload["analytics"]["riskBands"]) ?? [],
+        departments: (hasFilters ? effectiveDepartments : paddedAllDepts).filter((department) => department.geoName !== "NO DEFINIDO"),
+        modalities: hasFilters ? filteredModalities ?? [] : (g.modalities as OverviewPayload["analytics"]["modalities"]) ?? [],
+        entities: hasFilters ? filteredEntities ?? [] : (g.entities as OverviewPayload["analytics"]["entities"]) ?? [],
+        months: hasFilters ? filteredMonths ?? [] : (g.months as OverviewPayload["analytics"]["months"]) ?? [],
+        riskBands: hasFilters ? filteredRiskBands ?? [] : (g.riskBands as OverviewPayload["analytics"]["riskBands"]) ?? [],
       },
       methodology: {
         modelType: "IsolationForest",

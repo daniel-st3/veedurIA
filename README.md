@@ -264,14 +264,32 @@ Las variables más relevantes para operar VotóMeter son:
 | `NEXT_PUBLIC_APP_URL` | frontend | Recomendado | base URL usada por fetches server-side al llamar route handlers internos |
 | `NEXT_PUBLIC_SITE_URL` | frontend | Recomendado | canonical URLs y metadata |
 | `NEXT_PUBLIC_API_BASE_URL` | frontend | Opcional para VotóMeter, útil para módulos heredados | base del backend FastAPI |
+| `CRON_SECRET` | Vercel producción | Sí para cron jobs | valida que solo Vercel pueda invocar `/api/cron/*` |
+| `GITHUB_ACTIONS_REPOSITORY` | Vercel producción | Sí para cron de contratos | repo destino para disparar `secop_ingestion.yml` |
+| `GITHUB_ACTIONS_REF` | Vercel producción | Recomendado | branch/ref que debe ejecutar el workflow; si falta, usa `VERCEL_GIT_COMMIT_REF` y luego `main` |
+| `GITHUB_ACTIONS_DISPATCH_TOKEN` | Vercel producción | Sí para cron de contratos | token GitHub con permiso para `actions:write` sobre el repo |
 
 Notas importantes:
 
 - El prompt de despliegue debe tratar `SUPABASE_SERVICE_KEY` como la credencial correcta para server-side / admin.
 - En el código actual, `SUPABASE_KEY` sigue siendo una variable operativa real para scripts Python y como fallback del service client.
 - Si más adelante introduces acceso browser-side directo a Supabase, documenta explícitamente si se apoya en `SUPABASE_ANON_KEY` o en otra convención. Hoy las rutas públicas de VotóMeter pasan por Next.js.
+- El refresh diario de ContratoLimpio ya no depende del scheduler de GitHub Actions. La fuente de verdad pasa a ser el cron de producción en Vercel, que dispara el workflow pesado por `workflow_dispatch`.
 
 ## Ingesta y sincronización
+
+### ContratoLimpio: refresh diario
+
+El refresh diario de contratos queda dividido en dos capas:
+
+- **Vercel Cron**
+  `web/vercel.json` programa una llamada diaria a `/api/cron/contracts-refresh` a las `03:20 UTC` (10:20 p. m. Colombia).
+- **Route handler seguro**
+  `web/app/api/cron/contracts-refresh/route.ts` valida `CRON_SECRET` y dispara el workflow `secop_ingestion.yml` vía GitHub Actions.
+- **Workflow pesado**
+  `.github/workflows/secop_ingestion.yml` queda como job manual / despachable. Ahí sigue viviendo la ingesta de SECOP, re-score del modelo, upload del parquet y upsert a Supabase.
+
+Este split evita intentar correr la ETL Python dentro del límite de ejecución de Vercel y deja un solo scheduler diario visible desde producción.
 
 ### Fuentes actuales
 
@@ -341,6 +359,16 @@ Secrets mínimos que deben existir en GitHub Actions:
 Secret recomendado:
 
 - `SOCRATA_APP_TOKEN`
+
+Variables mínimas que deben existir en Vercel producción para el cron de contratos:
+
+- `CRON_SECRET`
+- `GITHUB_ACTIONS_REPOSITORY`
+- `GITHUB_ACTIONS_DISPATCH_TOKEN`
+
+Variable recomendada:
+
+- `GITHUB_ACTIONS_REF`
 
 Antes de activar el workflow en staging o producción, confirma:
 
