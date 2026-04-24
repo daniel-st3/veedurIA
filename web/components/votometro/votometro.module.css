@@ -1,8 +1,7 @@
 .shell {
   min-height: 100svh;
   background:
-    radial-gradient(circle at top left, rgba(211, 162, 26, 0.18), transparent 30%),
-    radial-gradient(circle at top right, rgba(13, 91, 215, 0.16), transparent 34%),
+    linear-gradient(120deg, rgba(23, 32, 51, 0.035) 0 1px, transparent 1px 30px),
     linear-gradient(180deg, #f7f2ea 0%, #f5efe6 48%, #f1ebe1 100%);
 }
 
@@ -21,17 +20,34 @@
 .emptyState {
   position: relative;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: 24px;
   border: 1px solid rgba(23, 32, 51, 0.08);
-  background: rgba(255, 253, 248, 0.8);
-  box-shadow: 0 24px 60px rgba(20, 30, 50, 0.08);
-  backdrop-filter: blur(14px);
+  background: rgba(255, 253, 248, 0.9);
+  box-shadow: 0 24px 70px rgba(20, 30, 50, 0.09);
 }
 
 .hero {
-  padding: clamp(1.5rem, 4vw, 2.5rem);
+  min-height: clamp(360px, 43vw, 560px);
+  padding: clamp(1.35rem, 4vw, 3rem);
   display: grid;
-  gap: 1.3rem;
+  align-content: end;
+  gap: 1.5rem;
+  background:
+    linear-gradient(135deg, rgba(255,253,248,.96) 0%, rgba(224,236,250,.78) 62%, rgba(255,253,248,.9) 100%),
+    #fffdf8;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: auto -8% -18% auto;
+  width: 58%;
+  height: 48%;
+  background:
+    linear-gradient(90deg, #f5c518 0 28%, #0d5bd7 28% 62%, #c62839 62% 100%);
+  clip-path: polygon(0 44%, 72% 0, 100% 15%, 30% 64%);
+  opacity: .88;
+  pointer-events: none;
 }
 
 .hero::after,
@@ -63,19 +79,22 @@
 }
 
 .heroGrid {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 1rem;
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.95fr);
+  align-items: end;
 }
 
 .title {
   margin: 0;
-  font-family: "Cabinet Grotesk", "Sora", sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: clamp(2rem, 5vw, 4rem);
   line-height: 0.94;
   letter-spacing: -0.06em;
   color: #172033;
-  max-width: 11ch;
+  max-width: 13ch;
 }
 
 .body {
@@ -93,10 +112,22 @@
 }
 
 .statCard {
-  border-radius: 22px;
+  display: grid;
+  align-content: space-between;
+  min-height: 136px;
+  border-radius: 20px;
   padding: 1rem 1.1rem;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 243, 236, 0.92));
   border: 1px solid rgba(23, 32, 51, 0.08);
+  border-top: 4px solid rgba(13, 91, 215, 0.9);
+}
+
+.statCard:nth-child(1) { border-top-color: #f5c518; }
+.statCard:nth-child(3) { border-top-color: #18794e; }
+.statCard:nth-child(4) { border-top-color: #c62839; }
+
+.statCard svg {
+  color: rgba(23, 32, 51, 0.58);
 }
 
 .statCard strong {
@@ -227,6 +258,7 @@
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
 }
 
 .card {
@@ -236,9 +268,19 @@
   grid-template-rows: auto auto 1fr auto;
   height: 100%;
   padding: 1.15rem;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.72);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.84);
   border: 1px solid rgba(23, 32, 51, 0.08);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(13, 91, 215, 0.18);
+  box-shadow: 0 22px 58px rgba(20, 30, 50, 0.1);
 }
 
 .cardTop {
@@ -325,7 +367,8 @@
 .metricTile {
   border-radius: 18px;
   padding: 0.78rem 0.82rem;
-  background: rgba(248, 243, 236, 0.96);
+  background: rgba(239, 245, 255, 0.86);
+  border: 1px solid rgba(13, 91, 215, 0.08);
 }
 
 .metricTile strong {
@@ -383,7 +426,7 @@
 .surface,
 .tableSurface,
 .alertCard {
-  padding: 1.25rem;
+  padding: clamp(1rem, 2.4vw, 1.45rem);
 }
 
 .alertCard {

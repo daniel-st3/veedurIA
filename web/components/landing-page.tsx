@@ -329,19 +329,45 @@ export function LandingPage({
     return () => { alive = false; };
   }, []);
 
+  useEffect(() => {
+    const root = scope.current;
+    if (!root || typeof window === "undefined") return;
+
+    const xTo = gsap.quickTo(root, "--pointer-x", { duration: 0.55, ease: "power3.out" });
+    const yTo = gsap.quickTo(root, "--pointer-y", { duration: 0.55, ease: "power3.out" });
+
+    const updatePointer = (clientX: number, clientY: number) => {
+      xTo(Number((clientX / window.innerWidth - 0.5).toFixed(4)));
+      yTo(Number((clientY / window.innerHeight - 0.5).toFixed(4)));
+    };
+
+    const handlePointerMove = (event: PointerEvent) => updatePointer(event.clientX, event.clientY);
+    const handleTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (touch) updatePointer(touch.clientX, touch.clientY);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, []);
+
   // Clear GSAP inline styles on page hide to prevent bfcache invisibility
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handlePageHide = () => {
       gsap.set(
-        ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__story-panel, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
+        ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__lead, .lp-hero__source-row, .lp-hero__story-panel, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
         { clearProps: "all" },
       );
     };
     const handlePageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
         gsap.set(
-          ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__story-panel, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
+          ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__lead, .lp-hero__source-row, .lp-hero__story-panel, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
           { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
         );
       }
@@ -359,7 +385,7 @@ export function LandingPage({
       const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (reduceMotion) {
         gsap.set(
-          ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__story-panel, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
+          ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__lead, .lp-hero__source-row, .lp-hero__story-panel, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
           { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
         );
         return;
@@ -375,9 +401,30 @@ export function LandingPage({
 
       gsap.fromTo(
         ".lp-hero__title-line",
-        { autoAlpha: 0, y: 52, rotateX: -60, transformOrigin: "left bottom" },
+        { autoAlpha: 0, y: 54, rotateX: -58, transformOrigin: "center bottom" },
         { autoAlpha: 1, y: 0, rotateX: 0, duration: 0.82, stagger: 0.07, ease: "back.out(1.45)", delay: 0.22,
           onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); } },
+      );
+
+      gsap.fromTo(
+        ".lp-hero__lead, .lp-hero__source-row",
+        { autoAlpha: 0, y: 22 },
+        { autoAlpha: 1, y: 0, duration: 0.72, stagger: 0.09, ease: "power3.out", delay: 0.55,
+          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); } },
+      );
+
+      gsap.fromTo(
+        ".lp-hero__story-panel",
+        { autoAlpha: 0, y: 90, scale: 0.976 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.95,
+          ease: "power4.out",
+          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); },
+          scrollTrigger: { trigger: ".lp-hero__story-panel", start: "top 82%" },
+        },
       );
 
       gsap.fromTo(
@@ -386,9 +433,7 @@ export function LandingPage({
         { autoAlpha: 1, duration: 1.2, ease: "power2.out", delay: 1.2 },
       );
 
-      gsap.set(".lp-hero__story-panel", { autoAlpha: 0, y: 46, scale: 0.972 });
-
-      /* ── HERO SCROLL STAGE: title on the horizon, story rises after scroll ── */
+      /* ── HERO SCROLL STAGE: gentle parallax without hiding primary context ── */
       const heroTimeline = gsap.timeline({
         scrollTrigger: {
           trigger: ".lp-hero",
@@ -443,54 +488,51 @@ export function LandingPage({
           },
           0.08,
         )
-        .to(
-          ".lp-hero__story-panel",
-          {
-            autoAlpha: 1,
-            y: 0,
-            scale: 1,
-            ease: "none",
-          },
-          0.12,
-        );
+        ;
 
       /* ── SCROLL-REVEAL SECTIONS ── */
       gsap.utils.toArray<HTMLElement>(".lp-reveal").forEach((el) => {
         gsap.fromTo(
           el,
-          { autoAlpha: 0, y: 36 },
+          { autoAlpha: 0, y: 72 },
           {
             autoAlpha: 1,
             y: 0,
-            duration: 0.75,
+            duration: 0.95,
             ease: "power3.out",
             onComplete() { gsap.set(el, { clearProps: "opacity,visibility" }); },
-            scrollTrigger: { trigger: el, start: "top 86%" },
+            scrollTrigger: { trigger: el, start: "top 88%" },
           },
         );
       });
 
       gsap.fromTo(
         ".lp-story-stat",
-        { autoAlpha: 0, y: 22 },
-        { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.08, ease: "power3.out",
-          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility" }); },
+        { autoAlpha: 0, y: 86, rotateX: -18, scale: 0.92, transformOrigin: "50% 100%" },
+        { autoAlpha: 1, y: 0, rotateX: 0, scale: 1, duration: 0.95, stagger: 0.12, ease: "back.out(1.35)",
+          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); },
           scrollTrigger: { trigger: ".lp-story__stats", start: "top 86%" } },
       );
 
+      gsap.to(".lp-story-stat", {
+        yPercent: (index) => [-10, 7, -5][index % 3],
+        ease: "none",
+        scrollTrigger: { trigger: ".lp-story", start: "top bottom", end: "bottom top", scrub: 1.15 },
+      });
+
       gsap.fromTo(
         ".lp-map-grid",
-        { autoAlpha: 0, y: 28, scale: 0.985 },
-        { autoAlpha: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out",
+        { autoAlpha: 0, y: 86, scale: 0.965 },
+        { autoAlpha: 1, y: 0, scale: 1, duration: 1.05, ease: "power4.out",
           onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); },
           scrollTrigger: { trigger: ".lp-map-grid", start: "top 84%" } },
       );
 
       gsap.fromTo(
         ".lp-module-card",
-        { autoAlpha: 0, x: 24 },
+        { autoAlpha: 0, y: 34 },
         {
-          autoAlpha: 1, x: 0, duration: 0.62, stagger: 0.09, ease: "power3.out",
+          autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.1, ease: "power3.out",
           onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); },
           scrollTrigger: { trigger: ".lp-map-grid__modules", start: "top 84%" },
         },
@@ -513,6 +555,18 @@ export function LandingPage({
       );
 
       gsap.fromTo(
+        ".lp-signal",
+        { clipPath: "inset(13% 0% 0% 0%)", y: 90 },
+        {
+          clipPath: "inset(0% 0% 0% 0%)",
+          y: 0,
+          duration: 1.15,
+          ease: "power4.out",
+          scrollTrigger: { trigger: ".lp-signal", start: "top 90%" },
+        },
+      );
+
+      gsap.fromTo(
         ".lp-signal-card",
         { autoAlpha: 0, y: 26 },
         {
@@ -528,27 +582,58 @@ export function LandingPage({
         },
       );
 
+      gsap.to(".lp-signal__pulse", {
+        yPercent: 16,
+        ease: "none",
+        scrollTrigger: { trigger: ".lp-signal__frame", start: "top 72%", end: "bottom 28%", scrub: true },
+      });
+
       /* ── PROCESS STEPS ── */
-      gsap.fromTo(
-        ".lp-process-step",
-        { autoAlpha: 0, y: 32 },
-        {
-          autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.12, ease: "power3.out",
-          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility" }); },
-          scrollTrigger: { trigger: ".lp-process", start: "top 82%" },
-        },
-      );
+      gsap.utils.toArray<HTMLElement>(".lp-process-step").forEach((step) => {
+        gsap.fromTo(
+          step,
+          { autoAlpha: 0, y: 92, scale: 0.965, clipPath: "inset(12% 0% 0% 0%)" },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            clipPath: "inset(0% 0% 0% 0%)",
+            duration: 1,
+            ease: "power4.out",
+            onComplete() { gsap.set(step, { clearProps: "opacity,visibility,transform,clipPath" }); },
+            scrollTrigger: { trigger: step, start: "top 78%" },
+          },
+        );
+      });
 
       /* ── IMPACT STATS ── */
       gsap.fromTo(
         ".lp-impact-stat",
-        { autoAlpha: 0, y: 24, scale: 0.96 },
+        { autoAlpha: 0, y: 54, scale: 0.94, rotateX: -8 },
         {
-          autoAlpha: 1, y: 0, scale: 1, duration: 0.65, stagger: 0.09, ease: "power3.out",
+          autoAlpha: 1, y: 0, scale: 1, rotateX: 0, duration: 0.8, stagger: 0.1, ease: "power4.out",
           onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); },
           scrollTrigger: { trigger: ".lp-impact", start: "top 82%" },
         },
       );
+
+      gsap.fromTo(
+        ".lp-impact__grid",
+        { clipPath: "inset(12% 0% 0% 0%)", y: 64 },
+        {
+          clipPath: "inset(0% 0% 0% 0%)",
+          y: 0,
+          duration: 1.05,
+          ease: "power4.out",
+          scrollTrigger: { trigger: ".lp-impact", start: "top 78%" },
+        },
+      );
+
+      gsap.to(".lp-impact-stat", {
+        yPercent: (index) => [-6, 5, -4, 7][index % 4],
+        ease: "none",
+        scrollTrigger: { trigger: ".lp-impact", start: "top bottom", end: "bottom top", scrub: 1.05 },
+      });
 
       gsap.fromTo(
         ".lp-portfolio-card",
@@ -715,60 +800,80 @@ export function LandingPage({
               <span className="lp-hero__glow lp-hero__glow--red" />
             </div>
 
-            <div className="lp-hero__content">
-              <p className="eyebrow lp-hero__eyebrow">
-                {lang === "es"
-                  ? "VeedurIA · inteligencia cívica para Colombia"
-                  : "VeedurIA · civic intelligence for Colombia"}
-              </p>
+            <div className="lp-hero__inner">
+              <div className="lp-hero__content">
+                <p className="eyebrow lp-hero__eyebrow">
+                  {lang === "es"
+                    ? "VeedurIA · inteligencia cívica para Colombia"
+                    : "VeedurIA · civic intelligence for Colombia"}
+                </p>
 
-              <div className="lp-hero__flagbar" aria-hidden="true">
-                <span className="is-yellow" />
-                <span className="is-blue" />
-                <span className="is-red" />
-              </div>
-
-              <div className="lp-hero__title-group">
-                <h1 className="lp-hero__title">
-                  <span className="lp-hero__title-line">
-                    {lang === "es" ? "El poder público," : "Public power,"}
-                  </span>
-                  <span className="lp-hero__title-line">
-                    <span className="lp-hero__title-accent lp-hero__title-accent--tricolor">
-                      {lang === "es" ? "visible" : "visible"}
+                <div className="lp-hero__title-group">
+                  <h1 className="lp-hero__title">
+                    <span className="lp-hero__title-line">
+                      {lang === "es" ? "El poder público," : "Public power,"}
                     </span>
-                    {lang === "es" ? " y auditable" : " and auditable"}
-                  </span>
-                </h1>
-              </div>
-            </div>
-
-            <div className="lp-hero__story-panel">
-              <div className="lp-story__live" aria-label={lang === "es" ? "Datos en vivo" : "Live data"}>
-                <span className="lp-story__live-dot" aria-hidden="true" />
-                {lang === "es" ? "Datos públicos en tiempo real" : "Live public data"}
-              </div>
-
-              <p className="lp-hero__story-body">
-                {lang === "es"
-                  ? "Contratos con señales de riesgo, votos cruzados con programas legislativos y redes de financiación, todo trazado desde la fuente oficial. Sin intermediarios."
-                  : "Contracts with risk signals, votes crossed with legislative programmes, and financing networks, all traced from the official source. No intermediaries."}
-              </p>
-
-              <div className="lp-hero__story-actions">
-                {features.map((feature) => (
-                  <Link
-                    key={`hero-${feature.title}`}
-                    href={feature.href}
-                    className={`lp-hero__story-chip lp-hero__story-chip--${feature.tone}`}
-                  >
-                    <span className="lp-hero__story-chip-copy">
-                      <strong>{feature.title}</strong>
-                      <span>{feature.kicker}</span>
+                    <span className="lp-hero__title-line">
+                      <span className="lp-hero__title-accent lp-hero__title-accent--letters" aria-label="visible">
+                        <span className="lp-hero__title-letter is-yellow">v</span>
+                        <span className="lp-hero__title-letter is-yellow">i</span>
+                        <span className="lp-hero__title-letter is-blue">s</span>
+                        <span className="lp-hero__title-letter is-red">i</span>
+                        <span className="lp-hero__title-letter is-red">b</span>
+                        <span className="lp-hero__title-letter is-red">l</span>
+                        <span className="lp-hero__title-letter is-red">e</span>
+                      </span>
+                      {lang === "es" ? " y auditable" : " and auditable"}
                     </span>
-                    <ArrowRight size={14} aria-hidden={true} />
-                  </Link>
-                ))}
+                  </h1>
+                </div>
+
+                <p className="lp-hero__lead">
+                  {lang === "es"
+                    ? "Una lectura pública de contratos, votos y redes de influencia. Datos oficiales, capas cruzadas y señales listas para investigar sin convertir la vigilancia ciudadana en una hoja de cálculo."
+                    : "A public reading of contracts, votes, and influence networks. Official data, crossed layers, and signals ready to investigate without turning civic oversight into a spreadsheet."}
+                </p>
+
+                <div className="lp-hero__source-row" aria-label={lang === "es" ? "Fuentes principales" : "Primary sources"}>
+                  <span>SECOP II</span>
+                  <span>{lang === "es" ? "Senado abierto" : "Open Senate"}</span>
+                  <span>datos.gov.co</span>
+                </div>
+
+                <p className="lp-hero__credit">
+                  {lang === "es"
+                    ? "Creado por Daniel Steven Rodríguez Sandoval"
+                    : "Created by Daniel Steven Rodríguez Sandoval"}
+                </p>
+              </div>
+
+              <div className="lp-hero__story-panel">
+                <div className="lp-story__live" aria-label={lang === "es" ? "Datos en vivo" : "Live data"}>
+                  <span className="lp-story__live-dot" aria-hidden="true" />
+                  {lang === "es" ? "Datos públicos en tiempo real" : "Live public data"}
+                </div>
+
+                <p className="lp-hero__story-body">
+                  {lang === "es"
+                    ? "Contratos con señales de riesgo, votos cruzados con programas legislativos y redes de financiación, todo trazado desde la fuente oficial. Sin intermediarios."
+                    : "Contracts with risk signals, votes crossed with legislative programmes, and financing networks, all traced from the official source. No intermediaries."}
+                </p>
+
+                <div className="lp-hero__story-actions">
+                  {features.map((feature) => (
+                    <Link
+                      key={`hero-${feature.title}`}
+                      href={feature.href}
+                      className={`lp-hero__story-chip lp-hero__story-chip--${feature.tone}`}
+                    >
+                      <span className="lp-hero__story-chip-copy">
+                        <strong>{feature.title}</strong>
+                        <span>{feature.kicker}</span>
+                      </span>
+                      <ArrowRight size={14} aria-hidden={true} />
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -909,7 +1014,11 @@ export function LandingPage({
                       <p className="lp-module-card__body">{feature.body}</p>
                       <span className="lp-module-card__footer">
                         <span className={`lp-module-card__signal lp-module-card__signal--${feature.tone}`}>
-                          {feature.signal}
+                          {feature.signal.split(" · ").map((part) => (
+                            <span key={part} className="lp-module-card__signal-part">
+                              {part}
+                            </span>
+                          ))}
                         </span>
                         <span className="lp-module-card__cta">
                           {feature.cta}

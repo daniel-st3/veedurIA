@@ -1,4 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, Filter, Landmark, ShieldCheck, Users } from "lucide-react";
 
 import { SiteFooter } from "@/components/site-footer";
@@ -14,6 +20,8 @@ import type {
 } from "@/lib/votometro-types";
 
 import styles from "./votometro.module.css";
+
+gsap.registerPlugin(ScrollTrigger);
 
 function buildHref(path: string, params: Record<string, string | number | undefined>) {
   const search = new URLSearchParams();
@@ -106,7 +114,7 @@ function IssuePanel({
             ];
 
   return (
-    <section className={styles.alertCard}>
+    <section className={styles.alertCard} data-vm-animate="section">
       <span className={styles.eyebrow}>{lang === "es" ? "Estado del módulo" : "Module status"}</span>
       <h2 className={styles.alertTitle}>{issue.title}</h2>
       <p className={styles.alertBody}>{issue.message}</p>
@@ -126,7 +134,7 @@ function IssuePanel({
 
 function Card({ profile, lang }: { profile: LegislatorListItem; lang: Lang }) {
   return (
-    <article className={styles.card}>
+    <article className={styles.card} data-vm-animate="card">
       <div className={styles.cardTop}>
         {avatarFor(profile)}
         <div>
@@ -235,6 +243,7 @@ export function VotometroDirectoryPage({
   payload: VotometroDirectoryPayload;
   parties: PartySummary[];
 }) {
+  const scope = useRef<HTMLDivElement>(null);
   const hasIndexedCoverage = payload.meta.indexedVotes > 0;
   const showCoverageNotice =
     !payload.issue && payload.meta.activeLegislators > 0 && payload.meta.indexedVotes === 0;
@@ -322,11 +331,64 @@ export function VotometroDirectoryPage({
           technicalDetail: "Technical detail",
         };
 
+  useGSAP(
+    () => {
+      const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduceMotion) return;
+
+      gsap.fromTo(
+        "[data-vm-animate='hero']",
+        { autoAlpha: 0, y: 30 },
+        { autoAlpha: 1, y: 0, duration: 0.75, ease: "power3.out" },
+      );
+
+      gsap.fromTo(
+        "[data-vm-animate='stat']",
+        { autoAlpha: 0, y: 22 },
+        { autoAlpha: 1, y: 0, duration: 0.55, stagger: 0.06, ease: "power3.out", delay: 0.1 },
+      );
+
+      gsap.utils.toArray<HTMLElement>("[data-vm-animate='section']").forEach((section) => {
+        gsap.fromTo(
+          section,
+          { autoAlpha: 0, y: 36 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.7,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: section,
+              start: "top 84%",
+            },
+          },
+        );
+      });
+
+      gsap.fromTo(
+        "[data-vm-animate='card']",
+        { autoAlpha: 0, y: 24 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.52,
+          stagger: 0.035,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: "[data-vm-animate='card']",
+            start: "top 86%",
+          },
+        },
+      );
+    },
+    { scope, dependencies: [payload.items.length, parties.length] },
+  );
+
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} ref={scope}>
       <SiteNav lang={lang} />
       <main className={styles.main}>
-        <section className={styles.hero}>
+        <section className={styles.hero} data-vm-animate="hero">
           <span className={styles.eyebrow}>{copy.eyebrow}</span>
           <div className={styles.heroGrid}>
             <div>
@@ -337,7 +399,7 @@ export function VotometroDirectoryPage({
               {copy.stats.map((stat) => {
                 const Icon = stat.icon;
                 return (
-                  <div key={stat.label} className={styles.statCard}>
+                  <div key={stat.label} className={styles.statCard} data-vm-animate="stat">
                     <Icon size={18} />
                     <strong>{stat.value}</strong>
                     <span>{stat.label}</span>
@@ -350,14 +412,14 @@ export function VotometroDirectoryPage({
 
         {payload.issue ? <IssuePanel lang={lang} issue={payload.issue} /> : null}
         {showCoverageNotice ? (
-          <section className={styles.surface}>
+          <section className={styles.surface} data-vm-animate="section">
             <span className={styles.eyebrow}>{copy.eyebrow}</span>
             <h2 className={styles.surfaceTitle}>{copy.coverageTitle}</h2>
             <p className={styles.surfaceIntro}>{copy.coverageBody}</p>
           </section>
         ) : null}
 
-        <section className={styles.surface}>
+        <section className={styles.surface} data-vm-animate="section">
           <h2 className={styles.surfaceTitle}>{copy.filtersTitle}</h2>
           <p className={styles.surfaceIntro}>{copy.filtersIntro}</p>
           <form method="get" className={styles.filterGrid}>
@@ -455,7 +517,7 @@ export function VotometroDirectoryPage({
           </form>
         </section>
 
-        <section className={styles.surface}>
+        <section className={styles.surface} data-vm-animate="section">
           <h2 className={styles.surfaceTitle}>{copy.resultsTitle}</h2>
           <p className={styles.surfaceIntro}>
             {payload.meta.total} {lang === "es" ? "resultados en este corte." : "results in this slice."}
@@ -485,7 +547,7 @@ export function VotometroDirectoryPage({
           )}
         </section>
 
-        <section className={styles.tableSurface}>
+        <section className={styles.tableSurface} data-vm-animate="section">
           <h2 className={styles.surfaceTitle}>{copy.partyTitle}</h2>
           <p className={styles.surfaceIntro}>{copy.partyIntro}</p>
           <table className={styles.table}>
