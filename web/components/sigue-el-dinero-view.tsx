@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Network, Search, SlidersHorizontal, X, ChevronRight } from "lucide-react";
 
 import { SiteNav } from "@/components/site-nav";
@@ -27,6 +28,7 @@ import { getCachedGraph, setCachedGraph, isCacheStale } from "@/lib/network/cach
 import { networkConfig } from "@/lib/network/config";
 import { filterEdgesByConfidence } from "@/lib/network/buildEdges";
 import { sigueDineroCopy } from "@/lib/copy";
+import { formatCompactCop } from "@/lib/format";
 
 import type { Lang } from "@/lib/types";
 import type { NetworkNode, NetworkEdge, NetworkNodeDetail, NetworkPayload } from "@/lib/network/types";
@@ -38,6 +40,8 @@ type Props = {
 };
 
 type NetworkMetaState = NetworkPayload["meta"] | null;
+
+gsap.registerPlugin(ScrollTrigger);
 
 export function SigueElDineroView({ lang }: Props) {
   const t = sigueDineroCopy[lang];
@@ -259,22 +263,31 @@ export function SigueElDineroView({ lang }: Props) {
   const workbenchRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
+    const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
+
     if (heroRef.current) {
       gsap.from(heroRef.current.querySelectorAll(".sed-hero__animate"), {
-        y: 20,
+        y: 26,
         opacity: 0,
         stagger: 0.12,
-        duration: 0.55,
-        ease: "power2.out",
+        duration: 0.7,
+        ease: "power3.out",
+        clearProps: "opacity,transform",
       });
     }
     if (workbenchRef.current) {
       gsap.from(workbenchRef.current, {
         opacity: 0,
-        y: 16,
-        duration: 0.5,
-        delay: 0.35,
-        ease: "power2.out",
+        y: 36,
+        duration: 0.75,
+        delay: 0.2,
+        ease: "power3.out",
+        clearProps: "opacity,transform",
+        scrollTrigger: {
+          trigger: workbenchRef.current,
+          start: "top 84%",
+        },
       });
     }
   }, []);
@@ -310,6 +323,60 @@ export function SigueElDineroView({ lang }: Props) {
   const strongestNode = useMemo(
     () => [...nodes].sort((left, right) => right.total_value - left.total_value)[0] ?? null,
     [nodes],
+  );
+
+  const priorityNodes = useMemo(() => {
+    return [...nodes]
+      .sort((left, right) => {
+        if (Number(right.is_hub) !== Number(left.is_hub)) {
+          return Number(right.is_hub) - Number(left.is_hub);
+        }
+        if (right.connection_count !== left.connection_count) {
+          return right.connection_count - left.connection_count;
+        }
+        return right.total_value - left.total_value;
+      })
+      .slice(0, 6);
+  }, [nodes]);
+
+  useGSAP(
+    () => {
+      const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduceMotion || priorityNodes.length === 0) return;
+
+      gsap.fromTo(
+        ".sed-node-dock",
+        { autoAlpha: 0, y: 44, scale: 0.985 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.75,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ".sed-node-dock",
+            start: "top 86%",
+          },
+        },
+      );
+
+      gsap.fromTo(
+        ".sed-node-lead",
+        { autoAlpha: 0, y: 24 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.55,
+          stagger: 0.055,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ".sed-node-dock",
+            start: "top 80%",
+          },
+        },
+      );
+    },
+    { dependencies: [priorityNodes.length] },
   );
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -412,13 +479,52 @@ export function SigueElDineroView({ lang }: Props) {
       </section>
 
       {/* ── Workbench ──────────────────────────────────────────────────── */}
-      <div className="sed-intro-text" style={{ maxWidth: 840, margin: '2rem auto 1rem', padding: '0 1.25rem', textAlign: 'center' }}>
-        <p style={{ color: 'rgba(180, 210, 255, 0.65)', fontSize: '0.95rem', lineHeight: '1.6', margin: 0 }}>
+      <div className="sed-intro-text">
+        <p>
           {lang === "es"
             ? "Explora de manera interactiva el complejo ecosistema de la contratación estatal. Este radar impulsado por análisis de redes y machine learning agrupa entidades y proveedores para revelar vínculos críticos, dependencias estructurales e índices de concentración de capital público."
             : "Interactively explore the complex ecosystem of state contracting. This radar, powered by network analysis and machine learning, clusters entities and providers to reveal critical links, structural dependencies, and public capital concentration indices."}
         </p>
       </div>
+
+      {priorityNodes.length > 0 && (
+        <section className="sed-node-dock" aria-label={lang === "es" ? "Nodos sugeridos" : "Suggested nodes"}>
+          <div className="sed-node-dock__head">
+            <div>
+              <p className="sed-node-dock__eyebrow">
+                {lang === "es" ? "Pistas jugables" : "Playable leads"}
+              </p>
+              <h2>{lang === "es" ? "Empieza por los nodos que más pesan" : "Start with the nodes carrying the most weight"}</h2>
+            </div>
+            <p>
+              {lang === "es"
+                ? "No necesitas ver todo a la vez: abre una pista, lee su vecindario y vuelve al mapa cuando quieras."
+                : "You do not need to see everything at once: open a lead, read its neighborhood, and return to the map anytime."}
+            </p>
+          </div>
+          <div className="sed-node-dock__grid">
+            {priorityNodes.map((node, index) => (
+              <button
+                key={node.id}
+                type="button"
+                className={`sed-node-lead${selectedNodeId === node.id ? " sed-node-lead--active" : ""}`}
+                onClick={() => {
+                  setActiveTab("red");
+                  void handleNodeClick(node);
+                }}
+              >
+                <span className="sed-node-lead__rank">{String(index + 1).padStart(2, "0")}</span>
+                <span className="sed-node-lead__type">{node.typeLabel}</span>
+                <strong>{node.label}</strong>
+                <span className="sed-node-lead__meta">
+                  {formatCompactCop(node.total_value, lang)} · {node.connection_count}{" "}
+                  {lang === "es" ? "conexiones" : "links"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="sed-workbench" ref={workbenchRef}>
 

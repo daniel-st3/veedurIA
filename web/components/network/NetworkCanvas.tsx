@@ -111,7 +111,7 @@ export function NetworkCanvas({
   }), [visibleEdges, visibleNodes]);
 
   const prioritizedLabelIds = useMemo(() => {
-    const limit = selectedNodeId ? Math.min(visibleNodes.length, 12) : 8;
+    const limit = selectedNodeId ? Math.min(visibleNodes.length, 14) : 12;
     return [...visibleNodes]
       .sort((left, right) => {
         if (Number(right.is_hub) !== Number(left.is_hub)) {
@@ -260,7 +260,11 @@ export function NetworkCanvas({
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
-          const label = typedNode.label;
+          const maxLabelChars = isSelected || isHovered ? 46 : typedNode.is_hub ? 34 : 28;
+          const label =
+            typedNode.label.length > maxLabelChars
+              ? `${typedNode.label.slice(0, Math.max(8, maxLabelChars - 3)).trim()}...`
+              : typedNode.label;
 
           const metrics = ctx.measureText(label);
           const textWidth = metrics.width;
@@ -461,10 +465,7 @@ export function NetworkCanvas({
         onEngineStop={() => {
           if (!selectedNodeId && !autoFitRef.current && graphRef.current && graphData.nodes.length > 0) {
             autoFitRef.current = true;
-            // Removed zoomToFit to make the graph look larger as requested, showing names of important nodes 
-            // even if not all fit on the screen. Made it 4.2 to force sliding and gliding.
-            graphRef.current.centerAt(0, 0, 500);
-            graphRef.current.zoom(4.2, 500);
+            graphRef.current.zoomToFit(560, 92);
           }
         }}
         d3AlphaDecay={networkConfig.canvas.physics.alphaDecay}

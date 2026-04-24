@@ -684,12 +684,30 @@ export function VotometroView({
 
             <div className="vm-hero__stats" aria-label="Indicadores principales">
               <article className="vm-kpi-card">
-                <strong>{heroStats.indexedVotes.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
-                <span>{t.kpiVotes}</span>
+                <strong>
+                  {(liveCoverage.publicVotes && liveCoverage.publicVotes > 0 ? liveCoverage.publicVotes : heroStats.indexedVotes).toLocaleString(
+                    lang === "es" ? "es-CO" : "en-US",
+                  )}
+                </strong>
+                <span>
+                  {liveCoverage.publicVotes && liveCoverage.publicVotes > 0
+                    ? t.kpiVotes
+                    : lang === "es"
+                      ? "Votos trazados en capa analítica"
+                      : "Analytical votes traced"}
+                </span>
               </article>
               <article className="vm-kpi-card">
-                <strong>{heroStats.legislators.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</strong>
-                <span>{t.kpiLegislators}</span>
+                <strong>
+                  {(liveCoverage.activeLegislators ?? heroStats.legislators).toLocaleString(lang === "es" ? "es-CO" : "en-US")}
+                </strong>
+                <span>
+                  {liveCoverage.activeLegislators
+                    ? lang === "es"
+                      ? "Legisladores en API pública"
+                      : "Legislators in public API"
+                    : t.kpiLegislators}
+                </span>
               </article>
               <article className="vm-kpi-card">
                 <strong>{`${heroStats.coherenceAverage}%`}</strong>

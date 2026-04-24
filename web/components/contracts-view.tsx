@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import {
   ArrowUpRight,
@@ -28,6 +29,8 @@ import { fetchContractsFreshness, fetchContractsTable, fetchGeoJson, fetchOvervi
 import { contractsCopy } from "@/lib/copy";
 import { formatCompactCop } from "@/lib/format";
 import type { ContractsFreshnessPayload, Lang, LeadCase, OverviewPayload, TablePayload } from "@/lib/types";
+
+gsap.registerPlugin(ScrollTrigger);
 
 type FilterState = {
   department?: string;
@@ -527,6 +530,22 @@ export function ContractsView({
         { autoAlpha: 0, y: 24 },
         { autoAlpha: 1, y: 0, duration: 0.58, stagger: 0.03, ease: "power3.out" },
       );
+      gsap.utils.toArray<HTMLElement>(".cv-workbench, .cv-focus-panel, .cv-dashboard, .cv-explorer, .cv-methodology").forEach((section) => {
+        gsap.fromTo(
+          section,
+          { autoAlpha: 0, y: 42 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.75,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: section,
+              start: "top 84%",
+            },
+          },
+        );
+      });
       gsap.fromTo(
         ".cv-factor-row__bar span, .cv-case-chip__bar span, .cv-sandbox-group__bar span, .table-value__fill",
         { width: 0 },
