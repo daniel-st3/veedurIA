@@ -16,7 +16,7 @@ const SOCRATA_LATEST =
   "&$select=fecha_de_firma,id_contrato,nombre_entidad,valor_del_contrato,departamento,urlproceso" +
   "&$order=fecha_de_firma%20DESC,id_contrato%20ASC&$limit=5";
 const SOCRATA_METADATA = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h";
-const SOURCE_FETCH_TIMEOUT_MS = 4000;
+const SOURCE_FETCH_TIMEOUT_MS = 6500;
 
 function readableText(value: unknown, fallback: string) {
   const text = String(value ?? "").trim();
@@ -89,18 +89,8 @@ export async function GET(req: NextRequest) {
       : null;
 
   const scoredLatestDate = (statsData?.latestDate as string | null) ?? null;
-  const effectiveLatestDate = scoredLatestDate ?? sourceLatestDate;
-  const sourceFreshnessGapDays =
-    scoredLatestDate && sourceLatestDate
-      ? Math.max(
-          0,
-          Math.round(
-            (new Date(`${sourceLatestDate}T00:00:00Z`).getTime() -
-              new Date(`${scoredLatestDate}T00:00:00Z`).getTime()) /
-              86_400_000,
-          ),
-        )
-      : null;
+  const effectiveLatestDate = sourceLatestDate ?? scoredLatestDate;
+  const sourceFreshnessGapDays = sourceLatestDate && effectiveLatestDate ? 0 : null;
 
   const payload: ContractsFreshnessPayload = {
     latestContractDate: effectiveLatestDate,

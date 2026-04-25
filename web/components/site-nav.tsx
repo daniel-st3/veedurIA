@@ -62,8 +62,12 @@ export function SiteNav({ lang, links }: SiteNavProps) {
 
       <div className="nav-actions">
         <span className="language-hint" aria-label="Language selector hint">
-          <span className="language-hint__orb" />
-          <span className="language-hint__text">Language / Idioma</span>
+          <span className="language-hint__flag" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className="language-hint__text">{lang === "es" ? "Change the language" : "Cambia el lenguaje"}</span>
           <span className="language-hint__track" aria-hidden="true">
             <span>ES</span>
             <span>EN</span>

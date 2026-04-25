@@ -764,6 +764,19 @@ export function LandingPage({
         ? `${formatLandingNumber(votometroStats.activeLegislators, lang)} legisladores activos`
         : `${formatLandingNumber(votometroStats.activeLegislators, lang)} active legislators`
       : impactData.stats[1].sublabel;
+  const votometroIndexedValue =
+    votometroStats.available && hasNumber(votometroStats.indexedVotes) && votometroStats.indexedVotes > 0
+      ? votometroStats.indexedVotes
+      : null;
+  const votometroPrimaryValue =
+    votometroIndexedValue ??
+    (votometroStats.available && hasNumber(votometroStats.activeLegislators) ? votometroStats.activeLegislators : null);
+  const votometroPrimaryMetric =
+    votometroIndexedValue !== null
+      ? signalData.metrics.votes
+      : lang === "es"
+        ? "legisladores activos"
+        : "active legislators";
   const impactStats = [
     {
       ...impactData.stats[0],
@@ -771,7 +784,13 @@ export function LandingPage({
     },
     {
       ...impactData.stats[1],
-      value: formatLandingNumber(votometroStats.available ? votometroStats.indexedVotes : null, lang),
+      label:
+        votometroIndexedValue !== null
+          ? impactData.stats[1].label
+          : lang === "es"
+            ? "Legisladores en API pública"
+            : "Legislators in public API",
+      value: formatLandingNumber(votometroPrimaryValue, lang),
       sublabel: votometroCoverageSubLabel,
     },
     {
@@ -800,8 +819,8 @@ export function LandingPage({
       kicker: featureSet.promises.title,
       icon: Radar,
       tone: "blue" as FeatureTone,
-      value: formatLandingNumber(votometroStats.available ? votometroStats.indexedVotes : null, lang),
-      metric: signalData.metrics.votes,
+      value: formatLandingNumber(votometroPrimaryValue, lang),
+      metric: votometroPrimaryMetric,
       title: signalData.cards.votes.title,
       body: signalData.cards.votes.body,
     },

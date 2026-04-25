@@ -208,12 +208,18 @@ export async function fetchOverview(filters: ContractsFilters): Promise<Overview
     const mock = getMockOverview(filters);
     try {
       const live = await fetchOfficialContractsFallback(filters.lang);
-      const scoredDate = mock.meta.latestContractDate;
-      const gap =
-        scoredDate && live.latestDate
-          ? Math.max(0, Math.round((new Date(`${live.latestDate}T00:00:00Z`).getTime() - new Date(`${scoredDate}T00:00:00Z`).getTime()) / 86_400_000))
-          : mock.meta.sourceFreshnessGapDays ?? null;
-      return { ...mock, meta: { ...mock.meta, sourceLatestContractDate: live.latestDate, sourceRows: live.sourceRows, sourceUpdatedAt: live.sourceUpdatedAt, sourceFreshnessGapDays: gap }, liveFeed: { latestDate: live.latestDate, rowsAtSource: live.sourceRows, contracts: live.contracts } };
+      return {
+        ...mock,
+        meta: {
+          ...mock.meta,
+          latestContractDate: live.latestDate ?? mock.meta.latestContractDate,
+          sourceLatestContractDate: live.latestDate,
+          sourceRows: live.sourceRows,
+          sourceUpdatedAt: live.sourceUpdatedAt,
+          sourceFreshnessGapDays: live.latestDate ? 0 : mock.meta.sourceFreshnessGapDays ?? null,
+        },
+        liveFeed: { latestDate: live.latestDate, rowsAtSource: live.sourceRows, contracts: live.contracts },
+      };
     } catch {
       return mock;
     }
@@ -258,24 +264,13 @@ export async function fetchContractsFreshness(): Promise<ContractsFreshnessPaylo
     const mock = getMockFreshness();
     try {
       const live = await fetchOfficialContractsFallback("es");
-      const scoredDate = mock.latestContractDate;
-      const gap =
-        scoredDate && live.latestDate
-          ? Math.max(
-              0,
-              Math.round(
-                (new Date(`${live.latestDate}T00:00:00Z`).getTime() - new Date(`${scoredDate}T00:00:00Z`).getTime()) /
-                  86_400_000,
-              ),
-            )
-          : mock.sourceFreshnessGapDays ?? null;
-
       return {
         ...mock,
+        latestContractDate: live.latestDate ?? mock.latestContractDate,
         sourceLatestContractDate: live.latestDate,
         sourceRows: live.sourceRows,
         sourceUpdatedAt: live.sourceUpdatedAt,
-        sourceFreshnessGapDays: gap,
+        sourceFreshnessGapDays: live.latestDate ? 0 : mock.sourceFreshnessGapDays ?? null,
         liveFeed: {
           latestDate: live.latestDate,
           rowsAtSource: live.sourceRows,

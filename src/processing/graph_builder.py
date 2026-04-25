@@ -188,12 +188,15 @@ def build_network_graph(cache_key: str, lang: str = "es") -> dict[str, Any]:
     provider_count = sum(1 for n in nodes if n.get("type") == "provider")
     total_value = float(edge_agg["total_monto"].sum())
 
+    risk_edge_count = sum(1 for e in edges if e.get("risk_max", 0) >= 0.70)
+
     meta = {
         "version": cache_key,
         "built_at": datetime.now(UTC).isoformat(),
         "entity_count": entity_count,
         "provider_count": provider_count,
         "edge_count": len(edges),
+        "risk_edge_count": risk_edge_count,
         "total_value": total_value,
     }
     try:
@@ -204,8 +207,8 @@ def build_network_graph(cache_key: str, lang: str = "es") -> dict[str, Any]:
         log.warning("graph_builder: could not write meta — %s", exc)
 
     log.info(
-        "graph_builder: done — %d nodes (%d entities, %d providers), %d edges",
-        len(nodes), entity_count, provider_count, len(edges),
+        "graph_builder: done — %d nodes (%d entities, %d providers), %d edges (%d risk)",
+        len(nodes), entity_count, provider_count, len(edges), risk_edge_count,
     )
 
     return {
@@ -216,6 +219,7 @@ def build_network_graph(cache_key: str, lang: str = "es") -> dict[str, Any]:
         "entity_count": entity_count,
         "provider_count": provider_count,
         "edge_count": len(edges),
+        "risk_edge_count": risk_edge_count,
         "total_value": total_value,
         "source": "live",
     }
@@ -325,4 +329,4 @@ def get_stored_version() -> dict[str, Any]:
 
 def current_cache_key() -> str:
     """Return the cache key for the current hour."""
-    return datetime.utcnow().strftime("%Y-%m-%d-%H")
+    return datetime.now(UTC).strftime("%Y-%m-%d-%H")

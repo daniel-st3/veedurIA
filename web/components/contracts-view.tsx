@@ -983,7 +983,22 @@ export function ContractsView({
                 </div>
               ) : null}
             </div>
-          ) : null}
+          ) : (
+            <div className="cv-status-banner cv-status-banner--live" role="status">
+              <div className="cv-status-banner__copy">
+                <strong>
+                  {lang === "es"
+                    ? `Scoring visible sincronizado al ${latestScoredDate}.`
+                    : `Visible scoring synced through ${latestScoredDate}.`}
+                </strong>
+                <span>
+                  {lang === "es"
+                    ? `La brecha actual es cero. La lectura usa la fuente oficial SECOP más reciente disponible (${latestSourceDate}) y recalcula el tablero con cada corte.`
+                    : `Current gap is zero. The view uses the latest available official SECOP source (${latestSourceDate}) and recalculates this board for every slice.`}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="cv-workbench">
             <section className="cv-control-panel surface-soft">

@@ -286,6 +286,9 @@ export async function getVotometroDirectory(filtersInput: SearchParamInput | Vot
 
     const items = (data as DirectoryRow[]).map(itemFromDirectoryRow);
     const optionsSource = [...items];
+    const { count: publicVotesCount } = await supabase
+      .from("votometro_vote_records_public")
+      .select("id", { count: "exact", head: true });
 
     const filtered = items
       .filter((item) =>
@@ -321,6 +324,8 @@ export async function getVotometroDirectory(filtersInput: SearchParamInput | Vot
     const coherenceValues = filtered
       .map((item) => item.coherenceScore)
       .filter((value): value is number => typeof value === "number");
+    const directoryIndexedVotes = filtered.reduce((sum, item) => sum + item.votesIndexed, 0);
+    const indexedVotes = typeof publicVotesCount === "number" && publicVotesCount > 0 ? publicVotesCount : directoryIndexedVotes;
 
     return {
       meta: {
@@ -329,7 +334,7 @@ export async function getVotometroDirectory(filtersInput: SearchParamInput | Vot
         pageSize: filters.pageSize,
         pageCount,
         activeLegislators: filtered.length,
-        indexedVotes: filtered.reduce((sum, item) => sum + item.votesIndexed, 0),
+        indexedVotes,
         averageCoherence: coherenceValues.length
           ? Math.round(coherenceValues.reduce((sum, value) => sum + value, 0) / coherenceValues.length)
           : null,

@@ -72,8 +72,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_PROCESSED = PROJECT_ROOT / "data" / "processed"
 LAST_RUN_PATH = DATA_PROCESSED / "last_run.json"
 
-# Backfill date range
-BACKFILL_START_YEAR = 2026
+# Backfill date range — covers SECOP II history from its public launch year
+BACKFILL_START_YEAR = 2018
 BACKFILL_END_YEAR = 2026
 
 

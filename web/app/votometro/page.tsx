@@ -97,17 +97,19 @@ export default async function VotometroPage({
 }) {
   const params = await searchParams;
   const lang = resolveLang(Array.isArray(params.lang) ? params.lang[0] : params.lang);
+  const requestedPageSize = Array.isArray(params.page_size) ? params.page_size[0] : params.page_size;
+  const directoryParams = requestedPageSize ? params : { ...params, page_size: "60" };
   const emptyPayload = {
-    meta: { total: 0, page: 1, pageSize: 24, pageCount: 1, activeLegislators: 0, indexedVotes: 0, averageCoherence: null, generatedAt: new Date().toISOString() },
+    meta: { total: 0, page: 1, pageSize: 60, pageCount: 1, activeLegislators: 0, indexedVotes: 0, averageCoherence: null, generatedAt: new Date().toISOString() },
     issue: null,
-    filters: { page: 1, pageSize: 24 },
+    filters: { page: 1, pageSize: 60 },
     options: { parties: [], circunscriptions: [], commissions: [] },
     items: [],
   } as Awaited<ReturnType<typeof getVotometroDirectory>>;
 
   // Run both data fetches in parallel with a timeout so navigation is never blocked.
   const [payload, partyPayload] = await Promise.all([
-    raceTimeout(getVotometroDirectory(params), emptyPayload),
+    raceTimeout(getVotometroDirectory(directoryParams), emptyPayload),
     getPartySummariesPayload().catch(() => ({ items: [] as PartySummary[] })),
   ]);
 
@@ -123,13 +125,14 @@ export default async function VotometroPage({
         item.topTopics.length > 0 ||
         item.topicScores.length > 0,
     );
+  const hasPublicDirectory = !payload.issue && payload.meta.activeLegislators > 0 && payload.items.length > 0;
 
   let parties = derivePartySummaries(payload.items);
   if (partyPayload.items.length) {
     parties = partyPayload.items;
   }
 
-  if (!forceLive && !hasMeaningfulLiveCoverage) {
+  if (!forceLive && !hasMeaningfulLiveCoverage && !hasPublicDirectory) {
     return (
       <VotometroFallback
         lang={lang}
