@@ -1,3 +1,5 @@
+import { LoadingStage } from "@/components/loading-stage";
+
 export default function SigueElDineroLoading() {
   return (
     <div className="sed-page">
@@ -14,9 +16,7 @@ export default function SigueElDineroLoading() {
         </span>
       </nav>
       <section className="sed-hero" style={{ padding: "2rem" }}>
-        <div className="skeleton skeleton--pill" style={{ width: 160, marginBottom: 16 }} />
-        <div className="skeleton skeleton--title" style={{ width: "50%", marginBottom: 10 }} />
-        <div className="skeleton skeleton--line" style={{ width: "70%" }} />
+        <LoadingStage lang="es" context="network" />
       </section>
     </div>
   );

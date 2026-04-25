@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalLink, Network, TrendingUp, Activity } from "lucide-react";
+import { LoadingStage } from "@/components/loading-stage";
 import type { NetworkNode, NetworkNodeDetail } from "@/lib/network/types";
 import { hhiColor, hhiBarWidth } from "@/lib/network/buildNodes";
 import { sigueDineroCopy } from "@/lib/copy";
@@ -102,7 +103,7 @@ export function NodePanel({ node, detail, isLoading, lang, onExpand, isExpanding
       {/* Top connections */}
       {isLoading && (
         <div className="sed-node-loading">
-          <span className="sed-spinner sed-spinner--sm" />
+          <LoadingStage lang={lang} context="node" compact inline />
         </div>
       )}
 

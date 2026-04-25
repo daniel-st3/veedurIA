@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { usePathname } from "next/navigation";
+import { Languages } from "lucide-react";
 
 import { LanguageSwitch } from "@/components/language-switch";
 import type { Lang } from "@/lib/types";
@@ -60,6 +61,15 @@ export function SiteNav({ lang, links }: SiteNavProps) {
       </div>
 
       <div className="nav-actions">
+        <span className="language-hint" aria-label="Language selector hint">
+          <span className="language-hint__orb" />
+          <span className="language-hint__text">Language / Idioma</span>
+          <span className="language-hint__track" aria-hidden="true">
+            <span>ES</span>
+            <span>EN</span>
+          </span>
+          <Languages size={13} strokeWidth={1.8} />
+        </span>
         <Suspense fallback={<span style={{ width: 52 }} />}>
           <LanguageSwitch lang={lang} />
         </Suspense>

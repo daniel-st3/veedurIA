@@ -7,7 +7,13 @@ export function middleware(request: NextRequest) {
   if (pathname.includes("](http:") || pathname.includes("localhost:3001")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
-    url.search = "";
+    url.search = "?lang=es";
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname === "/" && !request.nextUrl.searchParams.has("lang")) {
+    const url = request.nextUrl.clone();
+    url.searchParams.set("lang", "es");
     return NextResponse.redirect(url);
   }
 

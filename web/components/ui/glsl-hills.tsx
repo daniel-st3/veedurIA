@@ -144,8 +144,9 @@ export function GLSLHills({ speed = 0.35, cameraZ = 118, planeSize = 256, classN
       }
 
       createMesh(): THREE.Mesh {
+        const segments = Math.min(Math.max(Math.round(planeSize / 2.5), 32), 72);
         return new THREE.Mesh(
-          new THREE.PlaneGeometry(planeSize, planeSize, planeSize, planeSize),
+          new THREE.PlaneGeometry(planeSize, planeSize, segments, segments),
           new THREE.RawShaderMaterial({
             uniforms: this.uniforms,
             vertexShader: VERTEX_SHADER,
@@ -167,6 +168,7 @@ export function GLSLHills({ speed = 0.35, cameraZ = 118, planeSize = 256, classN
     const clock = new THREE.Clock();
     const plane = new Plane();
     let animId = 0;
+    let isVisible = true;
 
     const resize = () => {
       const { width, height } = container.getBoundingClientRect();
@@ -178,7 +180,7 @@ export function GLSLHills({ speed = 0.35, cameraZ = 118, planeSize = 256, classN
     };
 
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 1.5));
+    renderer.setPixelRatio(Math.min(typeof window !== "undefined" ? window.devicePixelRatio : 1, 1));
     camera.position.set(0, 12, cameraZ);
     camera.lookAt(new THREE.Vector3(0, 22, 0));
     scene.add(plane.mesh);
@@ -186,6 +188,10 @@ export function GLSLHills({ speed = 0.35, cameraZ = 118, planeSize = 256, classN
 
     const loop = () => {
       animId = requestAnimationFrame(loop);
+      if (document.hidden || !isVisible) {
+        clock.getDelta();
+        return;
+      }
       plane.tick(clock.getDelta());
       renderer.render(scene, camera);
     };
@@ -193,11 +199,22 @@ export function GLSLHills({ speed = 0.35, cameraZ = 118, planeSize = 256, classN
 
     const ro = new ResizeObserver(resize);
     ro.observe(container);
+    const io = new IntersectionObserver(([entry]) => {
+      isVisible = Boolean(entry?.isIntersecting);
+    }, { rootMargin: "160px" });
+    io.observe(container);
 
     return () => {
       cancelAnimationFrame(animId);
       ro.disconnect();
+      io.disconnect();
       renderer.dispose();
+      plane.mesh.geometry.dispose();
+      if (Array.isArray(plane.mesh.material)) {
+        plane.mesh.material.forEach((material) => material.dispose());
+      } else {
+        plane.mesh.material.dispose();
+      }
     };
   }, [cameraZ, planeSize, speed]);
 

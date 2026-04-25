@@ -22,6 +22,7 @@ import {
 
 import { ColombiaMap } from "@/components/colombia-map";
 import { ContractsDashboard } from "@/components/contracts-dashboard";
+import { LoadingStage } from "@/components/loading-stage";
 import { NoticeStack, type NoticeItem } from "@/components/notice-stack";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -132,13 +133,11 @@ const MODEL_GROUPS = {
   ],
 };
 
-function ContractsLoading() {
+function ContractsLoading({ lang }: { lang: Lang }) {
   return (
     <main className="page cv-page">
-      <section className="surface stripe-flag" style={{ marginTop: "1.2rem", padding: "2rem" }}>
-        <div className="skeleton skeleton--pill" style={{ width: 180, marginBottom: 16 }} />
-        <div className="skeleton skeleton--title" style={{ width: "62%", marginBottom: 10 }} />
-        <div className="skeleton skeleton--line" style={{ width: "78%" }} />
+      <section className="surface stripe-flag" style={{ marginTop: "1.2rem", padding: "1.2rem" }}>
+        <LoadingStage lang={lang} context="contracts" compact />
       </section>
     </main>
   );
@@ -875,7 +874,7 @@ export function ContractsView({
             { href: `/sigue-el-dinero?lang=${lang}`, label: copy.navPhase3 },
           ]}
         />
-        <ContractsLoading />
+        <ContractsLoading lang={lang} />
       </div>
     );
   }
@@ -1588,7 +1587,7 @@ export function ContractsView({
             </div>
 
             {tableLoading ? (
-              <div className="surface-soft" style={{ padding: "1.2rem", textAlign: "center" }}>{copy.loading}</div>
+              <LoadingStage lang={lang} context="table" compact />
             ) : (
               <div className="cv-sandbox-groups">
                 {explorerGroups.slice(0, 6).map((group) => (
