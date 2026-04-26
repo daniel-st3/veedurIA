@@ -368,14 +368,16 @@ export function NetworkCanvas({
 
       if (isSelectedEdge) return "#c62839";
       if (selectedNodeId) {
-        return touchesFocusedNode ? "rgba(13,91,215,0.52)" : "rgba(23,32,51,0.12)";
+        return touchesFocusedNode ? "rgba(13,91,215,0.55)" : "rgba(23,32,51,0.08)";
       }
       if (focusedNodeId) {
-        return touchesFocusedNode ? "rgba(13,91,215,0.5)" : "rgba(23,32,51,0.08)";
+        return touchesFocusedNode ? "rgba(13,91,215,0.55)" : "rgba(23,32,51,0.06)";
       }
-      if (link.confidence >= 80) return "rgba(10,122,78,0.44)";
-      if (link.confidence >= 60) return "rgba(184,133,5,0.42)";
-      return "rgba(198,40,57,0.36)";
+      // Reference-image style: monochrome thin grey edges.
+      // Confidence bumps the alpha rather than swapping hue — keeps the canvas calm.
+      if (link.confidence >= 80) return "rgba(23,32,51,0.32)";
+      if (link.confidence >= 60) return "rgba(23,32,51,0.22)";
+      return "rgba(23,32,51,0.14)";
     },
     [focusedNodeId, selectedEdgeId, selectedNodeId],
   );
@@ -451,7 +453,11 @@ export function NetworkCanvas({
         nodePointerAreaPaint={paintPointerArea}
         linkWidth={(link: any) => {
           const baseWidth = edgeWidth(link as NetworkEdge);
-          return selectedNodeId ? Math.min(baseWidth * 1.35, 3.6) : Math.max(baseWidth * 1.25, 1.25);
+          // Thin lines by default to match the reference network look;
+          // selected/focused edges still stand out via colour.
+          return selectedNodeId
+            ? Math.min(baseWidth * 1.1, 2.4)
+            : Math.max(baseWidth * 0.55, 0.45);
         }}
         linkColor={getLinkColor}
         linkCurvature={() => (selectedNodeId ? 0.08 : 0.03)}

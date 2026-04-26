@@ -461,17 +461,29 @@ export function LandingPage({
 
       gsap.fromTo(
         ".lp-hero__story-panel",
-        { autoAlpha: 0, y: 90, scale: 0.976 },
+        { autoAlpha: 0, y: -30, scale: 0.976 },
         {
           autoAlpha: 1,
           y: 0,
           scale: 1,
-          duration: 0.95,
+          duration: 1.1,
           ease: "power4.out",
-          onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); },
-          scrollTrigger: { trigger: ".lp-hero__story-panel", start: "top 82%" },
+          delay: 0.85,
         },
       );
+
+      /* ── STORY-PANEL: slide down on scroll to fill the gap above stats ── */
+      const panelTravel = Math.min(220, Math.max(120, window.innerHeight * 0.18));
+      gsap.to(".lp-hero__story-panel", {
+        y: panelTravel,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".lp-hero",
+          start: "top top",
+          end: "bottom top",
+          scrub: 0.8,
+        },
+      });
 
       gsap.fromTo(
         ".lp-hero__scroll-cue",
@@ -921,34 +933,37 @@ export function LandingPage({
                     : "Created by Daniel Steven Rodríguez Sandoval"}
                 </p>
               </div>
+            </div>
 
-              <div className="lp-hero__story-panel">
-                <div className="lp-story__live" aria-label={lang === "es" ? "Datos en vivo" : "Live data"}>
-                  <span className="lp-story__live-dot" aria-hidden="true" />
-                  {lang === "es" ? "Datos públicos en tiempo real" : "Live public data"}
-                </div>
+            {/* Story panel — direct child of lp-hero__stage so its absolute
+                positioning anchors to the stage and overlaps the seam between
+                the hero (mountains) and the story (stats) section. */}
+            <div className="lp-hero__story-panel">
+              <div className="lp-story__live" aria-label={lang === "es" ? "Datos en vivo" : "Live data"}>
+                <span className="lp-story__live-dot" aria-hidden="true" />
+                {lang === "es" ? "Datos públicos en tiempo real" : "Live public data"}
+              </div>
 
-                <p className="lp-hero__story-body">
-                  {lang === "es"
-                    ? "Contratos con señales de riesgo, votos cruzados con programas legislativos y redes de financiación, todo trazado desde la fuente oficial. Sin intermediarios."
-                    : "Contracts with risk signals, votes crossed with legislative programmes, and financing networks, all traced from the official source. No intermediaries."}
-                </p>
+              <p className="lp-hero__story-body">
+                {lang === "es"
+                  ? "Contratos con señales de riesgo, votos cruzados con programas legislativos y redes de financiación, todo trazado desde la fuente oficial. Sin intermediarios."
+                  : "Contracts with risk signals, votes crossed with legislative programmes, and financing networks, all traced from the official source. No intermediaries."}
+              </p>
 
-                <div className="lp-hero__story-actions">
-                  {features.map((feature) => (
-                    <Link
-                      key={`hero-${feature.title}`}
-                      href={feature.href}
-                      className={`lp-hero__story-chip lp-hero__story-chip--${feature.tone}`}
-                    >
-                      <span className="lp-hero__story-chip-copy">
-                        <strong>{feature.title}</strong>
-                        <span>{feature.kicker}</span>
-                      </span>
-                      <ArrowRight size={14} aria-hidden={true} />
-                    </Link>
-                  ))}
-                </div>
+              <div className="lp-hero__story-actions">
+                {features.map((feature) => (
+                  <Link
+                    key={`hero-${feature.title}`}
+                    href={feature.href}
+                    className={`lp-hero__story-chip lp-hero__story-chip--${feature.tone}`}
+                  >
+                    <span className="lp-hero__story-chip-copy">
+                      <strong>{feature.title}</strong>
+                      <span>{feature.kicker}</span>
+                    </span>
+                    <ArrowRight size={14} aria-hidden={true} />
+                  </Link>
+                ))}
               </div>
             </div>
 
@@ -1147,8 +1162,80 @@ export function LandingPage({
 
               <div className="lp-signal__pulse">
                 <span>{signalData.pulseLabel}</span>
-                <strong>{signalData.pulseTitle}</strong>
+                <strong className="lp-signal__pulse-title">{signalData.pulseTitle}</strong>
                 <p>{signalData.pulseBody}</p>
+
+                {/* Live network visualization — three layers crossing */}
+                <svg
+                  className="lp-signal__pulse-viz"
+                  viewBox="0 0 320 320"
+                  aria-hidden="true"
+                  role="img"
+                >
+                  <defs>
+                    <radialGradient id="lp-pulse-glow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="rgba(245,197,24,0.45)" />
+                      <stop offset="60%" stopColor="rgba(13,91,215,0.18)" />
+                      <stop offset="100%" stopColor="rgba(198,40,57,0)" />
+                    </radialGradient>
+                    <linearGradient id="lp-pulse-edge" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="rgba(245,197,24,0.55)" />
+                      <stop offset="55%" stopColor="rgba(13,91,215,0.55)" />
+                      <stop offset="100%" stopColor="rgba(198,40,57,0.55)" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="160" cy="160" r="120" fill="url(#lp-pulse-glow)" />
+                  <circle cx="160" cy="160" r="116" fill="none" stroke="rgba(255,255,255,.06)" strokeDasharray="2 8" />
+                  <circle cx="160" cy="160" r="78"  fill="none" stroke="rgba(255,255,255,.08)" strokeDasharray="3 6" />
+                  <circle cx="160" cy="160" r="42"  fill="none" stroke="rgba(255,255,255,.10)" />
+                  {/* Edges */}
+                  <g stroke="url(#lp-pulse-edge)" strokeWidth="1.1" fill="none" opacity="0.85">
+                    <line x1="60"  y1="80"  x2="160" y2="160" />
+                    <line x1="260" y1="60"  x2="160" y2="160" />
+                    <line x1="40"  y1="200" x2="160" y2="160" />
+                    <line x1="280" y1="220" x2="160" y2="160" />
+                    <line x1="100" y1="280" x2="160" y2="160" />
+                    <line x1="220" y1="285" x2="160" y2="160" />
+                    <line x1="60"  y1="80"  x2="260" y2="60"  />
+                    <line x1="40"  y1="200" x2="100" y2="280" />
+                    <line x1="280" y1="220" x2="220" y2="285" />
+                  </g>
+                  {/* Outer nodes */}
+                  <g>
+                    <circle cx="60"  cy="80"  r="6" fill="#f5c518" />
+                    <circle cx="260" cy="60"  r="5" fill="#f5c518" />
+                    <circle cx="40"  cy="200" r="5" fill="#0d5bd7" />
+                    <circle cx="280" cy="220" r="6" fill="#0d5bd7" />
+                    <circle cx="100" cy="280" r="5" fill="#c62839" />
+                    <circle cx="220" cy="285" r="6" fill="#c62839" />
+                  </g>
+                  {/* Center hub */}
+                  <circle cx="160" cy="160" r="11" fill="#fff" opacity="0.96" />
+                  <circle cx="160" cy="160" r="5"  fill="#0d5bd7" />
+                  {/* Pulsing ring */}
+                  <circle
+                    cx="160" cy="160" r="42"
+                    fill="none" stroke="rgba(245,197,24,0.7)" strokeWidth="1.4"
+                    style={{ transformOrigin: "160px 160px", animation: "lp-pulse-ring 3.6s ease-out infinite" }}
+                  />
+                  <circle
+                    cx="160" cy="160" r="42"
+                    fill="none" stroke="rgba(13,91,215,0.55)" strokeWidth="1.2"
+                    style={{ transformOrigin: "160px 160px", animation: "lp-pulse-ring 3.6s ease-out 1.2s infinite" }}
+                  />
+                  <circle
+                    cx="160" cy="160" r="42"
+                    fill="none" stroke="rgba(198,40,57,0.5)" strokeWidth="1"
+                    style={{ transformOrigin: "160px 160px", animation: "lp-pulse-ring 3.6s ease-out 2.4s infinite" }}
+                  />
+                </svg>
+
+                {/* Mini metric strip below the viz */}
+                <div className="lp-signal__pulse-metrics" aria-hidden="true">
+                  <span><i style={{ background: "#f5c518" }} />{signalData.metrics.contracts}</span>
+                  <span><i style={{ background: "#0d5bd7" }} />{signalData.metrics.votes}</span>
+                  <span><i style={{ background: "#c62839" }} />{signalData.metrics.money}</span>
+                </div>
               </div>
             </div>
           </div>

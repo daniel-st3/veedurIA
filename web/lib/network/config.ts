@@ -24,8 +24,8 @@ export const networkConfig = {
       color: "#0d5bd7",
       selectedColor: "#c62839",
       hoverColor: "#2f7cff",
-      minRadiusPx: 5,
-      maxRadiusPx: 18,
+      minRadiusPx: 2.2,
+      maxRadiusPx: 11,
     },
     {
       type: "provider" as NodeType,
@@ -33,8 +33,8 @@ export const networkConfig = {
       color: "#0a7a4e",
       selectedColor: "#c62839",
       hoverColor: "#0fa869",
-      minRadiusPx: 4,
-      maxRadiusPx: 14,
+      minRadiusPx: 1.8,
+      maxRadiusPx: 8,
     },
     {
       type: "cluster" as NodeType,
@@ -42,8 +42,8 @@ export const networkConfig = {
       color: "#6d28d9",
       selectedColor: "#c62839",
       hoverColor: "#8b5cf6",
-      minRadiusPx: 8,
-      maxRadiusPx: 19,
+      minRadiusPx: 4,
+      maxRadiusPx: 12,
     },
     // Future node types — add here without touching UI components:
     // { type: "politician", label: { es: "Político", en: "Politician" }, color: "#f97316", ... },
@@ -74,20 +74,20 @@ export const networkConfig = {
 
   canvas: {
     maxNodes: 300,
-    initialHubs: 14,           // start with a lighter frame so the first read feels intentional, not crowded
+    initialHubs: 28,           // denser first read — more entry points, true network feel
     expandLimit: 48,
     backgroundColor: "rgba(0,0,0,0)",
     physics: {
-      alphaDecay: 0.028,       // fast settling — sim reaches equilibrium in ~3s instead of 15s
-      velocityDecay: 0.40,     // standard D3 damping — eliminates jitter after settle
-      cooldownTicks: 200,      // enough ticks for full convergence with new decay
-      chargeStrength: -560,    // wider default field; lets the graph breathe even when cropped
-      linkDistance: 270,       // more separation between connected nodes for a playable first view
-      collisionPadding: 24,    // keeps labels and dots from stacking in the zoomed-in view
+      alphaDecay: 0.028,
+      velocityDecay: 0.42,
+      cooldownTicks: 240,
+      chargeStrength: -180,    // softer repulsion — nodes cluster like the reference image
+      linkDistance: 70,        // tight links — dense, web-like canvas
+      collisionPadding: 4,     // let small nodes pack close together
     },
-    labelZoomThreshold: 1.5,   // show labels earlier
-    hubLabelZoomThreshold: 0.7, // hub labels visible at any reasonable zoom
-    labelMaxLength: 26,        // allow longer names before truncating
+    labelZoomThreshold: 2.4,   // labels appear only when zoomed in (cleaner default view)
+    hubLabelZoomThreshold: 1.4,
+    labelMaxLength: 26,
   },
 
   cache: {

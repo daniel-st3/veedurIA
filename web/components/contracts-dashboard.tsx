@@ -430,13 +430,24 @@ export function ContractsDashboard({
       parents.push("Contratos");
       values.push(modTotal);
       colors.push(CHART_PALETTE[index % CHART_PALETTE.length]);
-      Object.entries(entities).slice(0, 5).forEach(([ent, count]) => {
+      const sortedEntities = Object.entries(entities).sort((a, b) => b[1] - a[1]);
+      const top = sortedEntities.slice(0, 8);
+      const tail = sortedEntities.slice(8);
+      top.forEach(([ent, count], entIdx) => {
         ids.push(`${mod}::${ent}`);
         labels.push(ent);
         parents.push(mod);
         values.push(count);
-        colors.push(CHART_PALETTE[2]);
+        colors.push(CHART_PALETTE[(index + entIdx + 2) % CHART_PALETTE.length]);
       });
+      if (tail.length) {
+        const tailTotal = tail.reduce((sum, [, c]) => sum + c, 0);
+        ids.push(`${mod}::__rest__`);
+        labels.push(lang === "es" ? `Otras (${tail.length})` : `Other (${tail.length})`);
+        parents.push(mod);
+        values.push(tailTotal);
+        colors.push("rgba(120,120,130,0.42)");
+      }
     });
     values[0] = Object.values(grouped).reduce(
       (sum, entities) => sum + Object.values(entities).reduce((innerSum, count) => innerSum + count, 0),
@@ -450,12 +461,21 @@ export function ContractsDashboard({
         parents,
         values,
         branchvalues: "total",
-        marker: { colors, line: { color: "rgba(248,249,250,0.9)", width: 2 } },
-        textfont: { size: 13, color: "#1e1c17" },
+        marker: {
+          colors,
+          line: { color: "rgba(248,249,250,1)", width: 2 },
+          pad: { t: 32, l: 6, r: 6, b: 6 },
+        },
+        textinfo: "label+value",
+        textposition: "middle center",
+        textfont: { size: 15, color: "#1e1c17", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
+        outsidetextfont: { size: 14, color: "#1e1c17" },
+        insidetextfont: { size: 14, color: "#1e1c17" },
         hovertemplate:
           lang === "es"
             ? "<b>%{label}</b><br>%{value} contratos<extra></extra>"
             : "<b>%{label}</b><br>%{value} contracts<extra></extra>",
+        pathbar: { visible: true, thickness: 22, textfont: { size: 12, color: "#1e1c17" } },
       },
     ];
   }, [lang, modalityMix, rows]);
