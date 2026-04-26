@@ -6794,12 +6794,17 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
     var(--cream);
 }
 
+.lp-hero {
+  position: relative;
+  z-index: 2;
+}
 .lp-hero__stage {
   position: relative;
-  min-height: clamp(960px, calc(118svh - var(--nav-h)), 1220px);
+  min-height: clamp(820px, calc(98svh - var(--nav-h)), 1080px);
   display: flex;
   align-items: center;
-  padding: clamp(5rem, 7vw, 7rem) var(--page-px) clamp(6.5rem, 10vw, 9rem);
+  padding: clamp(4rem, 6vw, 6rem) var(--page-px) clamp(3rem, 5vw, 5rem);
+  overflow: visible;
 }
 
 .lp-hero__stage::before {
@@ -6819,11 +6824,10 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   position: absolute;
   inset: auto 0 0;
   z-index: 1;
-  height: 50%;
+  height: 38%;
   pointer-events: none;
   background:
-    linear-gradient(180deg, transparent 0%, rgba(220,229,216,.08) 24%, rgba(91,118,99,.2) 72%, rgba(62,84,69,.26) 100%);
-  clip-path: polygon(0 12%, 18% 5%, 44% 14%, 68% 4%, 100% 13%, 100% 100%, 0 100%);
+    linear-gradient(180deg, transparent 0%, rgba(220,229,216,.06) 30%, rgba(245,240,228,.62) 78%, rgba(245,240,228,1) 100%);
 }
 
 .lp-hero__inner {
@@ -7031,11 +7035,15 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 
 /* Story panel — scroll-revealed, sits at bottom of hero */
 .lp-hero__story-panel {
-  position: relative;
-  margin-top: clamp(5.5rem, 12vh, 9rem);
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  bottom: clamp(-110px, -10vh, -70px);
+  z-index: 5;
+  margin-top: 0;
   padding: clamp(1.25rem, 2.4vw, 2rem);
-  width: 100%;
-  max-width: 960px;
+  width: min(94%, 960px);
   display: grid;
   grid-template-columns: 1fr;
   gap: clamp(1rem, 2.2vw, 1.65rem);
@@ -7043,14 +7051,16 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   justify-items: center;
   text-align: center;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.74), rgba(255,255,255,.58)),
-    rgba(247,243,234,.72);
-  border: 1px solid rgba(255,255,255,.82);
+    linear-gradient(180deg, rgba(255,255,255,.96), rgba(252,249,243,.94));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,.92);
   border-radius: var(--r-xl);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.84),
-    0 24px 64px rgba(30,45,69,.1);
-  transform: translate3d(calc(var(--pointer-x) * 6px), calc(var(--pointer-y) * 5px), 0);
+    inset 0 1px 0 rgba(255,255,255,.96),
+    0 30px 72px rgba(30,45,69,.16),
+    0 8px 24px rgba(30,45,69,.08);
+  will-change: transform;
 }
 
 .lp-story__live {
@@ -7161,17 +7171,13 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 /* ── STORY STATS (below hero) ──────────────────────────────────────────────── */
 .lp-story {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   background:
     linear-gradient(180deg, rgba(245,240,228,1) 0%, rgba(237,232,218,1) 100%);
-  padding: clamp(5rem, 8vw, 7.5rem) var(--page-px) clamp(3.5rem, 6vw, 5rem);
+  padding: clamp(8rem, 14vw, 12rem) var(--page-px) clamp(3.5rem, 6vw, 5rem);
 }
 .lp-story::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(12,19,34,.16), transparent);
+  content: none;
 }
 .lp-story__inner {
   position: relative;
@@ -7664,17 +7670,7 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 28px 80px rgba(13,91,215,.08);
 }
 .lp-signal__pulse::before {
-  content: "";
-  position: absolute;
-  inset: 1rem 1rem auto auto;
-  width: 86px;
-  height: 86px;
-  border: 1px solid rgba(245,197,24,.22);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 18px rgba(13,91,215,.06),
-    0 0 0 42px rgba(198,40,57,.035);
-  opacity: .72;
+  content: none;
 }
 .lp-signal__pulse::after {
   content: "";
@@ -7704,13 +7700,62 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   background: var(--yellow);
   animation: livepulse 2s ease-in-out infinite;
 }
-.lp-signal__pulse > strong {
+.lp-signal__pulse > strong,
+.lp-signal__pulse-title {
   position: relative;
   z-index: 1;
   font-family: "Sora", sans-serif;
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: clamp(1.3rem, 1.8vw, 1.7rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.18;
   color: var(--white);
+  text-align: center;
+  align-self: center;
+  max-width: 22ch;
+  text-wrap: balance;
+}
+.lp-signal__pulse {
+  align-items: center;
+  text-align: center;
+}
+.lp-signal__pulse > p { text-align: center; max-width: 32ch; }
+.lp-signal__pulse > span { align-self: center; }
+.lp-signal__pulse-viz {
+  position: relative;
+  z-index: 1;
+  width: clamp(220px, 80%, 320px);
+  height: auto;
+  margin: 0.4rem auto 0.2rem;
+  display: block;
+}
+@keyframes lp-pulse-ring {
+  0%   { transform: scale(0.6); opacity: 0.85; }
+  80%  { transform: scale(1.85); opacity: 0; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
+.lp-signal__pulse-metrics {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem 1.1rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.62);
+  letter-spacing: 0.04em;
+}
+.lp-signal__pulse-metrics span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.lp-signal__pulse-metrics i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
 }
 .lp-signal__pulse > p {
   position: relative;
@@ -8175,6 +8220,7 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 
   .lp-hero__story-panel {
     max-width: 760px;
+    width: min(94%, 760px);
     text-align: center;
   }
 
@@ -8241,8 +8287,16 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   }
 
   .lp-hero__story-panel {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin-inline: auto;
+    transform: none;
     grid-template-columns: 1fr;
-    margin-top: clamp(10rem, 22vh, 13rem);
+    margin-top: clamp(2rem, 6vh, 3rem);
+    width: 100%;
+    max-width: 100%;
     border-radius: var(--r-lg);
     text-align: center;
   }

@@ -17,9 +17,11 @@ import type { NetworkNode, NodeType } from "./types";
  */
 export function nodeRadius(node: NetworkNode): number {
   const cfg = networkConfig.nodeTypes.find((t) => t.type === node.type);
-  const min = cfg?.minRadiusPx ?? 4;
-  const max = cfg?.maxRadiusPx ?? 18;
-  const scale = Math.log1p(node.total_value / 1e8) * 2.5;
+  const min = cfg?.minRadiusPx ?? 2;
+  const max = cfg?.maxRadiusPx ?? 11;
+  // Tighter log scale → most nodes stay small (reference image: many tiny dots,
+  // a few hubs that grow naturally with their value).
+  const scale = Math.log1p(node.total_value / 1e8) * 1.4;
   return Math.max(min, Math.min(max, scale));
 }
 
