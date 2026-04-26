@@ -16,14 +16,15 @@ import { deptDisplayLabel } from "@/lib/colombia-departments";
 import type { Lang, OverviewPayload } from "@/lib/types";
 import type { VotometroLandingStats } from "@/lib/votometro-types";
 
-// Heavy bundles deferred — Three.js (~400KB) and D3 geo not in initial JS parse
-const GLSLHills = dynamic(
-  () => import("@/components/ui/glsl-hills").then((m) => ({ default: m.GLSLHills })),
-  { ssr: false, loading: () => <div style={{ width: "100%", height: "100%" }} /> },
-);
+// Heavy D3 geo stays out of the initial JS parse.
 const ColombiaMap = dynamic(
   () => import("@/components/colombia-map").then((m) => ({ default: m.ColombiaMap })),
   { ssr: false },
+);
+
+const GLSLHills = dynamic(
+  () => import("@/components/ui/glsl-hills").then((m) => ({ default: m.GLSLHills })),
+  { ssr: false, loading: () => <span className="lp-hero__hills-static" /> },
 );
 
 gsap.registerPlugin(ScrollTrigger);
@@ -264,6 +265,28 @@ function normalizeVotometroLandingStats(value: unknown): VotometroLandingStats |
   };
 }
 
+function scheduleLandingDataLoad(callback: () => void, timeout = 1400) {
+  if (typeof window === "undefined") return () => {};
+  const idleWindow = window as Window & typeof globalThis & {
+    requestIdleCallback?: (cb: IdleRequestCallback, options?: IdleRequestOptions) => number;
+    cancelIdleCallback?: (handle: number) => void;
+  };
+
+  let timeoutId: ReturnType<typeof globalThis.setTimeout> | null = null;
+  let idleId: number | null = null;
+
+  if (idleWindow.requestIdleCallback) {
+    idleId = idleWindow.requestIdleCallback(callback, { timeout });
+  } else {
+    timeoutId = globalThis.setTimeout(callback, timeout);
+  }
+
+  return () => {
+    if (idleId !== null && idleWindow.cancelIdleCallback) idleWindow.cancelIdleCallback(idleId);
+    if (timeoutId !== null) globalThis.clearTimeout(timeoutId);
+  };
+}
+
 export function LandingPage({
   lang,
   initialOverview,
@@ -280,53 +303,76 @@ export function LandingPage({
   const [geojson, setGeojson] = useState<any | null>(null);
   const [activeDepartment, setActiveDepartment] = useState(initialOverview.map.departments[0]?.geoName);
   const [hoveredDepartment, setHoveredDepartment] = useState<string | null>(null);
+  const [showHeroCanvas, setShowHeroCanvas] = useState(false);
 
   useEffect(() => {
-    let alive = true;
-    fetchOverview({ lang, full: false })
-      .then((data) => {
-        if (!alive) return;
-        setOverview(data);
-        setActiveDepartment((current) => current ?? data.map.departments[0]?.geoName);
-      })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [lang]);
-
-  useEffect(() => {
-    let alive = true;
-    fetchGeoJson()
-      .then((data) => { if (alive) setGeojson(data); })
-      .catch(() => {});
-    return () => { alive = false; };
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setTimeout(() => setShowHeroCanvas(true), 420);
+    return () => window.clearTimeout(id);
   }, []);
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/votometro/legislators?page=1&page_size=1", { cache: "no-store" })
-      .then(async (response) => {
-        const contentType = response.headers.get("content-type") ?? "";
-        if (!response.ok || !contentType.includes("application/json")) {
-          throw new Error("Votómetro summary unavailable");
-        }
-        return response.json();
-      })
-      .then((payload) => {
-        if (!alive) return;
-        const nextStats = normalizeVotometroLandingStats(payload);
-        if (!nextStats) return;
-        setVotometroStats((current) => {
-          const nextHasCoverage =
-            nextStats.available &&
-            (hasNumber(nextStats.indexedVotes) ? nextStats.indexedVotes > 0 : nextStats.averageCoherence !== null);
-          const currentHasCoverage =
-            current.available &&
-            (hasNumber(current.indexedVotes) ? current.indexedVotes > 0 : current.averageCoherence !== null);
-          return !nextHasCoverage && currentHasCoverage ? current : nextStats;
-        });
-      })
-      .catch(() => {});
-    return () => { alive = false; };
+    const cancel = scheduleLandingDataLoad(() => {
+      fetchOverview({ lang, full: false })
+        .then((data) => {
+          if (!alive) return;
+          setOverview(data);
+          setActiveDepartment((current) => current ?? data.map.departments[0]?.geoName);
+        })
+        .catch(() => {});
+    }, 2600);
+    return () => {
+      alive = false;
+      cancel();
+    };
+  }, [lang]);
+
+  useEffect(() => {
+    let alive = true;
+    const cancel = scheduleLandingDataLoad(() => {
+      fetchGeoJson()
+        .then((data) => { if (alive) setGeojson(data); })
+        .catch(() => {});
+    }, 3400);
+    return () => {
+      alive = false;
+      cancel();
+    };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const cancel = scheduleLandingDataLoad(() => {
+      fetch("/api/votometro/legislators?page=1&page_size=1", { cache: "no-store" })
+        .then(async (response) => {
+          const contentType = response.headers.get("content-type") ?? "";
+          if (!response.ok || !contentType.includes("application/json")) {
+            throw new Error("Votómetro summary unavailable");
+          }
+          return response.json();
+        })
+        .then((payload) => {
+          if (!alive) return;
+          const nextStats = normalizeVotometroLandingStats(payload);
+          if (!nextStats) return;
+          setVotometroStats((current) => {
+            const nextHasCoverage =
+              nextStats.available &&
+              (hasNumber(nextStats.indexedVotes) ? nextStats.indexedVotes > 0 : nextStats.averageCoherence !== null);
+            const currentHasCoverage =
+              current.available &&
+              (hasNumber(current.indexedVotes) ? current.indexedVotes > 0 : current.averageCoherence !== null);
+            return !nextHasCoverage && currentHasCoverage ? current : nextStats;
+          });
+        })
+        .catch(() => {});
+    }, 3000);
+    return () => {
+      alive = false;
+      cancel();
+    };
   }, []);
 
   useEffect(() => {
@@ -718,6 +764,19 @@ export function LandingPage({
         ? `${formatLandingNumber(votometroStats.activeLegislators, lang)} legisladores activos`
         : `${formatLandingNumber(votometroStats.activeLegislators, lang)} active legislators`
       : impactData.stats[1].sublabel;
+  const votometroIndexedValue =
+    votometroStats.available && hasNumber(votometroStats.indexedVotes) && votometroStats.indexedVotes > 0
+      ? votometroStats.indexedVotes
+      : null;
+  const votometroPrimaryValue =
+    votometroIndexedValue ??
+    (votometroStats.available && hasNumber(votometroStats.activeLegislators) ? votometroStats.activeLegislators : null);
+  const votometroPrimaryMetric =
+    votometroIndexedValue !== null
+      ? signalData.metrics.votes
+      : lang === "es"
+        ? "legisladores activos"
+        : "active legislators";
   const impactStats = [
     {
       ...impactData.stats[0],
@@ -725,7 +784,13 @@ export function LandingPage({
     },
     {
       ...impactData.stats[1],
-      value: formatLandingNumber(votometroStats.available ? votometroStats.indexedVotes : null, lang),
+      label:
+        votometroIndexedValue !== null
+          ? impactData.stats[1].label
+          : lang === "es"
+            ? "Legisladores en API pública"
+            : "Legislators in public API",
+      value: formatLandingNumber(votometroPrimaryValue, lang),
       sublabel: votometroCoverageSubLabel,
     },
     {
@@ -754,8 +819,8 @@ export function LandingPage({
       kicker: featureSet.promises.title,
       icon: Radar,
       tone: "blue" as FeatureTone,
-      value: formatLandingNumber(votometroStats.available ? votometroStats.indexedVotes : null, lang),
-      metric: signalData.metrics.votes,
+      value: formatLandingNumber(votometroPrimaryValue, lang),
+      metric: votometroPrimaryMetric,
       title: signalData.cards.votes.title,
       body: signalData.cards.votes.body,
     },
@@ -791,7 +856,10 @@ export function LandingPage({
           <div className="lp-hero__stage">
             {/* Andes hills — full bleed behind the hero */}
             <div ref={hillsWrapRef} className="lp-hero__hills-wrap" aria-hidden="true">
-              <GLSLHills speed={0.26} cameraZ={94} planeSize={420} />
+              <span className="lp-hero__hills-static" />
+              {showHeroCanvas ? (
+                <GLSLHills speed={0.18} cameraZ={118} planeSize={256} />
+              ) : null}
             </div>
 
             <div className="lp-hero__backdrop" aria-hidden="true">
@@ -809,7 +877,14 @@ export function LandingPage({
                 </p>
 
                 <div className="lp-hero__title-group">
-                  <h1 className="lp-hero__title">
+                  <h1
+                    className="lp-hero__title"
+                    aria-label={
+                      lang === "es"
+                        ? "El poder público, visible y auditable"
+                        : "Public power, visible and auditable"
+                    }
+                  >
                     <span className="lp-hero__title-line">
                       {lang === "es" ? "El poder público," : "Public power,"}
                     </span>

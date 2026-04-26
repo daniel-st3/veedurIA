@@ -27,6 +27,7 @@ env:
   SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+  SUPABASE_STORAGE_BUCKET: ${{ secrets.SUPABASE_STORAGE_BUCKET }}
   PYTHON_VERSION: "3.11"
 
 jobs:
@@ -47,6 +48,7 @@ jobs:
           if [ -z "${{ secrets.SOCRATA_APP_TOKEN }}" ]; then missing="$missing SOCRATA_APP_TOKEN"; fi
           if [ -z "${{ secrets.SUPABASE_URL }}" ]; then missing="$missing SUPABASE_URL"; fi
           if [ -z "${{ secrets.SUPABASE_KEY }}" ]; then missing="$missing SUPABASE_KEY"; fi
+          if [ -z "${{ secrets.SUPABASE_STORAGE_BUCKET }}" ]; then missing="$missing SUPABASE_STORAGE_BUCKET"; fi
           if [ -n "$missing" ]; then
             echo "::warning::Secrets not configured ($missing) — skipping ingestion run."
             echo "Add them at: Settings > Secrets and variables > Actions"

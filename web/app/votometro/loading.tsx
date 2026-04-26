@@ -1,3 +1,5 @@
+import { LoadingStage } from "@/components/loading-stage";
+
 export default function VotometroLoading() {
   return (
     <main className="page vm-page">
@@ -13,10 +15,8 @@ export default function VotometroLoading() {
           </span>
         </span>
       </nav>
-      <section className="surface stripe-flag" style={{ marginTop: "1.2rem", padding: "2rem" }}>
-        <div className="skeleton skeleton--pill" style={{ width: 140, marginBottom: 16 }} />
-        <div className="skeleton skeleton--title" style={{ width: "55%", marginBottom: 10 }} />
-        <div className="skeleton skeleton--line" style={{ width: "68%" }} />
+      <section className="surface stripe-flag" style={{ marginTop: "1.2rem", padding: "1.2rem" }}>
+        <LoadingStage lang="es" context="votometro" />
       </section>
     </main>
   );

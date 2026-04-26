@@ -320,8 +320,8 @@ st.markdown(r"""
   --border:   rgba(23,32,51,0.08);
   --bdr-h:    rgba(23,32,51,0.14);
   --text:     #172033;
-  --text-2:   rgba(23,32,51,0.70);
-  --text-m:   rgba(23,32,51,0.44);
+  --text-2:   rgba(23,32,51,0.74);
+  --text-m:   rgba(23,32,51,0.56);
   --blue:     #0d5bd7;
   --r-red:    #c62839;
   --r-yellow: #d3a21a;
@@ -354,22 +354,45 @@ div[data-testid="collapsedControl"],
     var(--bg) !important;
   color:var(--text) !important;
 }
-.block-container { padding:0.8rem 1.8rem 3rem !important; max-width:1340px !important; }
+[data-testid="stAppViewContainer"] { background: transparent !important; }
+[data-testid="stMainBlockContainer"] { background: transparent !important; }
+.block-container {
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+/* inner page content gets side breathing */
+.vd-page-inner {
+  padding: 0 2rem 3rem;
+  max-width: 1380px;
+  margin: 0 auto;
+}
 
-/* ── Product nav ── */
+/* ── Product nav — full-bleed sticky bar ── */
 .vd-nav {
   display:flex; align-items:center; gap:1.2rem; flex-wrap:wrap;
-  padding:0.8rem 1rem;
-  border:1px solid var(--border);
-  border-radius:20px;
-  background:rgba(255,255,255,0.72);
-  backdrop-filter:blur(14px);
-  box-shadow:var(--shadow-sm);
-  margin-bottom:1rem;
+  padding: 0.85rem 2rem;
+  background: rgba(247,242,234,0.92);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: 0 2px 16px rgba(20,30,50,0.05);
+  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  margin-bottom: 0;
+}
+/* flag accent under the nav */
+.vd-nav::after {
+  content: "";
+  position: absolute;
+  bottom: -1px; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--r-yellow) 0 33.3%, var(--blue) 33.3% 66.6%, var(--r-red) 66.6% 100%);
 }
 .vd-nav-brand {
   font-family:'Syne',sans-serif; font-weight:800; font-size:1.05rem;
-  color:#fff; text-decoration:none; letter-spacing:-0.02em;
+  color:var(--text); text-decoration:none; letter-spacing:-0.02em;
 }
 .vd-nav-brand span { color:var(--blue); }
 .vd-nav-sep { color:var(--text-m); font-size:0.75rem; }
@@ -616,14 +639,40 @@ div[data-testid="stFormSubmitButton"] > button:hover {
 
 /* ── Responsive: tablet / mobile ── */
 @media (max-width:900px) {
-  .vd-nav { gap:0.75rem; }
+  .vd-nav { gap:0.75rem; padding-left:1.2rem; padding-right:1.2rem; }
   .vd-nav-phases { gap:0.6rem; }
-  .block-container { padding:0.5rem 1rem 2.5rem !important; }
   .phase-hero { grid-template-columns:1fr; }
 }
 @media (max-width:640px) {
   .vd-phase { font-size:0.72rem; }
   .soon-badge { display:none; }
+}
+
+/* ── Ethics bar readable text ── */
+.ethics-bar {
+  background: rgba(211,162,26,0.09);
+  border: 1px solid rgba(211,162,26,0.22);
+  border-left: 4px solid var(--r-yellow);
+  border-radius: var(--r-md); padding: 1.1rem 1.3rem;
+  font-size: 0.84rem; color: rgba(95,65,0,0.92); line-height: 1.68;
+  margin-top: 1.4rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Page padding wrapper for Streamlit content ── */
+[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child {
+  padding-top: 0 !important;
+}
+
+/* Breathe between sections */
+[data-testid="stForm"],
+[data-testid="stHorizontalBlock"] {
+  padding-left: 1.8rem !important;
+  padding-right: 1.8rem !important;
+}
+[data-testid="stExpander"] {
+  margin-left: 1.8rem !important;
+  margin-right: 1.8rem !important;
 }
 </style>
 """, unsafe_allow_html=True)

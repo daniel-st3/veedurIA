@@ -105,7 +105,7 @@ _CSS = """
     --bg:#f7f2ea; --bg-2:#f1ebe1;
     --surface:rgba(255,255,255,0.74); --surface-strong:#fffdf8;
     --border:rgba(22,28,45,0.08); --border-strong:rgba(22,28,45,0.14);
-    --text:#172033; --text-2:rgba(23,32,51,0.68); --text-m:rgba(23,32,51,0.42);
+    --text:#172033; --text-2:rgba(23,32,51,0.74); --text-m:rgba(23,32,51,0.56);
     --yellow:#d3a21a; --blue:#0d5bd7; --blue-2:#2f7cff;
     --red:#c62839; --green:#198754; --amber:#d3a21a; --grey:#6b7280;
     --shadow-sm:0 6px 24px rgba(20,30,50,0.06);
@@ -114,6 +114,64 @@ _CSS = """
     --font-sans:"Inter",sans-serif;
     --font-display:"Syne",sans-serif;
     --font-mono:"JetBrains Mono",monospace;
+}
+/* ── Full-bleed sticky nav ─────────────────────────────────── */
+.pm-nav {
+    width:100%; position:sticky; top:0; z-index:100;
+    display:flex; align-items:center; gap:1.5rem;
+    padding:.85rem 2rem;
+    background:rgba(247,242,234,0.95);
+    backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    border-bottom:1px solid var(--border); border-radius:0;
+    box-shadow:0 2px 16px rgba(20,30,50,0.05);
+    font-family:var(--font-sans);
+    box-sizing:border-box; position:relative;
+}
+.pm-nav::after {
+    content:""; position:absolute; bottom:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg,#d3a21a 0 33.3%,#0d5bd7 33.3% 66.6%,#c62839 66.6% 100%);
+}
+.pm-nav-brand { font:800 1.15rem/1 var(--font-display); color:var(--text); text-decoration:none; }
+.pm-nav-brand span { color:var(--blue); }
+.pm-nav-links { display:flex; gap:.5rem; margin-left:auto; align-items:center; }
+.pm-nav-link {
+    font-size:.8rem; padding:.3rem .8rem; border-radius:8px;
+    color:rgba(23,32,51,0.55); text-decoration:none; transition:color .15s;
+}
+.pm-nav-link:hover { color:var(--text); }
+.pm-nav-muted { font-size:.8rem; padding:.3rem .8rem; border-radius:8px; color:rgba(23,32,51,0.3); }
+.pm-nav-active {
+    font-size:.8rem; padding:.3rem .9rem; border-radius:8px;
+    color:var(--blue); font-weight:600;
+    background:rgba(13,91,215,.07); border-bottom:2px solid var(--blue);
+}
+.pm-nav-badge {
+    font:500 .58rem/1 var(--font-mono);
+    background:rgba(13,91,215,.1); color:var(--blue);
+    border-radius:5px; padding:2px 6px; margin-left:4px;
+}
+.pm-nav-badge-indigo {
+    font:500 .58rem/1 var(--font-mono);
+    background:rgba(99,102,241,.08); color:#818cf8;
+    border-radius:5px; padding:2px 6px; margin-left:4px;
+}
+.pm-nav-lang {
+    font:500 .75rem/1 var(--font-mono); color:rgba(23,32,51,0.48);
+    text-decoration:none; margin-left:.5rem; padding:.3rem .6rem;
+    border:1px solid rgba(22,28,45,0.12); border-radius:6px;
+    transition:color .15s;
+}
+/* ── Page inner padding ────────────────────────────────────── */
+.pm-page-inner { padding:0 2rem; }
+@media (max-width:900px) {
+    .pm-nav { padding:.7rem 1.2rem; gap:1rem; }
+    .pm-page-inner { padding:0 1rem; }
+}
+@media (max-width:640px) {
+    .pm-nav-links { gap:.25rem; }
+    .pm-nav-link, .pm-nav-muted, .pm-nav-active { padding:.25rem .5rem; font-size:.72rem; }
+    .pm-nav-badge, .pm-nav-badge-indigo { display:none; }
+    .pm-page-inner { padding:0 .75rem; }
 }
 body,
 [data-testid="stAppViewContainer"],
@@ -150,15 +208,15 @@ p, label, div { font-family: var(--font-sans) !important; }
 }
 /* Ethics bar */
 .pm-ethics {
-    background: rgba(211,162,26,0.1);
-    border: 1px solid rgba(211,162,26,0.35);
+    background: rgba(211,162,26,0.08);
+    border: 1px solid rgba(211,162,26,0.30);
     border-left: 4px solid var(--yellow);
     border-radius: var(--r-sm);
-    padding: .9rem 1.3rem;
-    font-size: .83rem;
-    color: var(--text-2);
-    line-height: 1.65;
-    margin: 1.5rem 0;
+    padding: 1rem 1.4rem;
+    font-size: .85rem;
+    color: rgba(23,32,51,0.74);
+    line-height: 1.7;
+    margin: 1.75rem 0 1rem;
 }
 </style>
 """
@@ -166,45 +224,19 @@ st.markdown(_CSS, unsafe_allow_html=True)
 
 # ── Product Nav ─────────────────────────────────────────────────────────────────
 _NAV_HTML = f"""
-<nav style="display:flex;align-items:center;gap:1.5rem;padding:.75rem 2rem;
-            background:rgba(255,255,255,0.92);
-            backdrop-filter:blur(12px);
-            border-bottom:1px solid rgba(22,28,45,0.08);
-            font-family:'Inter',sans-serif;
-            position:sticky;top:0;z-index:100;">
-  <a href="/" style="font:800 1.15rem/1 'Syne',sans-serif;color:#172033;text-decoration:none;">
-    Veedur<span style="color:#0d5bd7;">IA</span>
-  </a>
-  <div style="display:flex;gap:.5rem;margin-left:auto;align-items:center;">
-    <a href="/ContratoLimpio"
-       style="font-size:.8rem;padding:.3rem .8rem;border-radius:8px;
-              color:rgba(23,32,51,0.55);text-decoration:none;
-              transition:color .15s;">
-      {_t('nav_contrato_limpio')}
-    </a>
-    <span style="font-size:.8rem;padding:.3rem .8rem;border-radius:8px;
-                 color:rgba(23,32,51,0.3);">
+<nav class="pm-nav">
+  <a href="/" class="pm-nav-brand">Veedur<span>IA</span></a>
+  <div class="pm-nav-links">
+    <a href="/ContratoLimpio" class="pm-nav-link">{_t('nav_contrato_limpio')}</a>
+    <span class="pm-nav-muted">
       {_t('nav_sigue_el_dinero')}
-      <span style="font:500 .58rem/1 'JetBrains Mono',monospace;
-                   background:rgba(99,102,241,.08);color:#818cf8;
-                   border-radius:5px;padding:2px 6px;margin-left:4px;">
-        {_t('nav_phase_soon')}</span>
+      <span class="pm-nav-badge-indigo">{_t('nav_phase_soon')}</span>
     </span>
-    <span style="font-size:.8rem;padding:.3rem .9rem;border-radius:8px;
-                 color:#0d5bd7;font-weight:600;
-                 background:rgba(13,91,215,.07);
-                 border-bottom:2px solid #0d5bd7;">
+    <span class="pm-nav-active">
       {_t('nav_promesometro')}
-      <span style="font:500 .58rem/1 'JetBrains Mono',monospace;
-                   background:rgba(13,91,215,.1);color:#0d5bd7;
-                   border-radius:5px;padding:2px 6px;margin-left:4px;">
-        {_t('nav_phase_active')}</span>
+      <span class="pm-nav-badge">{_t('nav_phase_active')}</span>
     </span>
-    <a href="?lang={'en' if lang=='es' else 'es'}"
-       style="font:500 .75rem/1 'JetBrains Mono',monospace;
-              color:rgba(23,32,51,0.42);text-decoration:none;
-              margin-left:.5rem;padding:.3rem .6rem;
-              border:1px solid rgba(22,28,45,0.12);border-radius:6px;">
+    <a href="?lang={'en' if lang=='es' else 'es'}" class="pm-nav-lang">
       {'EN' if lang=='es' else 'ES'}
     </a>
   </div>
@@ -223,34 +255,34 @@ _OVERVIEW_HTML = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
 *{{box-sizing:border-box;margin:0;padding:0;}}
 body{{font-family:"Inter",sans-serif;background:#f7f2ea;
-     padding:2rem 2rem 1.5rem;}}
+     padding:2.5rem 2.5rem 2rem;}}
 .kicker{{font:500 .72rem/1 "JetBrains Mono",monospace;letter-spacing:.14em;
-         text-transform:uppercase;color:#0d5bd7;margin-bottom:.8rem;}}
-.title{{font:800 clamp(1.5rem,3vw,2.2rem)/1.12 "Syne",sans-serif;color:#172033;
-        margin-bottom:.75rem;}}
-.sub{{font-size:.92rem;color:rgba(23,32,51,0.68);line-height:1.65;
-      max-width:780px;margin-bottom:1.5rem;}}
-.guide{{display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;}}
-.step{{display:flex;align-items:flex-start;gap:.75rem;
-       background:rgba(255,255,255,0.74);
+         text-transform:uppercase;color:#0d5bd7;margin-bottom:.85rem;}}
+.title{{font:800 clamp(1.6rem,3.2vw,2.4rem)/1.1 "Syne",sans-serif;color:#172033;
+        margin-bottom:.8rem;}}
+.sub{{font-size:.93rem;color:rgba(23,32,51,0.72);line-height:1.7;
+      max-width:820px;margin-bottom:2rem;}}
+.guide{{display:flex;gap:1rem;margin-bottom:2rem;flex-wrap:wrap;}}
+.step{{display:flex;align-items:flex-start;gap:.8rem;
+       background:rgba(255,255,255,0.78);
        border:1px solid rgba(22,28,45,0.08);
        border-radius:20px;
-       padding:1rem 1.2rem;
+       padding:1.1rem 1.3rem;
        flex:1;min-width:200px;
        box-shadow:0 6px 24px rgba(20,30,50,0.06);}}
 .step-n{{font:700 1rem/1 "JetBrains Mono",monospace;color:#0d5bd7;
          min-width:1.4rem;padding-top:2px;}}
-.step-t{{font:600 .82rem/1.2 "Inter",sans-serif;color:#172033;margin-bottom:.3rem;}}
-.step-b{{font-size:.76rem;color:rgba(23,32,51,0.68);line-height:1.45;}}
+.step-t{{font:600 .82rem/1.2 "Inter",sans-serif;color:#172033;margin-bottom:.35rem;}}
+.step-b{{font-size:.76rem;color:rgba(23,32,51,0.72);line-height:1.5;}}
 .kpi-row{{display:flex;gap:1rem;flex-wrap:wrap;}}
-.kpi{{background:rgba(255,255,255,0.74);
+.kpi{{background:rgba(255,255,255,0.78);
       border:1px solid rgba(22,28,45,0.08);
       border-radius:20px;
-      padding:1rem 1.3rem;flex:1;min-width:140px;
+      padding:1.1rem 1.4rem;flex:1;min-width:140px;
       box-shadow:0 6px 24px rgba(20,30,50,0.06);}}
-.kpi-v{{font:700 1.7rem/1 "Syne",sans-serif;color:#0d5bd7;margin-bottom:.3rem;}}
+.kpi-v{{font:700 1.75rem/1 "Syne",sans-serif;color:#0d5bd7;margin-bottom:.35rem;}}
 .kpi-l{{font:500 .68rem/1 "JetBrains Mono",monospace;
-        color:rgba(23,32,51,0.42);text-transform:uppercase;letter-spacing:.1em;}}
+        color:rgba(23,32,51,0.54);text-transform:uppercase;letter-spacing:.1em;}}
 </style></head><body>
 <div class="kicker">{_t('pm_overview_kicker')}</div>
 <div class="title">{_t('pm_overview_title')}</div>
@@ -280,7 +312,7 @@ body{{font-family:"Inter",sans-serif;background:#f7f2ea;
     <div class="kpi-l">{_t('pm_kpi_freshness')}</div></div>
 </div>
 </body></html>"""
-components.html(_OVERVIEW_HTML, height=330, scrolling=False)
+components.html(_OVERVIEW_HTML, height=380, scrolling=False)
 
 
 # ── Filters ────────────────────────────────────────────────────────────────────
@@ -406,7 +438,7 @@ if _render_main:
                 bars_html += f"""
                 <div style="margin-bottom:.6rem;">
                   <div style="display:flex;justify-content:space-between;
-                              font-size:.75rem;color:#5a6a80;margin-bottom:.2rem;">
+                              font-size:.75rem;color:#4a5a70;margin-bottom:.2rem;">
                     <span>{dom_lbl}</span><span>{pct}% · {dn}</span>
                   </div>
                   <div style="height:5px;background:rgba(0,0,0,.07);border-radius:3px;overflow:hidden;">
@@ -421,10 +453,10 @@ if _render_main:
         <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
         <style>
         *{{box-sizing:border-box;margin:0;padding:0;}}
-        body{{font-family:"Inter",sans-serif;background:#f7f2ea;padding:1rem;}}
-        .sc{{background:rgba(255,255,255,0.74);
+        body{{font-family:"Inter",sans-serif;background:#f7f2ea;padding:1.2rem 1.2rem 1rem;}}
+        .sc{{background:rgba(255,255,255,0.78);
              border:1px solid rgba(22,28,45,0.08);
-             border-radius:24px;padding:1.5rem;
+             border-radius:24px;padding:1.6rem 1.5rem;
              box-shadow:0 6px 24px rgba(20,30,50,0.06);}}
         .sc-name{{font:600 .9rem/1.3 "Inter",sans-serif;
                   color:rgba(23,32,51,0.68);
@@ -432,14 +464,14 @@ if _render_main:
         .sc-global{{font:800 2.8rem/1 "Syne",sans-serif;color:#0d5bd7;margin:.6rem 0 .25rem;}}
         .sc-label{{font:500 .65rem/1 "JetBrains Mono",monospace;
                    text-transform:uppercase;letter-spacing:.12em;
-                   color:rgba(23,32,51,0.42);margin-bottom:1.1rem;}}
+                   color:rgba(23,32,51,0.54);margin-bottom:1.1rem;}}
         .sc-counts{{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.3rem;}}
         .sc-pill{{font-size:.7rem;padding:.3rem .65rem;border-radius:8px;font-weight:600;}}
         .pill-g{{background:rgba(25,135,84,.1);color:#198754;}}
         .pill-y{{background:rgba(211,162,26,.12);color:#b8860b;}}
         .pill-gr{{background:rgba(107,114,128,.1);color:#5a6a80;}}
         .sc-dom-hdr{{font:500 .6rem/1 "JetBrains Mono",monospace;letter-spacing:.12em;
-                     text-transform:uppercase;color:rgba(23,32,51,0.3);margin-bottom:.9rem;}}
+                     text-transform:uppercase;color:rgba(23,32,51,0.46);margin-bottom:.9rem;}}
         </style></head><body>
         <div class="sc">
           <div class="sc-name">{pol_display}</div>
@@ -468,7 +500,7 @@ if _render_main:
         cards_html_inner = ""
         if page_df.empty:
             cards_html_inner = (
-                f'<div style="padding:2rem;text-align:center;color:#5a6a80;font-size:.9rem;">'
+                f'<div style="padding:2rem;text-align:center;color:#4a5a6e;font-size:.9rem;">'
                 f'{_t("pm_no_data")}</div>'
             )
         else:
@@ -534,7 +566,7 @@ if _render_main:
                     <span style="font-size:.76rem;font-weight:600;color:{status_col};">
                       {status_lbl}</span>
                     <span style="margin-left:auto;font:400 .69rem/1 'JetBrains Mono',monospace;
-                                 color:rgba(23,32,51,0.42);">
+                                 color:rgba(23,32,51,0.54);">
                       {_t('pm_card_similarity')} {sim_pct}%
                       &middot; {_t('pm_card_confidence')} {conf_pct}%</span>
                   </div>
@@ -544,7 +576,7 @@ if _render_main:
                   <div style="display:flex;gap:.8rem;align-items:center;
                               margin-top:.8rem;flex-wrap:wrap;">
                     {src_link}
-                    <span style="font-size:.69rem;color:rgba(23,32,51,0.42);
+                    <span style="font-size:.69rem;color:rgba(23,32,51,0.52);
                                  line-height:1.45;flex:1;">
                       {_t('pm_card_disclaimer')}
                     </span>
@@ -555,7 +587,7 @@ if _render_main:
         <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
         <style>
         *{{box-sizing:border-box;margin:0;padding:0;}}
-        body{{font-family:"Inter",sans-serif;background:#f7f2ea;padding:.75rem;}}
+        body{{font-family:"Inter",sans-serif;background:#f7f2ea;padding:.75rem .75rem 1.5rem;}}
         </style></head><body>{cards_html_inner}</body></html>"""
         components.html(_PANEL_HTML, height=700, scrolling=True)
 

@@ -353,6 +353,7 @@ def get_version_payload() -> dict[str, Any]:
         "entity_count": stored.get("entity_count", 0),
         "provider_count": stored.get("provider_count", 0),
         "edge_count": stored.get("edge_count", 0),
+        "risk_edge_count": stored.get("risk_edge_count", 0),
         "total_value": stored.get("total_value", 0.0),
     }
 

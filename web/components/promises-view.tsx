@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { NoticeStack, type NoticeItem } from "@/components/notice-stack";
+import { LoadingStage } from "@/components/loading-stage";
 import { PromisesAnalytics } from "@/components/promises-analytics";
 import { PromisePivotSandbox } from "@/components/promise-pivot-sandbox";
 import { SiteFooter } from "@/components/site-footer";
@@ -1260,16 +1261,19 @@ export function PromisesView({
               </div>
 
               {loading ? (
-                <div className="pmr-loading-grid" aria-live="polite">
-                  {Array.from({ length: 6 }).map((_, index) => (
-                    <article key={`promise-skeleton-${index}`} className="pmr-loading-card">
-                      <div className="skeleton skeleton--pill" style={{ width: 120, marginBottom: 12 }} />
-                      <div className="skeleton skeleton--title" style={{ width: "86%", marginBottom: 12, height: 28 }} />
-                      <div className="skeleton skeleton--line" style={{ width: "100%", marginBottom: 8 }} />
-                      <div className="skeleton skeleton--line" style={{ width: "72%" }} />
-                    </article>
-                  ))}
-                </div>
+                <>
+                  <LoadingStage lang={lang} context="promises" compact />
+                  <div className="pmr-loading-grid" aria-hidden="true">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <article key={`promise-skeleton-${index}`} className="pmr-loading-card">
+                        <div className="skeleton skeleton--pill" style={{ width: 120, marginBottom: 12 }} />
+                        <div className="skeleton skeleton--title" style={{ width: "86%", marginBottom: 12, height: 28 }} />
+                        <div className="skeleton skeleton--line" style={{ width: "100%", marginBottom: 8 }} />
+                        <div className="skeleton skeleton--line" style={{ width: "72%" }} />
+                      </article>
+                    ))}
+                  </div>
+                </>
               ) : cards.length === 0 ? (
                 <div className="surface-soft" style={{ padding: "2rem", textAlign: "center" }}>{copy.cardsEmpty}</div>
               ) : (

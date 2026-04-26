@@ -22,6 +22,7 @@ import {
 
 import { ColombiaMap } from "@/components/colombia-map";
 import { ContractsDashboard } from "@/components/contracts-dashboard";
+import { LoadingStage } from "@/components/loading-stage";
 import { NoticeStack, type NoticeItem } from "@/components/notice-stack";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -132,13 +133,11 @@ const MODEL_GROUPS = {
   ],
 };
 
-function ContractsLoading() {
+function ContractsLoading({ lang }: { lang: Lang }) {
   return (
     <main className="page cv-page">
-      <section className="surface stripe-flag" style={{ marginTop: "1.2rem", padding: "2rem" }}>
-        <div className="skeleton skeleton--pill" style={{ width: 180, marginBottom: 16 }} />
-        <div className="skeleton skeleton--title" style={{ width: "62%", marginBottom: 10 }} />
-        <div className="skeleton skeleton--line" style={{ width: "78%" }} />
+      <section className="surface stripe-flag" style={{ marginTop: "1.2rem", padding: "1.2rem" }}>
+        <LoadingStage lang={lang} context="contracts" compact />
       </section>
     </main>
   );
@@ -525,11 +524,16 @@ export function ContractsView({
     () => {
       const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (reduceMotion) return;
-      gsap.fromTo(
+      const introTargets = gsap.utils.toArray<HTMLElement>(
         ".cv-hero-panel, .cv-control-panel, .cv-map-stage, .cv-block, .cv-dashboard-card, .explorer-card, .cv-case-chip",
-        { autoAlpha: 0, y: 24 },
-        { autoAlpha: 1, y: 0, duration: 0.58, stagger: 0.03, ease: "power3.out" },
       );
+      if (introTargets.length > 0) {
+        gsap.fromTo(
+          introTargets,
+          { autoAlpha: 0, y: 24 },
+          { autoAlpha: 1, y: 0, duration: 0.58, stagger: 0.03, ease: "power3.out" },
+        );
+      }
       gsap.utils.toArray<HTMLElement>(".cv-workbench, .cv-focus-panel, .cv-dashboard, .cv-explorer, .cv-methodology").forEach((section) => {
         gsap.fromTo(
           section,
@@ -546,20 +550,25 @@ export function ContractsView({
           },
         );
       });
-      gsap.fromTo(
+      const barTargets = gsap.utils.toArray<HTMLElement>(
         ".cv-factor-row__bar span, .cv-case-chip__bar span, .cv-sandbox-group__bar span, .table-value__fill",
-        { width: 0 },
-        {
-          width: (_index, target) => target.getAttribute("data-width") || target.getAttribute("style")?.match(/width:\s*([^;]+)/)?.[1] || "100%",
-          duration: 1.1,
-          ease: "power3.out",
-          stagger: 0.03,
-          scrollTrigger: {
-            trigger: ".cv-page",
-            start: "top 75%",
-          },
-        },
       );
+      if (barTargets.length > 0) {
+        gsap.fromTo(
+          barTargets,
+          { width: 0 },
+          {
+            width: (_index, target) => target.getAttribute("data-width") || target.getAttribute("style")?.match(/width:\s*([^;]+)/)?.[1] || "100%",
+            duration: 1.1,
+            ease: "power3.out",
+            stagger: 0.03,
+            scrollTrigger: {
+              trigger: ".cv-page",
+              start: "top 75%",
+            },
+          },
+        );
+      }
     },
     { scope, dependencies: [table?.rows.length ?? 0, overview?.leadCases.length ?? 0, overview?.slice.totalContracts ?? 0] },
   );
@@ -875,7 +884,7 @@ export function ContractsView({
             { href: `/sigue-el-dinero?lang=${lang}`, label: copy.navPhase3 },
           ]}
         />
-        <ContractsLoading />
+        <ContractsLoading lang={lang} />
       </div>
     );
   }
@@ -984,7 +993,22 @@ export function ContractsView({
                 </div>
               ) : null}
             </div>
-          ) : null}
+          ) : (
+            <div className="cv-status-banner cv-status-banner--live" role="status">
+              <div className="cv-status-banner__copy">
+                <strong>
+                  {lang === "es"
+                    ? `Scoring visible sincronizado al ${latestScoredDate}.`
+                    : `Visible scoring synced through ${latestScoredDate}.`}
+                </strong>
+                <span>
+                  {lang === "es"
+                    ? `La brecha actual es cero. La lectura usa la fuente oficial SECOP más reciente disponible (${latestSourceDate}) y recalcula el tablero con cada corte.`
+                    : `Current gap is zero. The view uses the latest available official SECOP source (${latestSourceDate}) and recalculates this board for every slice.`}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="cv-workbench">
             <section className="cv-control-panel surface-soft">
@@ -1588,7 +1612,7 @@ export function ContractsView({
             </div>
 
             {tableLoading ? (
-              <div className="surface-soft" style={{ padding: "1.2rem", textAlign: "center" }}>{copy.loading}</div>
+              <LoadingStage lang={lang} context="table" compact />
             ) : (
               <div className="cv-sandbox-groups">
                 {explorerGroups.slice(0, 6).map((group) => (

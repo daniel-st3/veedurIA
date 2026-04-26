@@ -1,3 +1,5 @@
+import { LoadingStage } from "@/components/loading-stage";
+
 export default function HomeLoading() {
   return (
     <div className="shell">
@@ -15,10 +17,7 @@ export default function HomeLoading() {
       </nav>
       <main className="page lp-page">
         <section className="lp-hero" style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ textAlign: "center" }}>
-            <div className="skeleton skeleton--title" style={{ width: 260, marginBottom: 12, marginInline: "auto" }} />
-            <div className="skeleton skeleton--line" style={{ width: 180, marginInline: "auto" }} />
-          </div>
+          <LoadingStage lang="es" context="landing" />
         </section>
       </main>
     </div>

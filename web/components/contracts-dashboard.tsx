@@ -345,6 +345,36 @@ export function ContractsDashboard({
     [lang, riskBandMix],
   );
 
+  const territorySignalData = useMemo(() => {
+    const source = (analytics?.departments?.length ? analytics.departments : departments)
+      .filter((item) => item.contractCount > 0)
+      .sort((left, right) => right.contractCount - left.contractCount)
+      .slice(0, 18);
+    return [
+      {
+        x: source.map((item) => item.contractCount),
+        y: source.map((item) => Math.round(item.avgRisk * 100)),
+        text: source.map((item) => item.label),
+        type: "scatter",
+        mode: "markers+text",
+        textposition: "top center",
+        marker: {
+          size: source.map((item) => Math.max(12, Math.min(36, 10 + Math.sqrt(item.contractCount) * 0.35))),
+          color: source.map((item) =>
+            item.avgRisk >= 0.7 ? RISK_COLORS.high : item.avgRisk >= 0.4 ? RISK_COLORS.medium : RISK_COLORS.low,
+          ),
+          opacity: 0.82,
+          line: { color: "rgba(249,248,245,0.92)", width: 2 },
+        },
+        textfont: { size: 10, color: "#1e1c17" },
+        hovertemplate:
+          lang === "es"
+            ? "<b>%{text}</b><br>%{x:,} contratos<br>Intensidad %{y}/100<extra></extra>"
+            : "<b>%{text}</b><br>%{x:,} contracts<br>Intensity %{y}/100<extra></extra>",
+      },
+    ];
+  }, [analytics?.departments, departments, lang]);
+
   // ── Creative chart 1: Risk vs. Value bubble (from visible tableRows) ──────
   const bubbleData = useMemo(() => {
     const sample = rows.slice(0, 120); // cap for perf
@@ -380,18 +410,26 @@ export function ContractsDashboard({
       if (!grouped[mod]) grouped[mod] = {};
       grouped[mod][ent] = (grouped[mod][ent] ?? 0) + 1;
     });
+    if (!Object.keys(grouped).length && modalityMix.length) {
+      modalityMix.forEach((item) => {
+        const label = item.label || (lang === "es" ? "Sin modalidad" : "No modality");
+        grouped[label] = {
+          [lang === "es" ? "Corte completo" : "Full slice"]: item.count,
+        };
+      });
+    }
     const ids: string[] = ["Contratos"];
     const labels: string[] = [lang === "es" ? "Contratos" : "Contracts"];
     const parents: string[] = [""];
     const values: number[] = [0];
     const colors: string[] = ["rgba(0,0,0,0)"];
-    Object.entries(grouped).forEach(([mod, entities]) => {
+    Object.entries(grouped).forEach(([mod, entities], index) => {
       const modTotal = Object.values(entities).reduce((a, b) => a + b, 0);
       ids.push(mod);
       labels.push(mod.length > 28 ? `${mod.slice(0, 27)}…` : mod);
       parents.push("Contratos");
       values.push(modTotal);
-      colors.push(CHART_PALETTE[1]);
+      colors.push(CHART_PALETTE[index % CHART_PALETTE.length]);
       Object.entries(entities).slice(0, 5).forEach(([ent, count]) => {
         ids.push(`${mod}::${ent}`);
         labels.push(ent);
@@ -400,6 +438,10 @@ export function ContractsDashboard({
         colors.push(CHART_PALETTE[2]);
       });
     });
+    values[0] = Object.values(grouped).reduce(
+      (sum, entities) => sum + Object.values(entities).reduce((innerSum, count) => innerSum + count, 0),
+      0,
+    );
     return [
       {
         type: "treemap",
@@ -416,7 +458,7 @@ export function ContractsDashboard({
             : "<b>%{label}</b><br>%{value} contracts<extra></extra>",
       },
     ];
-  }, [lang, rows]);
+  }, [lang, modalityMix, rows]);
 
   const visibleCount = rows.length;
   const tooFewRows = rows.length < 4 && (modalityMix.length + topEntities.length) < 4;
@@ -670,7 +712,45 @@ export function ContractsDashboard({
           </article>
         ) : null}
 
-        {rows.length >= 4 ? (
+        <article className="cv-dashboard-card">
+          <div className="cv-dashboard-card__head">
+            <p className="cv-dashboard-card__kicker">{lang === "es" ? "Territorio compuesto" : "Composite territory"}</p>
+            <strong>{lang === "es" ? "Volumen frente a intensidad" : "Volume against intensity"}</strong>
+            <span>
+              {lang === "es"
+                ? "La burbuja cruza cantidad e intensidad para llenar la lectura territorial que antes quedaba vacía."
+                : "The bubble view crosses quantity and intensity so the territorial read stays complete."}
+            </span>
+          </div>
+          <div className="cv-dashboard-card__plot">
+            <Plot
+              data={territorySignalData as any}
+              layout={{
+                ...baseLayout,
+                margin: { l: 62, r: 28, t: 18, b: 54 },
+                xaxis: {
+                  title: { text: lang === "es" ? "Contratos" : "Contracts", standoff: 8 },
+                  gridcolor: GRID_COLOR,
+                  zeroline: false,
+                  tickfont: { size: 12 },
+                  automargin: true,
+                },
+                yaxis: {
+                  title: { text: lang === "es" ? "Intensidad" : "Intensity", standoff: 8 },
+                  gridcolor: GRID_COLOR,
+                  zeroline: false,
+                  range: [0, 105],
+                  tickfont: { size: 12 },
+                  automargin: true,
+                },
+              }}
+              config={{ responsive: true, displaylogo: false, displayModeBar: false }}
+              style={{ width: "100%", height: 282 }}
+            />
+          </div>
+        </article>
+
+        {rows.length >= 4 || modalityMix.length ? (
           <article className="cv-dashboard-card cv-dashboard-card--wide">
             <div className="cv-dashboard-card__head">
               <p className="cv-dashboard-card__kicker">{lang === "es" ? "Árbol de contratos" : "Contract tree"}</p>
