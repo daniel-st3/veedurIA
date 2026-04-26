@@ -754,13 +754,13 @@ export function SigueElDineroView({ lang }: Props) {
       />
 
       {/* ── Footer explanation ────────────────────────────────────── */}
-      <section style={{ maxWidth: 900, margin: '4rem auto 6rem', padding: '0 1.25rem', textAlign: 'center', color: 'rgba(150,185,240,0.55)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
-          <Network size={24} style={{ opacity: 0.4 }} />
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'rgba(210,228,255,0.85)', margin: 0 }}>
+      <section className="sed-method-card">
+        <div className="sed-method-card__inner">
+          <Network size={24} strokeWidth={1.7} aria-hidden="true" />
+          <h3>
             {lang === "es" ? "Sobre esta Arquitectura de Datos" : "About this Data Architecture"}
           </h3>
-          <p style={{ fontSize: '0.88rem', lineHeight: '1.7', maxWidth: '64ch' }}>
+          <p>
             {lang === "es"
               ? "Las conexiones dibujadas en este grafo no implican delitos, sino relaciones documentadas de flujo de capitales en el SECOP. Las banderas de riesgo algorítmico se aplican usando densidades de red y el índice Herfindahl-Hirschman (HHI) para alertar sobre la monopolización de contratos."
               : "The connections drawn in this graph do not imply crimes, but documented relationships of capital flow in SECOP. Algorithmic risk flags are applied using network densities and the Herfindahl-Hirschman Index (HHI) to alert on contract monopolization."}

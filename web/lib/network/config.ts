@@ -81,9 +81,9 @@ export const networkConfig = {
       alphaDecay: 0.028,       // fast settling — sim reaches equilibrium in ~3s instead of 15s
       velocityDecay: 0.40,     // standard D3 damping — eliminates jitter after settle
       cooldownTicks: 200,      // enough ticks for full convergence with new decay
-      chargeStrength: -400,    // balanced repulsion — nodes spread naturally without flying apart
-      linkDistance: 200,       // tighter web — edges form a clear structure
-      collisionPadding: 18,    // comfortable spacing without over-spreading
+      chargeStrength: -560,    // wider default field; lets the graph breathe even when cropped
+      linkDistance: 270,       // more separation between connected nodes for a playable first view
+      collisionPadding: 24,    // keeps labels and dots from stacking in the zoomed-in view
     },
     labelZoomThreshold: 1.5,   // show labels earlier
     hubLabelZoomThreshold: 0.7, // hub labels visible at any reasonable zoom

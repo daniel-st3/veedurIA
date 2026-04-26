@@ -219,27 +219,35 @@ export function NetworkCanvas({
           ctx.fill();
         }
 
-        // Sleek Minimalist Node Design (Industrial Brutalist Style)
-        ctx.fillStyle = isSelected ? "#c62839" : "#0A0D14";
+        ctx.shadowColor = isSelected
+          ? "rgba(198,40,57,0.22)"
+          : isHovered || isNeighbor
+            ? `${color}44`
+            : "rgba(23,32,51,0.08)";
+        ctx.shadowBlur = isSelected ? 18 : isHovered || isNeighbor ? 14 : 8;
+        ctx.shadowOffsetY = 3;
+        ctx.fillStyle = isSelected ? "#c62839" : color;
         ctx.beginPath();
         ctx.arc(typedNode.x, typedNode.y, radius, 0, 2 * Math.PI);
         ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
 
         ctx.strokeStyle = isSelected
-          ? "rgba(198,40,57,0.9)"
+          ? "rgba(255,255,255,0.96)"
           : isHovered || isNeighbor || (selectedNodeId && typedNode.id !== selectedNodeId)
-            ? color
+            ? "rgba(255,255,255,0.92)"
             : typedNode.is_hub
-              ? color
-              : `${color}88`;
-        ctx.lineWidth = isSelected ? 2.8 : isHovered ? 2.0 : 1.2;
+              ? "rgba(255,255,255,0.86)"
+              : "rgba(255,255,255,0.72)";
+        ctx.lineWidth = isSelected ? 2.8 : isHovered ? 2.1 : 1.5;
         ctx.stroke();
 
         if (radius > 5) {
           ctx.beginPath();
           // Inner core dot to signify data
           ctx.arc(typedNode.x, typedNode.y, radius * 0.35, 0, 2 * Math.PI);
-          ctx.fillStyle = isSelected ? "#FFF" : color;
+          ctx.fillStyle = isSelected ? "#fff" : "rgba(255,255,255,0.92)";
           ctx.fill();
         }
 
@@ -256,7 +264,7 @@ export function NetworkCanvas({
         if (showLabel) {
           const fontPx = isSelected ? 13.5 : isHovered ? 11.5 : 10.0;
           const fontSize = Math.max(fontPx / globalScale, 5.5);
-          ctx.font = `${isSelected || isHovered || typedNode.is_hub ? "600 " : ""}${fontSize}px Inter, ui-sans-serif, sans-serif`;
+          ctx.font = `${isSelected || isHovered || typedNode.is_hub ? "700 " : "600 "}${fontSize}px Sora, ui-sans-serif, sans-serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
@@ -298,7 +306,7 @@ export function NetworkCanvas({
           const pillRadius = (textHeight + paddingY * 2) / 2;
           ctx.fillStyle = isSelected
             ? "rgba(255,255,255,0.98)"
-            : "rgba(255,255,255,0.93)";
+            : "rgba(255,255,255,0.95)";
           roundedPill(
             ctx,
             typedNode.x - textWidth / 2 - paddingX,
@@ -311,7 +319,7 @@ export function NetworkCanvas({
 
           ctx.strokeStyle = isSelected
             ? "rgba(198,40,57,0.34)"
-            : "rgba(23,32,51,0.14)";
+            : "rgba(13,91,215,0.16)";
           ctx.lineWidth = 0.7 / globalScale;
           ctx.stroke();
 
@@ -360,12 +368,14 @@ export function NetworkCanvas({
 
       if (isSelectedEdge) return "#c62839";
       if (selectedNodeId) {
-        return touchesFocusedNode ? "rgba(23,32,51,0.34)" : "rgba(23,32,51,0.12)";
+        return touchesFocusedNode ? "rgba(13,91,215,0.52)" : "rgba(23,32,51,0.12)";
       }
       if (focusedNodeId) {
-        return touchesFocusedNode ? "rgba(23,32,51,0.34)" : "rgba(23,32,51,0.055)";
+        return touchesFocusedNode ? "rgba(13,91,215,0.5)" : "rgba(23,32,51,0.08)";
       }
-      return "rgba(23,32,51,0.16)";
+      if (link.confidence >= 80) return "rgba(10,122,78,0.44)";
+      if (link.confidence >= 60) return "rgba(184,133,5,0.42)";
+      return "rgba(198,40,57,0.36)";
     },
     [focusedNodeId, selectedEdgeId, selectedNodeId],
   );
@@ -441,7 +451,7 @@ export function NetworkCanvas({
         nodePointerAreaPaint={paintPointerArea}
         linkWidth={(link: any) => {
           const baseWidth = edgeWidth(link as NetworkEdge);
-          return selectedNodeId ? Math.min(baseWidth * 1.15, 2.8) : baseWidth;
+          return selectedNodeId ? Math.min(baseWidth * 1.35, 3.6) : Math.max(baseWidth * 1.25, 1.25);
         }}
         linkColor={getLinkColor}
         linkCurvature={() => (selectedNodeId ? 0.08 : 0.03)}
@@ -455,7 +465,7 @@ export function NetworkCanvas({
         }}
         linkDirectionalParticleSpeed={0.005}
         linkDirectionalParticleWidth={2.5}
-        linkDirectionalParticleColor={() => "#c62839"}
+        linkDirectionalParticleColor={(link: any) => (link.id === selectedEdgeId ? "#c62839" : "#0d5bd7")}
         onNodeClick={handleNodeClick}
         onLinkClick={handleEdgeClick}
         onNodeHover={handleNodeHover}
@@ -465,7 +475,25 @@ export function NetworkCanvas({
         onEngineStop={() => {
           if (!selectedNodeId && !autoFitRef.current && graphRef.current && graphData.nodes.length > 0) {
             autoFitRef.current = true;
-            graphRef.current.zoomToFit(560, 92);
+            graphRef.current.zoomToFit(240, 0);
+            window.setTimeout(() => {
+              if (!graphRef.current || selectedNodeId) return;
+              const positionedNodes = graphData.nodes.filter(
+                (node: any) => Number.isFinite(node.x) && Number.isFinite(node.y),
+              );
+              const center = positionedNodes.reduce(
+                (acc: { x: number; y: number }, node: any) => ({
+                  x: acc.x + node.x,
+                  y: acc.y + node.y,
+                }),
+                { x: 0, y: 0 },
+              );
+              const divisor = Math.max(positionedNodes.length, 1);
+              const nextZoom = width && width < 520 ? 1.85 : 2.85;
+              graphRef.current.centerAt(center.x / divisor, center.y / divisor, 320);
+              graphRef.current.zoom(nextZoom, 360);
+              setZoomLevel(nextZoom);
+            }, 440);
           }
         }}
         d3AlphaDecay={networkConfig.canvas.physics.alphaDecay}
@@ -513,38 +541,38 @@ function buildOverviewTargetMap(nodes: NetworkNode[]): Map<string, { x: number; 
   );
 
   placeNodesOnRings(map, hubs, {
-    baseRadius: 100,
-    ringStep: 75,
+    baseRadius: 150,
+    ringStep: 105,
     baseCountPerRing: 4,
-    yScale: 0.52,
+    yScale: 0.62,
     angleOffset: -Math.PI / 2,
   });
   placeNodesOnRings(map, clusters, {
-    baseRadius: 200,
-    ringStep: 85,
+    baseRadius: 280,
+    ringStep: 120,
     baseCountPerRing: 5,
-    yScale: 0.48,
+    yScale: 0.58,
     angleOffset: Math.PI / 5,
   });
   placeNodesOnRings(map, entities, {
-    baseRadius: 300,
-    ringStep: 95,
+    baseRadius: 410,
+    ringStep: 135,
     baseCountPerRing: 7,
-    yScale: 0.55,
+    yScale: 0.64,
     angleOffset: -Math.PI / 3,
   });
   placeNodesOnRings(map, providers, {
-    baseRadius: 420,
-    ringStep: 105,
+    baseRadius: 560,
+    ringStep: 150,
     baseCountPerRing: 10,
-    yScale: 0.60,
+    yScale: 0.68,
     angleOffset: Math.PI / 9,
   });
   placeNodesOnRings(map, remainder, {
-    baseRadius: 540,
-    ringStep: 95,
+    baseRadius: 700,
+    ringStep: 155,
     baseCountPerRing: 12,
-    yScale: 0.62,
+    yScale: 0.72,
     angleOffset: -Math.PI / 8,
   });
 
