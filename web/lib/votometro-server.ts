@@ -529,30 +529,57 @@ export async function getVotometroProfileResult(slug: string): Promise<Votometro
       finalVotes = [
         {
           id: `mock-v1-${item.id}`,
+          voteEventId: `evt-mock-1-${item.id}`,
+          projectId: "PL-045-2024",
           voteDate: "2024-02-15",
           title: "Proyecto de Ley sobre Protección de Páramos",
+          description: "Establece medidas para la protección y conservación de ecosistemas de páramo.",
           topicKey: "medio_ambiente",
           topicLabel: "Medio Ambiente",
           voteValue: "Sí",
-          promiseAlignment: "Coherente"
+          resultText: "Aprobado",
+          promiseAlignment: "coherente",
+          sourceUrl: "https://camara.gov.co/placeholder",
+          projectSourceUrl: "https://camara.gov.co/proyectos/placeholder",
+          sessionLabel: "Plenaria Extraordinaria",
+          isAbsent: false,
+          deviatesFromParty: false
         },
         {
           id: `mock-v2-${item.id}`,
+          voteEventId: `evt-mock-2-${item.id}`,
+          projectId: "PL-012-2024",
           voteDate: "2024-01-28",
           title: "Reforma Tributaria: Exclusión de IVA a la canasta básica",
+          description: "Modifica el estatuto tributario para excluir productos básicos.",
           topicKey: "economia",
           topicLabel: "Economía",
           voteValue: "Sí",
-          promiseAlignment: "Coherente"
+          resultText: "Aprobado",
+          promiseAlignment: "coherente",
+          sourceUrl: "https://camara.gov.co/placeholder",
+          projectSourceUrl: "https://camara.gov.co/proyectos/placeholder",
+          sessionLabel: "Plenaria Ordinaria",
+          isAbsent: false,
+          deviatesFromParty: false
         },
         {
           id: `mock-v3-${item.id}`,
+          voteEventId: `evt-mock-3-${item.id}`,
+          projectId: "PL-203-2023",
           voteDate: "2023-11-10",
           title: "Ley de Paz Total: Sometimiento a la justicia",
+          description: "Marco legal para el sometimiento de grupos armados.",
           topicKey: "paz",
           topicLabel: "Paz",
           voteValue: "No",
-          promiseAlignment: "Inconsistente"
+          resultText: "Archivado",
+          promiseAlignment: "inconsistente",
+          sourceUrl: "https://camara.gov.co/placeholder",
+          projectSourceUrl: "https://camara.gov.co/proyectos/placeholder",
+          sessionLabel: "Comisión Primera",
+          isAbsent: false,
+          deviatesFromParty: true
         }
       ];
     }
