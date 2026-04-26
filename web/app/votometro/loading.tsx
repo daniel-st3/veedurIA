@@ -3,7 +3,7 @@ export default function VotometroLoading() {
     <div
       style={{
         minHeight: "100svh",
-        background: "#07090e",
+        background: "linear-gradient(180deg, #f7f2ea 0%, #f5efe6 48%, #f1ebe1 100%)",
         display: "grid",
         placeItems: "center",
       }}
@@ -15,16 +15,17 @@ export default function VotometroLoading() {
             height: 48,
             margin: "0 auto 1.2rem",
             borderRadius: "50%",
-            border: "3px solid rgba(255,255,255,.08)",
+            border: "3px solid rgba(12,19,34,.08)",
             borderTopColor: "#0d5bd7",
             animation: "spin .8s linear infinite",
           }}
         />
         <p
           style={{
-            color: "rgba(255,255,255,.4)",
+            color: "rgba(12,19,34,.42)",
             fontSize: ".88rem",
             letterSpacing: ".04em",
+            fontFamily: "Sora, sans-serif",
           }}
         >
           Cargando Votómetro…

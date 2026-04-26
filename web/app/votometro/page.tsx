@@ -139,9 +139,18 @@ export default async function VotometroPage({
     items: [],
   } as Awaited<ReturnType<typeof getVotometroDirectory>>;
 
+  const emptyPartyPayload = {
+    meta: { total: 0, generatedAt: new Date().toISOString() },
+    issue: null,
+    items: [] as PartySummary[],
+  };
+
   const [payload, partyPayload, votesPayload] = await Promise.all([
     raceTimeout(getVotometroDirectory(directoryParams), emptyPayload),
-    getPartySummariesPayload().catch(() => ({ items: [] as PartySummary[] })),
+    raceTimeout(
+      getPartySummariesPayload().catch(() => emptyPartyPayload),
+      emptyPartyPayload,
+    ),
     raceTimeout(
       getVotometroVotes({ page: 1, pageSize: 50 }),
       {
