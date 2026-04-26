@@ -154,25 +154,53 @@ function chamberLabel(chamber: string): string {
   return chamber === "camara" ? "Cámara de Representantes" : "Senado";
 }
 
+// Party-colored avatar palette (background, foreground always white).
+// Used as a server-side fallback when a legislator has no public photograph.
+const PARTY_AVATAR_COLORS: Record<string, string> = {
+  "alianza-verde":         "0a7a4e",
+  "cambio-radical":        "c62839",
+  "centro-democratico":    "0d3a8a",
+  "colombia-humana":       "c47d18",
+  "partido-conservador":   "1f4185",
+  "partido-de-la-u":       "0f4eaa",
+  "partido-u":             "0f4eaa",
+  "partido-liberal":       "b81f1f",
+  "polo-democratico":      "d3a21a",
+  "union-patriotica":      "9a1622",
+  "pacto-historico":       "c47d18",
+  "sin-partido":           "5b6378",
+};
+
+function fallbackAvatarUrl(name: string, partyKey: string): string {
+  const cleanName = (name || "Legislador").replace(/\s+/g, "+").slice(0, 64);
+  const bg = PARTY_AVATAR_COLORS[partyKey] || "172033";
+  // ui-avatars.com returns a clean initials avatar with a party-colored
+  // background.  Cached by Vercel/edge naturally because the URL is stable.
+  return `https://ui-avatars.com/api/?name=${cleanName}&background=${bg}&color=ffffff&bold=true&size=240&font-size=0.42&format=png`;
+}
+
 function itemFromDirectoryRow(row: DirectoryRow): LegislatorListItem {
   const chamber = (toStringValue(row.chamber) || "senado") as VotometroChamber;
+  const partyKey = toStringValue(row.party_key) || "sin-partido";
+  const canonicalName = toStringValue(row.canonical_name);
+  const explicitImage = toStringValue(row.image_url);
   return {
     id: toStringValue(row.id),
     slug: toStringValue(row.slug),
-    canonicalName: toStringValue(row.canonical_name),
+    canonicalName,
     normalizedName: toStringValue(row.normalized_name),
     initials: toStringValue(row.initials) || "NN",
     chamber,
     chamberLabel: chamberLabel(chamber),
     party: toStringValue(row.party) || "Sin partido visible",
-    partyKey: toStringValue(row.party_key) || "sin-partido",
+    partyKey,
     roleLabel: toStringValue(row.role_label) || (chamber === "camara" ? "Representante" : "Senador"),
     commission: toStringValue(row.commission),
     circunscription: toStringValue(row.circunscription),
     email: toStringValue(row.email),
     phone: toStringValue(row.phone),
     office: toStringValue(row.office),
-    imageUrl: toStringValue(row.image_url),
+    imageUrl: explicitImage || fallbackAvatarUrl(canonicalName, partyKey),
     bio: toStringValue(row.bio),
     sourcePrimary: toStringValue(row.source_primary),
     sourceRef: toStringValue(row.source_ref),

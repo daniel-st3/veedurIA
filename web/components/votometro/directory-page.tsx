@@ -352,6 +352,24 @@ export function VotometroDirectoryPage({
     (i) => i.coherenceScore != null && (i.coherenceScore ?? 0) < 50,
   ).length;
 
+  /* ── Derived analysis: chamber + commission breakdowns ─────────────── */
+  const senateCount = payload.items.filter((i) => i.chamber === "senado").length;
+  const houseCount = payload.items.filter((i) => i.chamber === "camara").length;
+  const totalChamber = senateCount + houseCount;
+
+  const commissionCountsMap = new Map<string, number>();
+  for (const i of payload.items) {
+    const key = i.commission?.trim() || "Sin comisión";
+    commissionCountsMap.set(key, (commissionCountsMap.get(key) ?? 0) + 1);
+  }
+  const commissionCounts = [...commissionCountsMap.entries()]
+    .map(([commission, count]) => ({ commission, count }))
+    .sort((a, b) => b.count - a.count);
+
+  const partiesSorted = [...parties].sort((a, b) => b.memberCount - a.memberCount);
+  const maxPartyMembers = Math.max(1, ...partiesSorted.map((p) => p.memberCount));
+  const maxCommissionCount = Math.max(1, ...commissionCounts.map((c) => c.count));
+
   /* ── Copy ────────────────────────────────────────────── */
   const es = lang === "es";
   const c = {
@@ -851,6 +869,134 @@ export function VotometroDirectoryPage({
                 ))}
               </tbody>
             </table>
+          </section>
+        ) : null}
+
+        {/* ── Composición política — derived analysis section ───────── */}
+        {totalChamber > 0 ? (
+          <section className={styles.surface} data-vm="section">
+            <span className={styles.eyebrow}>
+              {es ? "Lectura agregada" : "Aggregate reading"}
+            </span>
+            <h2 className={styles.surfaceTitle} style={{ marginTop: ".5rem" }}>
+              {es ? "Composición política del directorio" : "Political composition of the directory"}
+            </h2>
+            <p className={styles.surfaceIntro}>
+              {es
+                ? "Cómo se distribuyen los legisladores indexados por cámara, partido y comisión. Calculado en tiempo real desde la capa pública."
+                : "How indexed legislators distribute across chamber, party, and commission. Computed live from the public layer."}
+            </p>
+
+            <div className={styles.analysisGrid}>
+              {/* Chamber donut */}
+              <div className={styles.analysisCard}>
+                <span className={styles.eyebrow}>
+                  {es ? "Cámara" : "Chamber"}
+                </span>
+                <div className={styles.donutWrap}>
+                  <svg
+                    viewBox="0 0 120 120"
+                    className={styles.donutSvg}
+                    role="img"
+                    aria-label={
+                      es
+                        ? `${senateCount} senadores y ${houseCount} representantes`
+                        : `${senateCount} senators and ${houseCount} representatives`
+                    }
+                  >
+                    {(() => {
+                      const r = 50;
+                      const c2 = 2 * Math.PI * r;
+                      const senatePct = senateCount / totalChamber;
+                      const senateLen = c2 * senatePct;
+                      const housePct = houseCount / totalChamber;
+                      const houseLen = c2 * housePct;
+                      return (
+                        <g transform="translate(60 60) rotate(-90)">
+                          <circle r={r} fill="none" stroke="rgba(13,91,215,0.85)" strokeWidth="14" strokeDasharray={`${senateLen} ${c2 - senateLen}`} />
+                          <circle r={r} fill="none" stroke="rgba(245,197,24,0.9)" strokeWidth="14" strokeDasharray={`${houseLen} ${c2 - houseLen}`} strokeDashoffset={-senateLen} />
+                          <circle r={r - 22} fill="rgba(255,255,255,0.7)" />
+                        </g>
+                      );
+                    })()}
+                    <text x="60" y="58" textAnchor="middle" fontFamily="Sora, sans-serif" fontSize="22" fontWeight="800" fill="#0c1322">{totalChamber}</text>
+                    <text x="60" y="74" textAnchor="middle" fontFamily="Inter, sans-serif" fontSize="9" fontWeight="600" fill="rgba(12,19,34,0.55)" letterSpacing="0.08em">{es ? "PERFILES" : "PROFILES"}</text>
+                  </svg>
+                </div>
+                <ul className={styles.legendList}>
+                  <li>
+                    <i style={{ background: "rgba(13,91,215,0.85)" }} />
+                    <span>{es ? "Senado" : "Senate"}</span>
+                    <strong>{senateCount} ({Math.round((senateCount / totalChamber) * 100)}%)</strong>
+                  </li>
+                  <li>
+                    <i style={{ background: "rgba(245,197,24,0.9)" }} />
+                    <span>{es ? "Cámara" : "House"}</span>
+                    <strong>{houseCount} ({Math.round((houseCount / totalChamber) * 100)}%)</strong>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Party bar visualization */}
+              <div className={styles.analysisCard}>
+                <span className={styles.eyebrow}>
+                  {es ? "Distribución por partido" : "Party distribution"}
+                </span>
+                <ul className={styles.partyBarList}>
+                  {partiesSorted.slice(0, 9).map((p) => {
+                    const pctW = (p.memberCount / maxPartyMembers) * 100;
+                    return (
+                      <li key={p.partyKey} className={styles.partyBarRow}>
+                        <span className={styles.partyBarLabel}>{p.party}</span>
+                        <span className={styles.partyBarTrack}>
+                          <span
+                            className={styles.partyBarFill}
+                            style={{
+                              width: `${pctW}%`,
+                              background: `linear-gradient(90deg, var(--pulse-line, rgba(13,91,215,.8)) 0%, rgba(13,91,215,.55) 100%)`,
+                            }}
+                          />
+                        </span>
+                        <strong className={styles.partyBarCount}>{p.memberCount}</strong>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              {/* Commission distribution */}
+              <div className={styles.analysisCard}>
+                <span className={styles.eyebrow}>
+                  {es ? "Comisiones" : "Commissions"}
+                </span>
+                <ul className={styles.partyBarList}>
+                  {commissionCounts.slice(0, 8).map((row) => {
+                    const pctW = (row.count / maxCommissionCount) * 100;
+                    return (
+                      <li key={row.commission} className={styles.partyBarRow}>
+                        <span className={styles.partyBarLabel}>{row.commission}</span>
+                        <span className={styles.partyBarTrack}>
+                          <span
+                            className={styles.partyBarFill}
+                            style={{
+                              width: `${pctW}%`,
+                              background: `linear-gradient(90deg, rgba(198,40,57,.78) 0%, rgba(198,40,57,.45) 100%)`,
+                            }}
+                          />
+                        </span>
+                        <strong className={styles.partyBarCount}>{row.count}</strong>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+
+            <p className={styles.smallMuted} style={{ marginTop: "1rem" }}>
+              {es
+                ? "Los porcentajes y conteos se recalculan automáticamente cada vez que la sincronización agrega o retira un perfil del directorio público."
+                : "Percentages and counts recompute on every sync that adds or removes a profile from the public directory."}
+            </p>
           </section>
         ) : null}
       </main>
