@@ -28,6 +28,7 @@ concurrency:
 env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+  SUPABASE_STORAGE_BUCKET: ${{ secrets.SUPABASE_STORAGE_BUCKET }}
   PYTHON_VERSION: "3.11"
 
 jobs:
@@ -44,6 +45,7 @@ jobs:
           missing=""
           if [ -z "${{ secrets.SUPABASE_URL }}" ]; then missing="$missing SUPABASE_URL"; fi
           if [ -z "${{ secrets.SUPABASE_KEY }}" ]; then missing="$missing SUPABASE_KEY"; fi
+          if [ -z "${{ secrets.SUPABASE_STORAGE_BUCKET }}" ]; then missing="$missing SUPABASE_STORAGE_BUCKET"; fi
           if [ -n "$missing" ]; then
             echo "::warning::Secrets not configured ($missing) — skipping promise refresh."
             echo "Add them at: Settings > Secrets and variables > Actions"
@@ -112,6 +114,51 @@ jobs:
         if: steps.check_secrets.outputs.skip != 'true'
         run: |
           python -m src.processing.coherence_scorer
+
+      - name: Upload promise parquets to Supabase and update last_run.json
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from supabase import create_client
+
+          client = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])
+          bucket = os.environ["SUPABASE_STORAGE_BUCKET"]
+
+          last_run_path = Path("data/processed/last_run.json")
+          last_run = json.loads(last_run_path.read_text()) if last_run_path.exists() else {}
+
+          # Map run_key (used by promesometro_loaders._get_supabase_url) → local file
+          uploads = {
+              "promises":          Path("data/processed/promises/promises.parquet"),
+              "coherence":         Path("data/processed/promises/coherence.parquet"),
+              "promises_actions":  Path("data/processed/promises/actions.parquet"),
+          }
+
+          now = datetime.now(timezone.utc).isoformat()
+          any_uploaded = False
+          for run_key, local_path in uploads.items():
+              if not local_path.exists():
+                  print(f"WARN: {local_path} not found — skipping")
+                  continue
+              remote = f"promises/{local_path.name}"
+              client.storage.from_(bucket).upload(
+                  remote,
+                  local_path.read_bytes(),
+                  file_options={"content-type": "application/octet-stream", "upsert": "true"},
+              )
+              public_url = client.storage.from_(bucket).get_public_url(remote)
+              last_run[run_key] = {"parquet_url": public_url, "uploaded_at": now}
+              print(f"Uploaded {run_key} → {public_url}")
+              any_uploaded = True
+
+          if any_uploaded:
+              last_run["promises_last_refreshed_at"] = now
+              last_run_path.write_text(json.dumps(last_run, indent=2, default=str) + "\n")
+              print("Updated last_run.json with promise URLs")
+          PY
 
       - name: Commit last_run.json update
         if: steps.check_secrets.outputs.skip != 'true'

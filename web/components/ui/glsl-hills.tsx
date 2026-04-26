@@ -165,10 +165,10 @@ export function GLSLHills({ speed = 0.35, cameraZ = 118, planeSize = 256, classN
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true });
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 1, 10_000);
-    const clock = new THREE.Clock();
     const plane = new Plane();
     let animId = 0;
     let isVisible = true;
+    let lastFrameMs = performance.now();
 
     const resize = () => {
       const { width, height } = container.getBoundingClientRect();
@@ -188,11 +188,13 @@ export function GLSLHills({ speed = 0.35, cameraZ = 118, planeSize = 256, classN
 
     const loop = () => {
       animId = requestAnimationFrame(loop);
+      const now = performance.now();
+      const delta = Math.min((now - lastFrameMs) / 1000, 0.05);
+      lastFrameMs = now;
       if (document.hidden || !isVisible) {
-        clock.getDelta();
         return;
       }
-      plane.tick(clock.getDelta());
+      plane.tick(delta);
       renderer.render(scene, camera);
     };
     loop();

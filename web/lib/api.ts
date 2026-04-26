@@ -22,7 +22,8 @@ import {
 } from "@/lib/mock-data";
 import { formatCompactCop } from "@/lib/format";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? (typeof window === "undefined" ? "http://127.0.0.1:8000" : "");
 const OFFICIAL_CONTRACTS_SUMMARY =
   "https://www.datos.gov.co/resource/jbjy-vk9h.json?$select=max(fecha_de_firma)%20as%20max_fecha,%20count(*)%20as%20total&$limit=1";
 const OFFICIAL_CONTRACTS_LATEST =
@@ -284,12 +285,7 @@ export async function fetchContractsFreshness(): Promise<ContractsFreshnessPaylo
 }
 
 export async function fetchGeoJson(): Promise<GeoJsonPayload | null> {
-  try {
-    const response = await fetch(`${API_BASE}/contracts/geojson`, { cache: "force-cache" });
-    if (!response.ok) throw new Error("Failed to fetch geojson");
-    return await response.json();
-  } catch {
-    if (typeof window === "undefined") return null;
+  if (typeof window !== "undefined") {
     try {
       const localResponse = await fetch(LOCAL_GEOJSON_PATH, { cache: "force-cache" });
       if (!localResponse.ok) throw new Error("Failed to fetch bundled geojson");
@@ -297,6 +293,16 @@ export async function fetchGeoJson(): Promise<GeoJsonPayload | null> {
     } catch {
       return null;
     }
+  }
+
+  if (!API_BASE) return null;
+
+  try {
+    const response = await fetch(`${API_BASE}/contracts/geojson`, { cache: "force-cache" });
+    if (!response.ok) throw new Error("Failed to fetch geojson");
+    return await response.json();
+  } catch {
+    return null;
   }
 }
 
@@ -312,6 +318,8 @@ export type PromiseFilters = {
 };
 
 export async function fetchPromisesOverview(filters: PromiseFilters): Promise<PromisesPayload> {
+  if (!API_BASE) return getMockPromises(filters);
+
   try {
     const query = buildQuery({
       lang: filters.lang,
@@ -355,6 +363,8 @@ function isNetworkPayload(value: unknown): value is NetworkPayload {
 }
 
 export async function fetchNetworkVersion(): Promise<NetworkVersion> {
+  if (!API_BASE) return getMockNetworkVersion();
+
   try {
     const response = await fetch(`${API_BASE}/network/version`, { cache: "no-store" });
     if (!response.ok) throw new Error("Failed");
@@ -365,6 +375,8 @@ export async function fetchNetworkVersion(): Promise<NetworkVersion> {
 }
 
 export async function fetchNetworkOverview(filters: NetworkFilters): Promise<NetworkPayload> {
+  if (!API_BASE) return getMockNetwork();
+
   try {
     const query = buildQuery({
       lang: filters.lang,
@@ -383,6 +395,16 @@ export async function fetchNetworkOverview(filters: NetworkFilters): Promise<Net
 }
 
 export async function fetchNetworkSearch(query: string, lang: Lang, minConfidence = 40): Promise<NetworkPayload> {
+  if (!API_BASE) {
+    const mock = getMockNetwork();
+    const normalizeSearch = (s: string) =>
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    const q = normalizeSearch(query);
+    const matched = mock.nodes.filter((n) => normalizeSearch(n.label).includes(q));
+    if (!matched.length) return { ...mock, nodes: [], edges: [], meta: { ...mock.meta, found: false, query } };
+    return { ...mock, meta: { ...mock.meta, found: true, query, match_label: matched[0].label } };
+  }
+
   try {
     const qs = buildQuery({ q: query, lang, min_confidence: minConfidence });
     const response = await fetch(`${API_BASE}/network/search?${qs}`, { cache: "no-store" });
@@ -403,6 +425,8 @@ export async function fetchNetworkSearch(query: string, lang: Lang, minConfidenc
 }
 
 export async function fetchNetworkExpand(nodeId: string, lang: Lang, minConfidence = 40): Promise<NetworkPayload> {
+  if (!API_BASE) return getMockNetwork();
+
   try {
     const qs = buildQuery({ lang, min_confidence: minConfidence });
     const response = await fetch(`${API_BASE}/network/expand/${nodeId}?${qs}`, { cache: "no-store" });
@@ -416,6 +440,8 @@ export async function fetchNetworkExpand(nodeId: string, lang: Lang, minConfiden
 }
 
 export async function fetchNetworkNodeDetail(nodeId: string, lang: Lang): Promise<NetworkNodeDetail> {
+  if (!API_BASE) return getMockNetworkNodeDetail(nodeId);
+
   try {
     const qs = buildQuery({ lang });
     const response = await fetch(`${API_BASE}/network/node/${nodeId}?${qs}`, { cache: "no-store" });
@@ -427,6 +453,8 @@ export async function fetchNetworkNodeDetail(nodeId: string, lang: Lang): Promis
 }
 
 export async function reportNetworkError(body: ErrorReportBody): Promise<void> {
+  if (!API_BASE) return;
+
   try {
     await fetch(`${API_BASE}/network/report-error`, {
       method: "POST",

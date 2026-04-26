@@ -524,11 +524,16 @@ export function ContractsView({
     () => {
       const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (reduceMotion) return;
-      gsap.fromTo(
+      const introTargets = gsap.utils.toArray<HTMLElement>(
         ".cv-hero-panel, .cv-control-panel, .cv-map-stage, .cv-block, .cv-dashboard-card, .explorer-card, .cv-case-chip",
-        { autoAlpha: 0, y: 24 },
-        { autoAlpha: 1, y: 0, duration: 0.58, stagger: 0.03, ease: "power3.out" },
       );
+      if (introTargets.length > 0) {
+        gsap.fromTo(
+          introTargets,
+          { autoAlpha: 0, y: 24 },
+          { autoAlpha: 1, y: 0, duration: 0.58, stagger: 0.03, ease: "power3.out" },
+        );
+      }
       gsap.utils.toArray<HTMLElement>(".cv-workbench, .cv-focus-panel, .cv-dashboard, .cv-explorer, .cv-methodology").forEach((section) => {
         gsap.fromTo(
           section,
@@ -545,20 +550,25 @@ export function ContractsView({
           },
         );
       });
-      gsap.fromTo(
+      const barTargets = gsap.utils.toArray<HTMLElement>(
         ".cv-factor-row__bar span, .cv-case-chip__bar span, .cv-sandbox-group__bar span, .table-value__fill",
-        { width: 0 },
-        {
-          width: (_index, target) => target.getAttribute("data-width") || target.getAttribute("style")?.match(/width:\s*([^;]+)/)?.[1] || "100%",
-          duration: 1.1,
-          ease: "power3.out",
-          stagger: 0.03,
-          scrollTrigger: {
-            trigger: ".cv-page",
-            start: "top 75%",
-          },
-        },
       );
+      if (barTargets.length > 0) {
+        gsap.fromTo(
+          barTargets,
+          { width: 0 },
+          {
+            width: (_index, target) => target.getAttribute("data-width") || target.getAttribute("style")?.match(/width:\s*([^;]+)/)?.[1] || "100%",
+            duration: 1.1,
+            ease: "power3.out",
+            stagger: 0.03,
+            scrollTrigger: {
+              trigger: ".cv-page",
+              start: "top 75%",
+            },
+          },
+        );
+      }
     },
     { scope, dependencies: [table?.rows.length ?? 0, overview?.leadCases.length ?? 0, overview?.slice.totalContracts ?? 0] },
   );
