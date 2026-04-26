@@ -212,7 +212,7 @@ function itemFromDirectoryRow(row: DirectoryRow): LegislatorListItem {
   const hash = canonicalName.length * 13 + canonicalName.charCodeAt(0) * 7;
   
   if (!explicitImage) {
-    explicitImage = getSenateImage(canonicalName);
+    explicitImage = getSenateImage(canonicalName) || "";
     if (!explicitImage && senateImagesCache && senateImagesCache.length > 0) {
       explicitImage = senateImagesCache[hash % senateImagesCache.length].image;
     }
