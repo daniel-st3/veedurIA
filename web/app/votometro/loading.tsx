@@ -1,23 +1,36 @@
-import { LoadingStage } from "@/components/loading-stage";
-
 export default function VotometroLoading() {
   return (
-    <main className="page vm-page">
-      <nav className="site-nav">
-        <span className="brand" aria-label="VeedurIA">
-          <span className="brand-mark">
-            <span className="brand-word">Veedur</span>
-            <span className="brand-ia" aria-hidden>
-              <span className="brand-flag brand-flag--yellow">I</span>
-              <span className="brand-flag brand-flag--blue">A</span>
-              <span className="brand-flag brand-flag--red">.</span>
-            </span>
-          </span>
-        </span>
-      </nav>
-      <section className="surface stripe-flag" style={{ marginTop: "1.2rem", padding: "1.2rem" }}>
-        <LoadingStage lang="es" context="votometro" />
-      </section>
-    </main>
+    <div
+      style={{
+        minHeight: "100svh",
+        background: "#07090e",
+        display: "grid",
+        placeItems: "center",
+      }}
+    >
+      <div style={{ textAlign: "center" }}>
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            margin: "0 auto 1.2rem",
+            borderRadius: "50%",
+            border: "3px solid rgba(255,255,255,.08)",
+            borderTopColor: "#0d5bd7",
+            animation: "spin .8s linear infinite",
+          }}
+        />
+        <p
+          style={{
+            color: "rgba(255,255,255,.4)",
+            fontSize: ".88rem",
+            letterSpacing: ".04em",
+          }}
+        >
+          Cargando Votómetro…
+        </p>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    </div>
   );
 }

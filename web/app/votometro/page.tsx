@@ -1,23 +1,30 @@
 import { VotometroDirectoryPage } from "@/components/votometro/directory-page";
-import { VotometroFallback } from "@/components/votometro/fallback-wrapper";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
-import type { LegislatorListItem, PartySummary } from "@/lib/votometro-types";
-import { getPartySummariesPayload, getVotometroDirectory } from "@/lib/votometro-server";
+import type { PartySummary } from "@/lib/votometro-types";
+import {
+  getPartySummariesPayload,
+  getVotometroDirectory,
+  getVotometroVotes,
+} from "@/lib/votometro-server";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-// If the server fetches take longer than this, render with empty data and show fallback.
-const SERVER_FETCH_TIMEOUT_MS = 2000;
+const SERVER_FETCH_TIMEOUT_MS = 4000;
 
 function raceTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
   return Promise.race<T>([
     promise,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), SERVER_FETCH_TIMEOUT_MS)),
+    new Promise<T>((resolve) =>
+      setTimeout(() => resolve(fallback), SERVER_FETCH_TIMEOUT_MS),
+    ),
   ]);
 }
 
-function derivePartySummaries(items: LegislatorListItem[]): PartySummary[] {
+function derivePartySummaries(
+  items: Awaited<ReturnType<typeof getVotometroDirectory>>["items"],
+): PartySummary[] {
   const groups = new Map<
     string,
     {
@@ -41,8 +48,10 @@ function derivePartySummaries(items: LegislatorListItem[]): PartySummary[] {
     };
     current.memberCount += 1;
     current.indexedVotes += item.votesIndexed;
-    if (typeof item.attendanceRate === "number") current.attendanceValues.push(item.attendanceRate);
-    if (typeof item.coherenceScore === "number") current.coherenceValues.push(item.coherenceScore);
+    if (typeof item.attendanceRate === "number")
+      current.attendanceValues.push(item.attendanceRate);
+    if (typeof item.coherenceScore === "number")
+      current.coherenceValues.push(item.coherenceScore);
     groups.set(item.partyKey, current);
   }
 
@@ -56,18 +65,24 @@ function derivePartySummaries(items: LegislatorListItem[]): PartySummary[] {
       indexedVotes: party.indexedVotes,
       attendanceRate: party.attendanceValues.length
         ? Math.round(
-            party.attendanceValues.reduce((sum, value) => sum + value, 0) / party.attendanceValues.length,
+            party.attendanceValues.reduce((sum, value) => sum + value, 0) /
+              party.attendanceValues.length,
           )
         : null,
       coherenceScore: party.coherenceValues.length
         ? Math.round(
-            party.coherenceValues.reduce((sum, value) => sum + value, 0) / party.coherenceValues.length,
+            party.coherenceValues.reduce((sum, value) => sum + value, 0) /
+              party.coherenceValues.length,
           )
         : null,
       approvedPromiseMatches: 0,
       topicScores: [],
     }))
-    .sort((left, right) => right.memberCount - left.memberCount || left.party.localeCompare(right.party, "es-CO"));
+    .sort(
+      (left, right) =>
+        right.memberCount - left.memberCount ||
+        left.party.localeCompare(right.party, "es-CO"),
+    );
 }
 
 export async function generateMetadata({
@@ -76,7 +91,9 @@ export async function generateMetadata({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const lang = resolveLang(Array.isArray(params.lang) ? params.lang[0] : params.lang);
+  const lang = resolveLang(
+    Array.isArray(params.lang) ? params.lang[0] : params.lang,
+  );
 
   return buildPageMetadata({
     lang,
@@ -84,8 +101,8 @@ export async function generateMetadata({
     title: lang === "es" ? "Votómetro — VeedurIA" : "Votometer — VeedurIA",
     description:
       lang === "es"
-        ? "Directorio vivo de legisladores colombianos con votos, asistencia y coherencia visible solo cuando hay promesas revisadas."
-        : "Live directory of Colombian legislators with votes, attendance, and coherence shown only when reviewed promises exist.",
+        ? "Directorio vivo de legisladores colombianos con votos, asistencia y coherencia — datos actualizados diariamente desde fuentes oficiales."
+        : "Live directory of Colombian legislators with votes, attendance, and coherence — updated daily from official sources.",
     imagePath: "/votometro/opengraph-image",
   });
 }
@@ -96,55 +113,57 @@ export default async function VotometroPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const lang = resolveLang(Array.isArray(params.lang) ? params.lang[0] : params.lang);
-  const requestedPageSize = Array.isArray(params.page_size) ? params.page_size[0] : params.page_size;
-  const directoryParams = requestedPageSize ? params : { ...params, page_size: "60" };
+  const lang = resolveLang(
+    Array.isArray(params.lang) ? params.lang[0] : params.lang,
+  );
+  const requestedPageSize = Array.isArray(params.page_size)
+    ? params.page_size[0]
+    : params.page_size;
+  const directoryParams = requestedPageSize
+    ? params
+    : { ...params, page_size: "200" };
   const emptyPayload = {
-    meta: { total: 0, page: 1, pageSize: 60, pageCount: 1, activeLegislators: 0, indexedVotes: 0, averageCoherence: null, generatedAt: new Date().toISOString() },
+    meta: {
+      total: 0,
+      page: 1,
+      pageSize: 200,
+      pageCount: 1,
+      activeLegislators: 0,
+      indexedVotes: 0,
+      averageCoherence: null,
+      generatedAt: new Date().toISOString(),
+    },
     issue: null,
-    filters: { page: 1, pageSize: 60 },
+    filters: { page: 1, pageSize: 200 },
     options: { parties: [], circunscriptions: [], commissions: [] },
     items: [],
   } as Awaited<ReturnType<typeof getVotometroDirectory>>;
 
-  // Run both data fetches in parallel with a timeout so navigation is never blocked.
-  const [payload, partyPayload] = await Promise.all([
+  const [payload, partyPayload, votesPayload] = await Promise.all([
     raceTimeout(getVotometroDirectory(directoryParams), emptyPayload),
     getPartySummariesPayload().catch(() => ({ items: [] as PartySummary[] })),
+    raceTimeout(
+      getVotometroVotes({ page: 1, pageSize: 50 }),
+      {
+        meta: { total: 0, page: 1, pageSize: 50, generatedAt: new Date().toISOString() },
+        issue: null,
+        items: [],
+      },
+    ),
   ]);
-
-  const forceLive =
-    (Array.isArray(params.force_live) ? params.force_live[0] : params.force_live) === "1";
-  const hasMeaningfulLiveCoverage =
-    !payload.issue &&
-    payload.items.some(
-      (item) =>
-        item.votesIndexed > 0 ||
-        item.attendanceRate != null ||
-        item.coherenceScore != null ||
-        item.topTopics.length > 0 ||
-        item.topicScores.length > 0,
-    );
-  const hasPublicDirectory = !payload.issue && payload.meta.activeLegislators > 0 && payload.items.length > 0;
 
   let parties = derivePartySummaries(payload.items);
   if (partyPayload.items.length) {
     parties = partyPayload.items;
   }
 
-  if (!forceLive && !hasMeaningfulLiveCoverage && !hasPublicDirectory) {
-    return (
-      <VotometroFallback
-        lang={lang}
-        initialLiveCoverage={{
-          activeLegislators: payload.meta.activeLegislators,
-          visibleParties: parties.length,
-          publicVotes: payload.meta.indexedVotes,
-          available: !payload.issue,
-        }}
-      />
-    );
-  }
-
-  return <VotometroDirectoryPage lang={lang} payload={payload} parties={parties} />;
+  return (
+    <VotometroDirectoryPage
+      lang={lang}
+      payload={payload}
+      parties={parties}
+      recentVotes={votesPayload.items}
+      totalPublicVotes={votesPayload.meta.total}
+    />
+  );
 }

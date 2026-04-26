@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowRight, Filter, Landmark, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, Filter, Landmark, ShieldCheck, Users, Vote, Eye, TrendingUp } from "lucide-react";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -14,6 +14,7 @@ import { VOTOMETRO_TOPICS } from "@/lib/votometro-topics";
 import type {
   LegislatorListItem,
   PartySummary,
+  VoteEventDetail,
   VotometroDataIssue,
   VotometroDirectoryPayload,
   VotometroFilters,
@@ -22,6 +23,8 @@ import type {
 import styles from "./votometro.module.css";
 
 gsap.registerPlugin(ScrollTrigger);
+
+/* ── Helpers ──────────────────────────────────────────────────── */
 
 function buildHref(path: string, params: Record<string, string | number | undefined>) {
   const search = new URLSearchParams();
@@ -33,25 +36,39 @@ function buildHref(path: string, params: Record<string, string | number | undefi
   return query ? `${path}?${query}` : path;
 }
 
-function percentLabel(value: number | null, lang: Lang) {
-  return value == null ? (lang === "es" ? "Sin revisar" : "Not reviewed") : `${Math.round(value)}%`;
+function pctLabel(value: number | null, lang: Lang) {
+  return value == null ? (lang === "es" ? "—" : "—") : `${Math.round(value)}%`;
 }
 
-function statNumber(value: number) {
+function stat(value: number) {
   return new Intl.NumberFormat("es-CO").format(value);
 }
 
-function localizedChamberLabel(chamber: LegislatorListItem["chamber"], lang: Lang) {
-  if (lang === "es") {
-    return chamber === "camara" ? "Cámara de Representantes" : "Senado";
-  }
-  return chamber === "camara" ? "House of Representatives" : "Senate";
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return "—";
+  try {
+    return new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
+  } catch { return iso; }
 }
 
-function localizedRoleLabel(profile: LegislatorListItem, lang: Lang) {
-  if (lang === "es") return profile.roleLabel;
-  return profile.chamber === "camara" ? "Representative" : "Senator";
+function alignmentClass(alignment: string) {
+  if (alignment === "coherente") return styles.isCoherent;
+  if (alignment === "inconsistente") return styles.isInconsistent;
+  if (alignment === "ausente") return styles.isAbsent;
+  return styles.isNeutral;
 }
+
+function alignmentLabel(alignment: string, lang: Lang) {
+  const map: Record<string, Record<Lang, string>> = {
+    coherente: { es: "Coherente", en: "Coherent" },
+    inconsistente: { es: "Inconsistente", en: "Inconsistent" },
+    ausente: { es: "Ausente", en: "Absent" },
+    "sin-promesa": { es: "Sin promesa", en: "No promise" },
+  };
+  return map[alignment]?.[lang] ?? alignment;
+}
+
+/* ── Sub-components ───────────────────────────────────────────── */
 
 function avatarFor(profile: LegislatorListItem) {
   if (profile.imageUrl) {
@@ -65,74 +82,42 @@ function avatarFor(profile: LegislatorListItem) {
   return <div className={styles.avatarPlaceholder}>{profile.initials}</div>;
 }
 
-function profileHref(lang: Lang, slug: string) {
-  return `/votometro/legislador/${slug}?lang=${lang}`;
-}
-
-function IssuePanel({
-  lang,
-  issue,
-}: {
-  lang: Lang;
-  issue: VotometroDataIssue;
-}) {
+function IssuePanel({ lang, issue }: { lang: Lang; issue: VotometroDataIssue }) {
   const steps =
     issue.code === "missing_schema"
       ? lang === "es"
         ? [
-            "Ejecuta scripts/setup_supabase.sql en el proyecto Supabase conectado a este entorno.",
-            "Corre un primer sync con python scripts/sync_votometro.py --mode=daily.",
-            "Verifica que el frontend tenga SUPABASE_URL y que el entorno server-side tenga SUPABASE_SERVICE_KEY o SUPABASE_KEY.",
+            "Ejecuta scripts/setup_supabase.sql en el proyecto Supabase.",
+            "Corre python scripts/sync_votometro.py --mode=daily.",
+            "Verifica SUPABASE_URL y SUPABASE_SERVICE_KEY.",
           ]
         : [
-            "Run scripts/setup_supabase.sql in the Supabase project connected to this environment.",
-            "Run an initial sync with python scripts/sync_votometro.py --mode=daily.",
-            "Confirm the frontend has SUPABASE_URL and the server-side environment has SUPABASE_SERVICE_KEY or SUPABASE_KEY.",
+            "Run scripts/setup_supabase.sql in Supabase.",
+            "Run python scripts/sync_votometro.py --mode=daily.",
+            "Check SUPABASE_URL and SUPABASE_SERVICE_KEY.",
           ]
       : issue.code === "missing_env"
         ? lang === "es"
-          ? [
-              "Define SUPABASE_URL en el entorno del frontend.",
-              "Define SUPABASE_SERVICE_KEY o SUPABASE_KEY para las rutas server-side y review.",
-              "Si usas lectura pública con RLS, define también SUPABASE_ANON_KEY.",
-            ]
-          : [
-              "Set SUPABASE_URL in the frontend environment.",
-              "Set SUPABASE_SERVICE_KEY or SUPABASE_KEY for the server-side and review routes.",
-              "If you use public reads with RLS, also set SUPABASE_ANON_KEY.",
-            ]
+          ? ["Define SUPABASE_URL.", "Define SUPABASE_SERVICE_KEY."]
+          : ["Set SUPABASE_URL.", "Set SUPABASE_SERVICE_KEY."]
         : lang === "es"
-          ? [
-              "Revisa la conectividad del proyecto Supabase.",
-              "Valida que las vistas públicas de Votómetro sigan existiendo y respondan.",
-              "Inspecciona el último run de sync y confirma que no quedó en warning.",
-            ]
-          : [
-              "Check connectivity to the Supabase project.",
-              "Validate that the public Votometer views still exist and respond.",
-              "Inspect the latest sync run and confirm it did not finish with warnings.",
-            ];
+          ? ["Revisa la conectividad de Supabase.", "Valida las vistas públicas."]
+          : ["Check Supabase connectivity.", "Validate public views."];
 
   return (
-    <section className={styles.alertCard} data-vm-animate="section">
-      <span className={styles.eyebrow}>{lang === "es" ? "Estado del módulo" : "Module status"}</span>
+    <section className={styles.alertCard}>
+      <span className={styles.eyebrow}>{lang === "es" ? "Estado" : "Status"}</span>
       <h2 className={styles.alertTitle}>{issue.title}</h2>
       <p className={styles.alertBody}>{issue.message}</p>
-      {issue.detail ? (
-        <p className={styles.smallMuted}>
-          {lang === "es" ? "Detalle técnico" : "Technical detail"}: {issue.detail}
-        </p>
-      ) : null}
+      {issue.detail ? <p className={styles.smallMuted}>{issue.detail}</p> : null}
       <ol className={styles.alertList}>
-        {steps.map((step) => (
-          <li key={step}>{step}</li>
-        ))}
+        {steps.map((s) => <li key={s}>{s}</li>)}
       </ol>
     </section>
   );
 }
 
-function Card({ profile, lang }: { profile: LegislatorListItem; lang: Lang }) {
+function LegislatorCard({ profile, lang }: { profile: LegislatorListItem; lang: Lang }) {
   return (
     <article className={styles.card} data-vm-animate="card">
       <div className={styles.cardTop}>
@@ -140,11 +125,15 @@ function Card({ profile, lang }: { profile: LegislatorListItem; lang: Lang }) {
         <div>
           <h3 className={styles.cardTitle}>{profile.canonicalName}</h3>
           <p className={styles.cardMeta}>
-            {localizedRoleLabel(profile, lang)} · {profile.party}
+            {profile.roleLabel} · {profile.party}
             {profile.circunscription ? ` · ${profile.circunscription}` : ""}
           </p>
           <div className={styles.chips}>
-            <span className={styles.chip}>{localizedChamberLabel(profile.chamber, lang)}</span>
+            <span className={styles.chip}>
+              {profile.chamber === "camara"
+                ? lang === "es" ? "Cámara" : "House"
+                : lang === "es" ? "Senado" : "Senate"}
+            </span>
             {profile.commission ? <span className={styles.chip}>{profile.commission}</span> : null}
           </div>
         </div>
@@ -152,81 +141,80 @@ function Card({ profile, lang }: { profile: LegislatorListItem; lang: Lang }) {
 
       <div className={styles.metricRow}>
         <div className={styles.metricTile}>
-          <strong>{percentLabel(profile.coherenceScore, lang)}</strong>
+          <strong>{pctLabel(profile.coherenceScore, lang)}</strong>
           <span>{lang === "es" ? "Coherencia" : "Coherence"}</span>
         </div>
         <div className={styles.metricTile}>
-          <strong>{percentLabel(profile.attendanceRate, lang)}</strong>
+          <strong>{pctLabel(profile.attendanceRate, lang)}</strong>
           <span>{lang === "es" ? "Asistencia" : "Attendance"}</span>
         </div>
         <div className={styles.metricTile}>
-          <strong>{statNumber(profile.votesIndexed)}</strong>
-          <span>{lang === "es" ? "Votos indexados" : "Indexed votes"}</span>
+          <strong>{stat(profile.votesIndexed)}</strong>
+          <span>{lang === "es" ? "Votos" : "Votes"}</span>
         </div>
       </div>
+
+      {profile.coherenceScore != null ? (
+        <div className={styles.coherenceBar}>
+          <span style={{ width: `${profile.coherenceScore}%` }} />
+        </div>
+      ) : null}
 
       <div className={styles.chips}>
         {profile.topTopics.length ? (
           profile.topTopics.slice(0, 3).map((topic) => (
-            <span key={topic} className={`${styles.chip} ${styles.chipGood}`}>
-              {topic}
-            </span>
+            <span key={topic} className={`${styles.chip} ${styles.chipGood}`}>{topic}</span>
           ))
         ) : (
           <span className={`${styles.chip} ${styles.chipWarn}`}>
-            {lang === "es" ? "Sin temas clasificados aún" : "No classified topics yet"}
+            {lang === "es" ? "Sin temas aún" : "No topics yet"}
           </span>
         )}
       </div>
 
-      <Link href={profileHref(lang, profile.slug)} className={styles.inlineLink}>
-        {lang === "es" ? "Abrir perfil completo" : "Open full profile"}
-        <ArrowRight size={16} />
+      <Link href={`/votometro/legislador/${profile.slug}?lang=${lang}`} className={styles.inlineLink}>
+        {lang === "es" ? "Ver perfil completo" : "Open full profile"}
+        <ArrowRight size={15} />
       </Link>
     </article>
   );
 }
 
-function Pagination({
-  lang,
-  filters,
-  page,
-  pageCount,
-}: {
-  lang: Lang;
-  filters: VotometroFilters;
-  page: number;
-  pageCount: number;
-}) {
-  const baseParams = {
-    lang,
-    chamber: filters.chamber,
-    party: filters.party,
-    circunscription: filters.circunscription,
-    commission: filters.commission,
-    topic: filters.topic,
-    attendance_min: filters.attendanceMin,
-    coherence_min: filters.coherenceMin,
-  };
+function VoteFeedItem({ vote, lang }: { vote: VoteEventDetail; lang: Lang }) {
+  return (
+    <div className={styles.voteItem}>
+      <div className={styles.voteTitle}>
+        <strong>{vote.topicLabel || "—"}</strong>
+        {vote.title}
+      </div>
+      <span className={`${styles.voteBadge} ${alignmentClass(vote.promiseAlignment)}`}>
+        {vote.isAbsent ? (lang === "es" ? "Ausente" : "Absent") : alignmentLabel(vote.promiseAlignment, lang)}
+      </span>
+      <span className={styles.voteDate}>{formatDate(vote.voteDate)}</span>
+    </div>
+  );
+}
 
+function Pagination({ lang, filters, page, pageCount }: {
+  lang: Lang; filters: VotometroFilters; page: number; pageCount: number;
+}) {
+  const base = {
+    lang, chamber: filters.chamber, party: filters.party,
+    circunscription: filters.circunscription, commission: filters.commission,
+    topic: filters.topic, attendance_min: filters.attendanceMin, coherence_min: filters.coherenceMin,
+  };
   return (
     <div className={styles.pagination}>
       <span className={styles.smallMuted}>
         {lang === "es" ? "Página" : "Page"} {page} / {pageCount}
       </span>
       <div className={styles.filterActions}>
-        <Link
-          href={buildHref("/votometro", { ...baseParams, page: Math.max(1, page - 1) })}
-          className={styles.ghostLink}
-          aria-disabled={page <= 1}
-        >
+        <Link href={buildHref("/votometro", { ...base, page: Math.max(1, page - 1) })}
+          className={styles.ghostLink} aria-disabled={page <= 1}>
           {lang === "es" ? "Anterior" : "Previous"}
         </Link>
-        <Link
-          href={buildHref("/votometro", { ...baseParams, page: Math.min(pageCount, page + 1) })}
-          className={styles.ghostLink}
-          aria-disabled={page >= pageCount}
-        >
+        <Link href={buildHref("/votometro", { ...base, page: Math.min(pageCount, page + 1) })}
+          className={styles.ghostLink} aria-disabled={page >= pageCount}>
           {lang === "es" ? "Siguiente" : "Next"}
         </Link>
       </div>
@@ -234,160 +222,132 @@ function Pagination({
   );
 }
 
+/* ── Main Component ───────────────────────────────────────────── */
+
 export function VotometroDirectoryPage({
-  lang,
-  payload,
-  parties,
+  lang, payload, parties, recentVotes, totalPublicVotes,
 }: {
   lang: Lang;
   payload: VotometroDirectoryPayload;
   parties: PartySummary[];
+  recentVotes: VoteEventDetail[];
+  totalPublicVotes: number;
 }) {
   const scope = useRef<HTMLDivElement>(null);
-  const hasIndexedCoverage = payload.meta.indexedVotes > 0;
-  const showCoverageNotice =
-    !payload.issue && payload.meta.activeLegislators > 0 && payload.meta.indexedVotes === 0;
+  const hasVotes = payload.meta.indexedVotes > 0 || totalPublicVotes > 0;
 
-  const copy =
-    lang === "es"
-      ? {
-          eyebrow: hasIndexedCoverage ? "Cobertura oficial viva 2022-2026" : "Roster público sincronizado 2022-2026",
-          title: hasIndexedCoverage
-            ? "Votómetro ya está leyendo el Congreso desde fuentes sincronizadas."
-            : "El directorio público ya está sincronizado, pero la indexación de votos sigue pendiente.",
-          body:
-            hasIndexedCoverage
-              ? "El directorio usa Supabase como capa pública, sincroniza roster y actividad desde fuentes oficiales, y solo expone coherencia donde exista una promesa revisada por backoffice."
-              : "Este entorno ya muestra la nómina pública de congresistas y el reparto por partido. Las votaciones nominales, asistencia y coherencia seguirán vacías hasta que corra la indexación de actividad y se aprueben relaciones promesa → voto.",
-          stats: [
-            { label: "Legisladores activos", value: statNumber(payload.meta.activeLegislators), icon: Users },
-            { label: "Votos indexados", value: statNumber(payload.meta.indexedVotes), icon: Landmark },
-            { label: "Coherencia promedio", value: percentLabel(payload.meta.averageCoherence, lang), icon: ShieldCheck },
-            { label: "Partidos visibles", value: statNumber(parties.length), icon: Filter },
-          ],
-          filtersTitle: "Filtros compartibles por URL",
-          filtersIntro:
-            "Los filtros son acumulativos y se resuelven del lado del servidor. La paginación pública entrega 24 perfiles por página.",
-          resultsTitle: "Directorio actual",
-          partyTitle: "Lectura por partido",
-          partyIntro:
-            "Las métricas de partido salen de agregados precalculados. Si un partido todavía no tiene promesas revisadas, la coherencia se deja vacía en lugar de inventarla.",
-          coverageTitle: "Cobertura pendiente de indexación",
-          coverageBody:
-            "La app ya no cae al mock cuando hay roster real disponible. Por eso este directorio enseña los 45 legisladores sembrados en Supabase, aunque las métricas de voto sigan en cero hasta completar el sync de actividad.",
-          empty: "Todavía no hay datos sincronizados para este corte o el filtro dejó el conjunto vacío.",
-          clear: "Limpiar filtros",
-          apply: "Aplicar filtros",
-          searchParty: "Partido",
-          searchCirc: "Circunscripción",
-          searchCommission: "Comisión",
-          searchTopic: "Tema",
-          searchAttendance: "Asistencia mínima",
-          searchCoherence: "Coherencia mínima",
-          searchChamber: "Cámara",
-          bothChambers: "Ambas",
-          senate: "Senado",
-          house: "Cámara",
-          technicalDetail: "Detalle técnico",
-        }
-      : {
-          eyebrow: hasIndexedCoverage ? "Live official coverage 2022-2026" : "Public roster synced for 2022-2026",
-          title: hasIndexedCoverage
-            ? "Votometer is now reading Congress from synced sources."
-            : "The public directory is synced, but vote indexing is still pending.",
-          body:
-            hasIndexedCoverage
-              ? "The directory uses Supabase as the public layer, syncs roster and activity from official sources, and only exposes coherence when a reviewed promise exists."
-              : "This environment already shows the public legislator roster and party distribution. Nominal votes, attendance, and coherence stay empty until activity indexing runs and promise-to-vote links are reviewed.",
-          stats: [
-            { label: "Active legislators", value: statNumber(payload.meta.activeLegislators), icon: Users },
-            { label: "Indexed votes", value: statNumber(payload.meta.indexedVotes), icon: Landmark },
-            { label: "Average coherence", value: percentLabel(payload.meta.averageCoherence, lang), icon: ShieldCheck },
-            { label: "Visible parties", value: statNumber(parties.length), icon: Filter },
-          ],
-          filtersTitle: "Shareable URL filters",
-          filtersIntro:
-            "Filters stack on the server. Public pagination returns 24 profiles per page.",
-          resultsTitle: "Current directory",
-          partyTitle: "Party view",
-          partyIntro:
-            "Party metrics come from precomputed aggregates. If a party still has no reviewed promises, coherence stays empty instead of being guessed.",
-          coverageTitle: "Coverage still waiting for indexing",
-          coverageBody:
-            "The app no longer falls back to the 12-profile mock when a real roster exists. That is why this directory shows the 45 legislators currently seeded in Supabase, even though vote metrics remain at zero until the activity sync finishes.",
-          empty: "There is no synced data for this slice yet, or the filter left the set empty.",
-          clear: "Clear filters",
-          apply: "Apply filters",
-          searchParty: "Party",
-          searchCirc: "Constituency",
-          searchCommission: "Commission",
-          searchTopic: "Topic",
-          searchAttendance: "Min attendance",
-          searchCoherence: "Min coherence",
-          searchChamber: "Chamber",
-          bothChambers: "Both",
-          senate: "Senate",
-          house: "House",
-          technicalDetail: "Technical detail",
-        };
+  const coherenceValues = payload.items
+    .map((i) => i.coherenceScore)
+    .filter((v): v is number => v != null);
+  const avgCoherence = coherenceValues.length
+    ? Math.round(coherenceValues.reduce((a, b) => a + b, 0) / coherenceValues.length)
+    : payload.meta.averageCoherence;
 
-  useGSAP(
-    () => {
-      const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (reduceMotion) return;
+  const highCoherence = payload.items.filter((i) => (i.coherenceScore ?? 0) >= 75).length;
+  const midCoherence = payload.items.filter((i) => (i.coherenceScore ?? 0) >= 50 && (i.coherenceScore ?? 0) < 75).length;
+  const lowCoherence = payload.items.filter((i) => i.coherenceScore != null && (i.coherenceScore ?? 0) < 50).length;
 
-      gsap.fromTo(
-        "[data-vm-animate='hero']",
-        { autoAlpha: 0, y: 30 },
-        { autoAlpha: 1, y: 0, duration: 0.75, ease: "power3.out" },
-      );
+  const copy = lang === "es" ? {
+    eyebrow: hasVotes ? "Directorio vivo · 2022-2026" : "Directorio público sincronizado",
+    title: hasVotes ? "El Congreso bajo la lupa, con datos reales." : "Votómetro — directorio público sincronizado",
+    body: hasVotes
+      ? "Cada legislador muestra votos indexados, asistencia real y coherencia programática. Los datos se actualizan diariamente desde fuentes oficiales."
+      : "El directorio público ya está sincronizado. Votos, asistencia y coherencia aparecerán conforme avance la indexación.",
+    statsLabels: [
+      { label: "Legisladores activos", icon: Users },
+      { label: "Votos indexados", icon: Landmark },
+      { label: "Coherencia promedio", icon: ShieldCheck },
+      { label: "Partidos visibles", icon: Filter },
+    ],
+    filtersTitle: "Filtros",
+    resultsTitle: "Directorio",
+    partyTitle: "Lectura por partido",
+    votesFeedTitle: "Últimas votaciones públicas",
+    votesFeedIntro: "Registro nominal reciente desde la capa pública de datos.",
+    coverageTitle: "Cobertura del módulo",
+    empty: "No hay datos para este corte o el filtro dejó el conjunto vacío.",
+    clear: "Limpiar",
+    apply: "Aplicar",
+    all: "Todos",
+    both: "Ambas",
+    senate: "Senado",
+    house: "Cámara",
+    searchParty: "Partido",
+    searchCirc: "Circunscripción",
+    searchComm: "Comisión",
+    searchTopic: "Tema",
+    searchAttMin: "Asistencia mín.",
+    searchCoMin: "Coherencia mín.",
+    searchChamber: "Cámara",
+  } : {
+    eyebrow: hasVotes ? "Live directory · 2022-2026" : "Public roster synced",
+    title: hasVotes ? "Congress under the lens, with real data." : "Votometer — synced public directory",
+    body: hasVotes
+      ? "Each legislator shows indexed votes, real attendance, and programmatic coherence. Data updates daily from official sources."
+      : "The public directory is synced. Votes, attendance, and coherence will appear as indexing progresses.",
+    statsLabels: [
+      { label: "Active legislators", icon: Users },
+      { label: "Indexed votes", icon: Landmark },
+      { label: "Average coherence", icon: ShieldCheck },
+      { label: "Visible parties", icon: Filter },
+    ],
+    filtersTitle: "Filters",
+    resultsTitle: "Directory",
+    partyTitle: "Party breakdown",
+    votesFeedTitle: "Latest public votes",
+    votesFeedIntro: "Recent nominal vote records from the public data layer.",
+    coverageTitle: "Module coverage",
+    empty: "No data for this slice, or the filter left the set empty.",
+    clear: "Clear",
+    apply: "Apply",
+    all: "All",
+    both: "Both",
+    senate: "Senate",
+    house: "House",
+    searchParty: "Party",
+    searchCirc: "Constituency",
+    searchComm: "Commission",
+    searchTopic: "Topic",
+    searchAttMin: "Min attendance",
+    searchCoMin: "Min coherence",
+    searchChamber: "Chamber",
+  };
 
-      gsap.fromTo(
-        "[data-vm-animate='stat']",
-        { autoAlpha: 0, y: 22 },
-        { autoAlpha: 1, y: 0, duration: 0.55, stagger: 0.06, ease: "power3.out", delay: 0.1 },
-      );
+  const statsValues = [
+    stat(payload.meta.activeLegislators),
+    stat(totalPublicVotes > 0 ? totalPublicVotes : payload.meta.indexedVotes),
+    pctLabel(avgCoherence, lang),
+    stat(parties.length),
+  ];
 
-      gsap.utils.toArray<HTMLElement>("[data-vm-animate='section']").forEach((section) => {
-        gsap.fromTo(
-          section,
-          { autoAlpha: 0, y: 36 },
-          {
-            autoAlpha: 1,
-            y: 0,
-            duration: 0.7,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: section,
-              start: "top 84%",
-            },
-          },
-        );
+  useGSAP(() => {
+    const rm = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (rm) return;
+
+    gsap.fromTo("[data-vm-animate='hero']", { autoAlpha: 0, y: 30 },
+      { autoAlpha: 1, y: 0, duration: .75, ease: "power3.out" });
+
+    gsap.fromTo("[data-vm-animate='stat']", { autoAlpha: 0, y: 20 },
+      { autoAlpha: 1, y: 0, duration: .55, stagger: .06, ease: "power3.out", delay: .1 });
+
+    gsap.utils.toArray<HTMLElement>("[data-vm-animate='section']").forEach((s) => {
+      gsap.fromTo(s, { autoAlpha: 0, y: 32 }, {
+        autoAlpha: 1, y: 0, duration: .7, ease: "power3.out",
+        scrollTrigger: { trigger: s, start: "top 85%" },
       });
+    });
 
-      gsap.fromTo(
-        "[data-vm-animate='card']",
-        { autoAlpha: 0, y: 24 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.52,
-          stagger: 0.035,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: "[data-vm-animate='card']",
-            start: "top 86%",
-          },
-        },
-      );
-    },
-    { scope, dependencies: [payload.items.length, parties.length] },
-  );
+    gsap.fromTo("[data-vm-animate='card']", { autoAlpha: 0, y: 22 }, {
+      autoAlpha: 1, y: 0, duration: .5, stagger: .03, ease: "power3.out",
+      scrollTrigger: { trigger: "[data-vm-animate='card']", start: "top 88%" },
+    });
+  }, { scope, dependencies: [payload.items.length, parties.length] });
 
   return (
     <div className={styles.shell} ref={scope}>
       <SiteNav lang={lang} />
       <main className={styles.main}>
+        {/* ── Hero ──────────────────────────────────────── */}
         <section className={styles.hero} data-vm-animate="hero">
           <span className={styles.eyebrow}>{copy.eyebrow}</span>
           <div className={styles.heroGrid}>
@@ -396,13 +356,13 @@ export function VotometroDirectoryPage({
               <p className={styles.body}>{copy.body}</p>
             </div>
             <div className={styles.statsGrid}>
-              {copy.stats.map((stat) => {
-                const Icon = stat.icon;
+              {copy.statsLabels.map((s, i) => {
+                const Icon = s.icon;
                 return (
-                  <div key={stat.label} className={styles.statCard} data-vm-animate="stat">
+                  <div key={s.label} className={styles.statCard} data-vm-animate="stat">
                     <Icon size={18} />
-                    <strong>{stat.value}</strong>
-                    <span>{stat.label}</span>
+                    <strong>{statsValues[i]}</strong>
+                    <span>{s.label}</span>
                   </div>
                 );
               })}
@@ -410,146 +370,142 @@ export function VotometroDirectoryPage({
           </div>
         </section>
 
+        {/* ── Issue ─────────────────────────────────────── */}
         {payload.issue ? <IssuePanel lang={lang} issue={payload.issue} /> : null}
-        {showCoverageNotice ? (
+
+        {/* ── Coverage Cards ───────────────────────────── */}
+        <section className={styles.surface} data-vm-animate="section">
+          <span className={styles.eyebrow}>{copy.coverageTitle}</span>
+          <div className={styles.coverageGrid} style={{ marginTop: "1rem" }}>
+            <div className={styles.coverageCard}>
+              <Eye size={18} style={{ color: "rgba(255,255,255,.35)" }} />
+              <strong>{stat(payload.meta.activeLegislators)}</strong>
+              <span>{lang === "es" ? "Legisladores visibles" : "Visible legislators"}</span>
+              <p>{lang === "es" ? "Perfiles sincronizados en la capa pública" : "Profiles synced in the public layer"}</p>
+            </div>
+            <div className={styles.coverageCard}>
+              <Vote size={18} style={{ color: "rgba(255,255,255,.35)" }} />
+              <strong>{stat(totalPublicVotes > 0 ? totalPublicVotes : payload.meta.indexedVotes)}</strong>
+              <span>{lang === "es" ? "Votos nominales" : "Nominal votes"}</span>
+              <p>{lang === "es" ? "Registros listos para consulta" : "Records ready for query"}</p>
+            </div>
+            <div className={styles.coverageCard}>
+              <TrendingUp size={18} style={{ color: "rgba(255,255,255,.35)" }} />
+              <strong>{highCoherence}<small style={{ color: "rgba(255,255,255,.3)", fontSize: ".7em" }}> / {midCoherence} / {lowCoherence}</small></strong>
+              <span>{lang === "es" ? "Alta / Media / Baja" : "High / Mid / Low"}</span>
+              <p>{lang === "es" ? "Distribución de coherencia visible" : "Visible coherence distribution"}</p>
+            </div>
+            <div className={styles.coverageCard}>
+              <Filter size={18} style={{ color: "rgba(255,255,255,.35)" }} />
+              <strong>{stat(parties.length)}</strong>
+              <span>{lang === "es" ? "Partidos" : "Parties"}</span>
+              <p>{lang === "es" ? "Agregados partidistas calculados" : "Party aggregates computed"}</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Recent Votes Feed ────────────────────────── */}
+        {recentVotes.length > 0 ? (
           <section className={styles.surface} data-vm-animate="section">
-            <span className={styles.eyebrow}>{copy.eyebrow}</span>
-            <h2 className={styles.surfaceTitle}>{copy.coverageTitle}</h2>
-            <p className={styles.surfaceIntro}>{copy.coverageBody}</p>
+            <span className={styles.eyebrow}>{lang === "es" ? "Feed en vivo" : "Live feed"}</span>
+            <h2 className={styles.surfaceTitle} style={{ marginTop: ".5rem" }}>{copy.votesFeedTitle}</h2>
+            <p className={styles.surfaceIntro}>{copy.votesFeedIntro}</p>
+            <div className={styles.voteFeed}>
+              {recentVotes.slice(0, 8).map((v) => (
+                <VoteFeedItem key={v.id} vote={v} lang={lang} />
+              ))}
+            </div>
+            {totalPublicVotes > 8 ? (
+              <p className={styles.smallMuted} style={{ marginTop: ".8rem" }}>
+                {stat(totalPublicVotes)} {lang === "es" ? "registros totales en capa pública" : "total records in public layer"}
+              </p>
+            ) : null}
           </section>
         ) : null}
 
+        {/* ── Filters ──────────────────────────────────── */}
         <section className={styles.surface} data-vm-animate="section">
           <h2 className={styles.surfaceTitle}>{copy.filtersTitle}</h2>
-          <p className={styles.surfaceIntro}>{copy.filtersIntro}</p>
           <form method="get" className={styles.filterGrid}>
             <input type="hidden" name="lang" value={lang} />
-
             <div className={styles.filterField}>
               <label htmlFor="party">{copy.searchParty}</label>
               <select id="party" name="party" defaultValue={payload.filters.party ?? ""}>
-                <option value="">{lang === "es" ? "Todos" : "All"}</option>
-                {payload.options.parties.map((party) => (
-                  <option key={party} value={party}>
-                    {party}
-                  </option>
-                ))}
+                <option value="">{copy.all}</option>
+                {payload.options.parties.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
-
             <div className={styles.filterField}>
               <label htmlFor="circunscription">{copy.searchCirc}</label>
               <select id="circunscription" name="circunscription" defaultValue={payload.filters.circunscription ?? ""}>
-                <option value="">{lang === "es" ? "Todas" : "All"}</option>
-                {payload.options.circunscriptions.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
+                <option value="">{copy.all}</option>
+                {payload.options.circunscriptions.map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
-
             <div className={styles.filterField}>
-              <label htmlFor="commission">{copy.searchCommission}</label>
+              <label htmlFor="commission">{copy.searchComm}</label>
               <select id="commission" name="commission" defaultValue={payload.filters.commission ?? ""}>
-                <option value="">{lang === "es" ? "Todas" : "All"}</option>
-                {payload.options.commissions.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
+                <option value="">{copy.all}</option>
+                {payload.options.commissions.map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
-
             <div className={styles.filterField}>
               <label htmlFor="topic">{copy.searchTopic}</label>
               <select id="topic" name="topic" defaultValue={payload.filters.topic ?? ""}>
-                <option value="">{lang === "es" ? "Todos" : "All"}</option>
-                {VOTOMETRO_TOPICS.filter((topic) => topic.key !== "sin-clasificar").map((topic) => (
-                  <option key={topic.key} value={topic.key}>
-                    {topic.label}
-                  </option>
+                <option value="">{copy.all}</option>
+                {VOTOMETRO_TOPICS.filter((t) => t.key !== "sin-clasificar").map((t) => (
+                  <option key={t.key} value={t.key}>{t.label}</option>
                 ))}
               </select>
             </div>
-
-            <div className={styles.filterField}>
-              <label htmlFor="attendance_min">{copy.searchAttendance}</label>
-              <input
-                id="attendance_min"
-                name="attendance_min"
-                type="number"
-                min={0}
-                max={100}
-                defaultValue={payload.filters.attendanceMin ?? ""}
-              />
-            </div>
-
-            <div className={styles.filterField}>
-              <label htmlFor="coherence_min">{copy.searchCoherence}</label>
-              <input
-                id="coherence_min"
-                name="coherence_min"
-                type="number"
-                min={0}
-                max={100}
-                defaultValue={payload.filters.coherenceMin ?? ""}
-              />
-            </div>
-
             <div className={styles.filterField}>
               <label htmlFor="chamber">{copy.searchChamber}</label>
               <select id="chamber" name="chamber" defaultValue={payload.filters.chamber ?? ""}>
-                <option value="">{copy.bothChambers}</option>
+                <option value="">{copy.both}</option>
                 <option value="senado">{copy.senate}</option>
                 <option value="camara">{copy.house}</option>
               </select>
             </div>
-
+            <div className={styles.filterField}>
+              <label htmlFor="attendance_min">{copy.searchAttMin}</label>
+              <input id="attendance_min" name="attendance_min" type="number" min={0} max={100} defaultValue={payload.filters.attendanceMin ?? ""} />
+            </div>
+            <div className={styles.filterField}>
+              <label htmlFor="coherence_min">{copy.searchCoMin}</label>
+              <input id="coherence_min" name="coherence_min" type="number" min={0} max={100} defaultValue={payload.filters.coherenceMin ?? ""} />
+            </div>
             <div className={styles.filterActions}>
-              <button type="submit" className={styles.button}>
-                {copy.apply}
-              </button>
-              <Link href={`/votometro?lang=${lang}`} className={styles.ghostLink}>
-                {copy.clear}
-              </Link>
+              <button type="submit" className={styles.button}>{copy.apply}</button>
+              <Link href={`/votometro?lang=${lang}`} className={styles.ghostLink}>{copy.clear}</Link>
             </div>
           </form>
         </section>
 
+        {/* ── Directory Grid ───────────────────────────── */}
         <section className={styles.surface} data-vm-animate="section">
           <h2 className={styles.surfaceTitle}>{copy.resultsTitle}</h2>
           <p className={styles.surfaceIntro}>
-            {payload.meta.total} {lang === "es" ? "resultados en este corte." : "results in this slice."}
+            {payload.meta.total} {lang === "es" ? "resultados" : "results"}
           </p>
           {payload.items.length ? (
             <>
               <div className={styles.cardsGrid}>
-                {payload.items.map((profile) => (
-                  <Card key={profile.id} profile={profile} lang={lang} />
-                ))}
+                {payload.items.map((p) => <LegislatorCard key={p.id} profile={p} lang={lang} />)}
               </div>
-              <Pagination
-                lang={lang}
-                filters={payload.filters}
-                page={payload.meta.page}
-                pageCount={payload.meta.pageCount}
-              />
+              <Pagination lang={lang} filters={payload.filters} page={payload.meta.page} pageCount={payload.meta.pageCount} />
             </>
           ) : (
             <div className={styles.emptyState}>
               {payload.issue
-                ? lang === "es"
-                  ? "El directorio no está vacío por falta de legisladores: la capa de datos no quedó lista en este entorno."
-                  : "The directory is not empty because of missing legislators: the data layer is not ready in this environment."
+                ? lang === "es" ? "La capa de datos no está lista." : "Data layer is not ready."
                 : copy.empty}
             </div>
           )}
         </section>
 
-        <section className={styles.tableSurface} data-vm-animate="section">
+        {/* ── Party Table ──────────────────────────────── */}
+        <section className={styles.surface} data-vm-animate="section">
           <h2 className={styles.surfaceTitle}>{copy.partyTitle}</h2>
-          <p className={styles.surfaceIntro}>{copy.partyIntro}</p>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -561,13 +517,13 @@ export function VotometroDirectoryPage({
               </tr>
             </thead>
             <tbody>
-              {parties.slice(0, 12).map((party) => (
-                <tr key={party.partyKey}>
-                  <td>{party.party}</td>
-                  <td>{statNumber(party.memberCount)}</td>
-                  <td>{percentLabel(party.coherenceScore, lang)}</td>
-                  <td>{percentLabel(party.attendanceRate, lang)}</td>
-                  <td>{statNumber(party.indexedVotes)}</td>
+              {parties.slice(0, 15).map((p) => (
+                <tr key={p.partyKey}>
+                  <td>{p.party}</td>
+                  <td>{stat(p.memberCount)}</td>
+                  <td>{pctLabel(p.coherenceScore, lang)}</td>
+                  <td>{pctLabel(p.attendanceRate, lang)}</td>
+                  <td>{stat(p.indexedVotes)}</td>
                 </tr>
               ))}
             </tbody>
