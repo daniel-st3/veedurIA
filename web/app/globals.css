@@ -3187,24 +3187,35 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 .loading-stage--inline .loading-stage__rail {
   width: min(190px, 64vw);
 }
-.sed-canvas-overlay .loading-stage,
+.sed-canvas-overlay .loading-stage {
+  color: var(--ink);
+}
+.sed-canvas-overlay .loading-stage__copy strong {
+  color: var(--ink);
+}
+.sed-canvas-overlay .loading-stage__copy span {
+  color: var(--ink-3);
+}
+.sed-canvas-overlay .loading-stage__mark {
+  background: rgba(255,255,255,.64);
+  border-color: rgba(23,32,51,.12);
+}
+.sed-canvas-overlay .loading-stage__rail {
+  background: rgba(23,32,51,.1);
+}
 .sed-node-loading .loading-stage {
   color: rgba(240,234,218,.86);
 }
-.sed-canvas-overlay .loading-stage__copy strong,
 .sed-node-loading .loading-stage__copy strong {
   color: rgba(240,234,218,.92);
 }
-.sed-canvas-overlay .loading-stage__copy span,
 .sed-node-loading .loading-stage__copy span {
   color: rgba(240,234,218,.56);
 }
-.sed-canvas-overlay .loading-stage__mark,
 .sed-node-loading .loading-stage__mark {
   background: rgba(240,234,218,.08);
   border-color: rgba(240,234,218,.14);
 }
-.sed-canvas-overlay .loading-stage__rail,
 .sed-node-loading .loading-stage__rail {
   background: rgba(240,234,218,.12);
 }
@@ -3495,6 +3506,12 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
     letter-spacing: 0.04em;
   }
   .language-hint__track {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .language-hint {
     display: none;
   }
 }
@@ -4395,6 +4412,13 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   gap: 1rem;
   align-items: start;
   margin: 1.5rem auto 0;
+  padding: clamp(0.75rem, 1.7vw, 1rem);
+  border: 1px solid rgba(23,32,51,.08);
+  border-radius: clamp(24px, 3vw, 34px);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.86), rgba(232,241,252,.74)),
+    var(--white);
+  box-shadow: 0 26px 80px rgba(20,30,50,.1);
 }
 
 .sed-network-layout {
@@ -4431,32 +4455,49 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 
 /* Tab bar */
 .sed-tab-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  padding: 0.28rem;
-  background: var(--cream-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-pill);
-  width: fit-content;
-  margin-bottom: 1rem;
+  gap: 0.45rem;
+  padding: 0.42rem;
+  background: rgba(255,255,255,.74);
+  border: 1px solid rgba(23,32,51,.08);
+  border-radius: 22px;
+  width: 100%;
+  margin-bottom: 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
 }
 
 .sed-tab-bar button {
-  padding: 0.38rem 0.85rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-2);
-  border-radius: var(--r-pill);
-  transition: all 0.16s;
+  min-height: 52px;
+  padding: 0.55rem 1rem;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(0.86rem, 1.2vw, 1rem);
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  color: var(--ink-2);
+  border-radius: 17px;
+  border: 1px solid transparent;
+  background: transparent;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .sed-tab-bar button.is-active,
 .sed-tab-bar button[aria-selected="true"] {
   color: var(--ink);
-  background: var(--white);
-  box-shadow: var(--sh-xs);
+  background: #fffdf8;
+  border-color: rgba(13,91,215,.12);
+  box-shadow: 0 12px 28px rgba(20,30,50,.08);
+}
+
+.sed-tab-bar button:hover {
+  transform: translateY(-1px);
+  background: rgba(255,253,248,.72);
 }
 
 /* Content area */
@@ -4470,11 +4511,17 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 .sed-canvas-wrap {
   position: relative;
   background:
-    linear-gradient(135deg, rgba(12,19,34,.96), rgba(14,45,76,.92)),
-    var(--ink);
-  border: 1px solid rgba(255,255,255,.06);
-  border-radius: var(--r-lg);
+    radial-gradient(circle at 20% 18%, rgba(13,91,215,.13), transparent 26rem),
+    radial-gradient(circle at 82% 72%, rgba(10,122,78,.14), transparent 28rem),
+    repeating-linear-gradient(90deg, rgba(23,32,51,.035) 0 1px, transparent 1px 84px),
+    repeating-linear-gradient(0deg, rgba(23,32,51,.028) 0 1px, transparent 1px 84px),
+    linear-gradient(135deg, #f9fcff 0%, #e8f2ff 58%, #dce8f5 100%);
+  border: 1px solid rgba(13,91,215,.13);
+  border-radius: 28px;
   overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    0 22px 58px rgba(20,30,50,.1);
 }
 
 .sed-canvas-inner {
@@ -4494,15 +4541,15 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   z-index: 5;
   display: grid;
   place-items: center;
-  background: rgba(12,19,34,.72);
-  backdrop-filter: blur(4px);
+  background: rgba(246,250,255,.78);
+  backdrop-filter: blur(5px);
 }
 
 .sed-canvas-loading {
   display: grid;
   place-items: center;
   gap: 0.75rem;
-  color: rgba(240,234,218,.72);
+  color: var(--ink-2);
 }
 
 .sed-canvas-empty,
@@ -4513,7 +4560,7 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   gap: 0.75rem;
   text-align: center;
   padding: 2rem;
-  color: rgba(240,234,218,.72);
+  color: var(--ink-2);
   min-height: 300px;
 }
 
@@ -4540,11 +4587,12 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   align-items: center;
   gap: 0.45rem;
   padding: 0.42rem 0.9rem;
-  background: rgba(12,19,34,.82);
-  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.9);
+  border: 1px solid rgba(13,91,215,.13);
   border-radius: var(--r-pill);
-  color: rgba(240,234,218,.65);
+  color: var(--ink-3);
   font-size: 0.76rem;
+  box-shadow: 0 12px 28px rgba(20,30,50,.08);
   pointer-events: none;
   z-index: 10;
 }
@@ -4565,15 +4613,16 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   height: 34px;
   display: grid;
   place-items: center;
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.9);
+  border: 1px solid rgba(13,91,215,.13);
   border-radius: var(--r-xs);
-  color: rgba(240,234,218,.72);
+  color: var(--ink);
   cursor: pointer;
   transition: background 0.16s;
+  box-shadow: 0 10px 22px rgba(20,30,50,.08);
 }
 
-.sed-canvas-ctrl-btn:hover { background: rgba(255,255,255,.16); }
+.sed-canvas-ctrl-btn:hover { background: #fffdf8; }
 .sed-canvas-ctrl-btn--reset { color: var(--yellow); }
 
 /* Stats bar */
@@ -4583,23 +4632,24 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   gap: 1.2rem;
   flex-wrap: wrap;
   padding: 0.75rem 1rem;
-  background: var(--ink);
-  border: 1px solid rgba(255,255,255,.06);
-  border-radius: var(--r-sm);
-  color: rgba(240,234,218,.72);
+  background: rgba(255,255,255,.82);
+  border: 1px solid rgba(23,32,51,.08);
+  border-radius: 18px;
+  color: var(--ink-2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.86);
 }
 
 .sed-stats-bar__sep {
   width: 1px;
   height: 1.1rem;
-  background: rgba(255,255,255,.12);
+  background: rgba(23,32,51,.12);
   flex-shrink: 0;
 }
 
 .sed-stats-bar__hint {
   font-size: 0.72rem;
   font-style: italic;
-  color: rgba(240,234,218,.42);
+  color: var(--text-m);
 }
 
 /* Version tag */
@@ -4608,7 +4658,12 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   font-size: 0.64rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(240,234,218,.38);
+  color: var(--text-m);
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgba(23,32,51,.08);
+  border-radius: var(--r-pill);
+  background: rgba(255,255,255,.66);
+  white-space: nowrap;
 }
 
 /* Filter panel */
@@ -4865,7 +4920,7 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   justify-content: space-between;
   font-family: "JetBrains Mono", monospace;
   font-size: 0.62rem;
-  color: rgba(240,234,218,.45);
+  color: var(--text-2);
 }
 
 .sed-confidence-badge {
@@ -5289,27 +5344,66 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 }
 
 /* Concentration view */
-.sed-concentration-view { display: grid; gap: 1rem; }
+.sed-concentration-view,
+.sed-evidence-view {
+  display: grid;
+  gap: 1rem;
+  min-height: 520px;
+  padding: clamp(1rem, 2vw, 1.35rem);
+  border: 1px solid rgba(23,32,51,.08);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(13,91,215,.08), transparent 24rem),
+    linear-gradient(135deg, rgba(255,253,248,.98), rgba(245,249,255,.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    0 18px 46px rgba(20,30,50,.08);
+}
 
 .sed-concentration-header {
-  padding-bottom: 0.65rem;
-  border-bottom: 1px solid var(--border);
+  display: grid;
+  gap: 0.32rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(23,32,51,.08);
 }
 
 .sed-concentration-title {
   font-family: "Sora", sans-serif;
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: -0.04em;
+  font-size: clamp(1.45rem, 2.4vw, 2.35rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.055em;
+  color: var(--ink);
 }
 
 .sed-concentration-subtitle {
-  font-size: 0.84rem;
+  max-width: 68ch;
+  font-size: 0.92rem;
   color: var(--text-2);
-  margin-top: 0.25rem;
+  line-height: 1.55;
 }
 
-.sed-concentration-section { display: grid; gap: 0.65rem; }
+.sed-concentration-section {
+  display: grid;
+  gap: 0.7rem;
+  padding: clamp(0.85rem, 1.6vw, 1.05rem);
+  border: 1px solid rgba(23,32,51,.07);
+  border-radius: 22px;
+  background: rgba(255,255,255,.68);
+}
+
+.sed-concentration-view .sed-panel-section-title,
+.sed-evidence-view .sed-panel-section-title {
+  color: var(--ink-3);
+  border-bottom-color: rgba(23,32,51,.08);
+}
+
+.sed-concentration-view .sed-panel-disclaimer,
+.sed-evidence-view .sed-panel-disclaimer {
+  color: var(--ink-2);
+  background: rgba(245,197,24,.10);
+  border-color: rgba(245,197,24,.26);
+}
 
 .sed-concentration-empty {
   text-align: center;
@@ -5321,16 +5415,18 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 /* Ranking rows */
 .sed-ranking-row {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.5rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 0.9rem;
   align-items: center;
-  padding: 0.55rem 0;
-  border-bottom: 1px solid var(--border);
+  padding: 0.7rem 0;
+  border-bottom: 1px solid rgba(23,32,51,.07);
 }
 
 .sed-ranking-row__label {
+  display: block;
   font-size: 0.88rem;
-  font-weight: 600;
+  font-weight: 750;
+  color: var(--ink);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -5346,7 +5442,8 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   font-family: "JetBrains Mono", monospace;
   font-size: 0.7rem;
   color: var(--text-m);
-  text-align: right;
+  text-align: left;
+  min-width: 0;
 }
 
 .sed-ranking-row__value {
@@ -5364,7 +5461,6 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   background: var(--cream-3);
   border-radius: var(--r-pill);
   overflow: hidden;
-  margin-top: 0.35rem;
   grid-column: 1 / -1;
 }
 
@@ -5377,13 +5473,11 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 
 .sed-ranking-bar-fill--blue { background: var(--blue); }
 
-/* Evidence table */
-.sed-evidence-view { display: grid; gap: 0.75rem; }
-
 .sed-evidence-table-wrapper {
   overflow-x: auto;
-  border-radius: var(--r-md);
-  border: 1px solid var(--border);
+  border-radius: 20px;
+  border: 1px solid rgba(23,32,51,.08);
+  background: rgba(255,255,255,.82);
 }
 
 .sed-evidence-table {
@@ -5394,7 +5488,7 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 
 .sed-evidence-table th {
   padding: 0.6rem 0.9rem;
-  background: var(--cream-2);
+  background: rgba(232,241,252,.72);
   font-weight: 700;
   font-size: 0.7rem;
   letter-spacing: 0.08em;
@@ -5415,6 +5509,48 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 .sed-evidence-table tr:last-child td { border-bottom: none; }
 
 .sed-evidence-table tr:hover td { background: var(--cream); }
+
+.sed-method-card {
+  width: min(980px, calc(100vw - 2rem));
+  margin: 4rem auto 6rem;
+  padding: 0;
+  color: var(--ink);
+}
+
+.sed-method-card__inner {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  padding: clamp(1.4rem, 3vw, 2rem);
+  text-align: center;
+  border: 1px solid rgba(23,32,51,.08);
+  border-radius: 28px;
+  background:
+    linear-gradient(90deg, var(--yellow) 0 33%, var(--blue) 33% 66%, var(--red) 66% 100%) top / 100% 4px no-repeat,
+    rgba(255,253,248,.92);
+  box-shadow: 0 20px 52px rgba(20,30,50,.08);
+}
+
+.sed-method-card__inner svg {
+  color: var(--blue);
+}
+
+.sed-method-card__inner h3 {
+  margin: 0;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(1.1rem, 2vw, 1.55rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+
+.sed-method-card__inner p {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 0.94rem;
+  line-height: 1.72;
+  color: var(--ink-2);
+}
 
 .sed-evidence-table__value {
   font-family: "Sora", sans-serif;
@@ -6611,6 +6747,14 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 
 @media (max-width: 960px) {
   .sed-workbench { grid-template-columns: 1fr; }
+  .sed-tab-bar {
+    grid-template-columns: 1fr;
+    border-radius: 24px;
+  }
+  .sed-version-tag {
+    justify-self: stretch;
+    text-align: center;
+  }
   .sed-node-dock__head,
   .sed-node-dock__grid { grid-template-columns: 1fr; }
   .sed-hero__search-row { flex-direction: column; }
@@ -6621,6 +6765,11 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   .sed-hero__title { font-size: 2rem; }
   .sed-node-dock,
   .sed-workbench { width: min(100vw - 1rem, 1180px); }
+  .sed-workbench { padding: 0.5rem; border-radius: 22px; }
+  .sed-tab-bar button { min-height: 46px; }
+  .sed-canvas-wrap,
+  .sed-concentration-view,
+  .sed-evidence-view { border-radius: 20px; }
   .sed-node-lead { min-height: 112px; }
   .sed-node-drawer { width: 100vw; }
   .sed-stats-bar { gap: 0.55rem; }
