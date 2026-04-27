@@ -935,37 +935,7 @@ export function LandingPage({
               </div>
             </div>
 
-            {/* Story panel — direct child of lp-hero__stage so its absolute
-                positioning anchors to the stage and overlaps the seam between
-                the hero (mountains) and the story (stats) section. */}
-            <div className="lp-hero__story-panel">
-              <div className="lp-story__live" aria-label={lang === "es" ? "Datos en vivo" : "Live data"}>
-                <span className="lp-story__live-dot" aria-hidden="true" />
-                {lang === "es" ? "Datos públicos en tiempo real" : "Live public data"}
-              </div>
 
-              <p className="lp-hero__story-body">
-                {lang === "es"
-                  ? "Contratos con señales de riesgo, votos cruzados con programas legislativos y redes de financiación, todo trazado desde la fuente oficial. Sin intermediarios."
-                  : "Contracts with risk signals, votes crossed with legislative programmes, and financing networks, all traced from the official source. No intermediaries."}
-              </p>
-
-              <div className="lp-hero__story-actions">
-                {features.map((feature) => (
-                  <Link
-                    key={`hero-${feature.title}`}
-                    href={feature.href}
-                    className={`lp-hero__story-chip lp-hero__story-chip--${feature.tone}`}
-                  >
-                    <span className="lp-hero__story-chip-copy">
-                      <strong>{feature.title}</strong>
-                      <span>{feature.kicker}</span>
-                    </span>
-                    <ArrowRight size={14} aria-hidden={true} />
-                  </Link>
-                ))}
-              </div>
-            </div>
 
             {/* Scroll cue at the bottom of the hero viewport */}
             <div className="lp-hero__scroll-cue" aria-hidden="true">
