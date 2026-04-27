@@ -193,7 +193,7 @@ function getSenateImage(name: string): string | null {
       }
     }
     const cleanWords = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(' ').filter(w => w.length > 2);
-    let bestMatch = null;
+    let bestImage: string | null = null;
     let bestScore = 0;
 
     senateImagesCache?.forEach(i => {
@@ -204,11 +204,11 @@ function getSenateImage(name: string): string | null {
       }
       if (score > bestScore) {
         bestScore = score;
-        bestMatch = i;
+        bestImage = i.image;
       }
     });
 
-    return bestScore >= 2 ? bestMatch?.image || null : null;
+    return bestScore >= 2 ? bestImage : null;
   } catch (e) {
     return null;
   }
