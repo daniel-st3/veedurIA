@@ -158,6 +158,7 @@ const IMPACT_TEXT = {
       { icon: Users, label: "Votos nominales indexados", sublabel: "capa pública en sincronización" },
       { icon: Globe, label: "Territorios cubiertos", sublabel: "mapeo territorial visible" },
       { icon: Shield, label: "Alertas activas", sublabel: "priorizadas por ML" },
+      { icon: Database, label: "Fuentes oficiales conectadas", sublabel: "SECOP · Senado · datos.gov.co" },
     ],
   },
   en: {
@@ -168,6 +169,7 @@ const IMPACT_TEXT = {
       { icon: Users, label: "Roll-call votes indexed", sublabel: "public layer syncing" },
       { icon: Globe, label: "Territories covered", sublabel: "visible territorial mapping" },
       { icon: Shield, label: "Active alerts", sublabel: "ML‑prioritized" },
+      { icon: Database, label: "Connected official sources", sublabel: "SECOP · Senate · datos.gov.co" },
     ],
   },
 };
@@ -813,6 +815,12 @@ export function LandingPage({
     {
       ...impactData.stats[3],
       value: formatLandingNumber(redAlertsValue, lang),
+    },
+    {
+      ...impactData.stats[4],
+      // Three live source families wired to the platform: SECOP II contracts,
+      // Senado abierto roll-call votes, datos.gov.co reference catalogues.
+      value: "3",
     },
   ];
   const signalCards = [

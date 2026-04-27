@@ -36,6 +36,21 @@ function localizedRoleLabel(profile: LegislatorProfile, lang: Lang) {
   return profile.chamber === "camara" ? "Representative" : "Senator";
 }
 
+const PROFILE_PARTY_GRADIENTS: Record<string, [string, string]> = {
+  "alianza-verde":       ["#0a7a4e", "#0d9968"],
+  "cambio-radical":      ["#c62839", "#e64457"],
+  "centro-democratico":  ["#0d3a8a", "#1f5fc4"],
+  "colombia-humana":     ["#c47d18", "#e6a035"],
+  "partido-conservador": ["#1f4185", "#2f5fb8"],
+  "partido-de-la-u":     ["#0f4eaa", "#2f7cff"],
+  "partido-u":           ["#0f4eaa", "#2f7cff"],
+  "partido-liberal":     ["#b81f1f", "#dd3737"],
+  "polo-democratico":    ["#d3a21a", "#e8bb35"],
+  "union-patriotica":    ["#9a1622", "#c12a3a"],
+  "pacto-historico":     ["#c47d18", "#e89c2f"],
+  "sin-partido":         ["#172033", "#3b4a68"],
+};
+
 function avatar(profile: LegislatorProfile) {
   if (profile.imageUrl) {
     return (
@@ -45,7 +60,16 @@ function avatar(profile: LegislatorProfile) {
       </div>
     );
   }
-  return <div className={styles.profileAvatarPlaceholder}>{profile.initials}</div>;
+  const [c1, c2] = PROFILE_PARTY_GRADIENTS[profile.partyKey] ?? PROFILE_PARTY_GRADIENTS["sin-partido"];
+  return (
+    <div
+      className={styles.profileAvatarPlaceholder}
+      style={{ background: `linear-gradient(140deg, ${c1}, ${c2})` }}
+      aria-label={profile.canonicalName}
+    >
+      {profile.initials}
+    </div>
+  );
 }
 
 export function VotometroProfilePage({

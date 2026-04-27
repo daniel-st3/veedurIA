@@ -180,36 +180,49 @@ function fallbackAvatarUrl(name: string, partyKey: string): string {
 }
 
 let senateImagesCache: Array<{name: string; image: string}> | null = null;
+
+function normalizeForMatch(text: string): string[] {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 2);
+}
+
+/**
+ * Returns a Senado photo URL ONLY when there is an unambiguous match
+ * between the canonical name and a record in senate_images.json.
+ *
+ * Strict policy: every meaningful word in the legislator's canonical name
+ * (\u22653 chars) must exist in the candidate record.  Anything weaker is
+ * rejected to prevent showing the wrong person's face \u2014 when no perfect
+ * match exists we fall back to styled initials in the UI layer.
+ */
 function getSenateImage(name: string): string | null {
   try {
     if (!senateImagesCache) {
-      const fs = require('fs');
-      const path = require('path');
-      const p = path.join(process.cwd(), 'lib', 'senate_images.json');
-      if (fs.existsSync(p)) {
-        senateImagesCache = JSON.parse(fs.readFileSync(p, 'utf8'));
-      } else {
-        senateImagesCache = [];
-      }
+      const fs = require("fs");
+      const path = require("path");
+      const candidates = [
+        path.join(process.cwd(), "lib", "senate_images.json"),
+        path.join(process.cwd(), "web", "lib", "senate_images.json"),
+      ];
+      const found = candidates.find((p) => fs.existsSync(p));
+      senateImagesCache = found ? JSON.parse(fs.readFileSync(found, "utf8")) : [];
     }
-    const cleanWords = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(' ').filter(w => w.length > 2);
-    let bestImage: string | null = null;
-    let bestScore = 0;
 
-    senateImagesCache?.forEach(i => {
-      const cWords = i.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(' ');
-      let score = 0;
-      for (const w of cleanWords) {
-        if (cWords.includes(w)) score++;
-      }
-      if (score > bestScore) {
-        bestScore = score;
-        bestImage = i.image;
-      }
-    });
+    const nameWords = normalizeForMatch(name);
+    if (nameWords.length < 2) return null;
 
-    return bestScore >= 2 ? bestImage : null;
-  } catch (e) {
+    for (const record of senateImagesCache ?? []) {
+      const candidateWords = new Set(normalizeForMatch(record.name));
+      const allMatch = nameWords.every((w) => candidateWords.has(w));
+      if (allMatch) return record.image;
+    }
+    return null;
+  } catch {
     return null;
   }
 }
@@ -218,15 +231,14 @@ function itemFromDirectoryRow(row: DirectoryRow): LegislatorListItem {
   const chamber = (toStringValue(row.chamber) || "senado") as VotometroChamber;
   const partyKey = toStringValue(row.party_key) || "sin-partido";
   const canonicalName = toStringValue(row.canonical_name);
-  let explicitImage = toStringValue(row.image_url);
+  const explicitImage = toStringValue(row.image_url);
   const hash = canonicalName.length * 13 + canonicalName.charCodeAt(0) * 7;
-  
-  if (!explicitImage) {
-    explicitImage = getSenateImage(canonicalName) || "";
-    if (!explicitImage && senateImagesCache && senateImagesCache.length > 0) {
-      explicitImage = senateImagesCache[hash % senateImagesCache.length].image;
-    }
-  }
+
+  // Photo policy: ONLY use a real source.  The DB image_url first, then a
+  // strict-match Senado lookup.  No random pick, no ui-avatars URL — when
+  // no real photo exists, leave empty so the Avatar component renders the
+  // styled initials placeholder.
+  const matchedPhoto = explicitImage || getSenateImage(canonicalName) || "";
 
   const votesIndexed = toNumber(row.votes_indexed) || (1200 + (hash % 800));
   const attendanceSessions = toNumber(row.attendance_sessions) || (600 + (hash % 100));
@@ -249,7 +261,7 @@ function itemFromDirectoryRow(row: DirectoryRow): LegislatorListItem {
     email: toStringValue(row.email),
     phone: toStringValue(row.phone),
     office: toStringValue(row.office),
-    imageUrl: explicitImage || fallbackAvatarUrl(canonicalName, partyKey),
+    imageUrl: matchedPhoto,
     bio: toStringValue(row.bio),
     sourcePrimary: toStringValue(row.source_primary),
     sourceRef: toStringValue(row.source_ref),

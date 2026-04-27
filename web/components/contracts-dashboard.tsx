@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import type { DepartmentDatum, Lang, OverviewPayload, TableRow } from "@/lib/types";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
-const CHART_PALETTE = ["#015f65", "#5a9da3", "#b0d4d7", "#7a6a55", "#c8bfaf"];
+const CHART_PALETTE = ["#0d5bd7", "#d3a21a", "#198754", "#c62839", "#6d28d9", "#0a7a4e", "#b8860b", "#8b5cf6"];
 const RISK_COLORS = {
   high: "#c0392b",
   medium: "#d4800a",
@@ -463,14 +463,14 @@ export function ContractsDashboard({
         branchvalues: "total",
         marker: {
           colors,
-          line: { color: "rgba(248,249,250,1)", width: 2 },
-          pad: { t: 32, l: 6, r: 6, b: 6 },
+          line: { color: "#ffffff", width: 2.5 },
+          pad: { t: 36, l: 8, r: 8, b: 8 },
         },
         textinfo: "label+value",
         textposition: "middle center",
-        textfont: { size: 15, color: "#1e1c17", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
-        outsidetextfont: { size: 14, color: "#1e1c17" },
-        insidetextfont: { size: 14, color: "#1e1c17" },
+        textfont: { size: 14, color: "#ffffff", family: "Inter, ui-sans-serif, system-ui, sans-serif" },
+        outsidetextfont: { size: 13, color: "#0c1322" },
+        insidetextfont: { size: 14, color: "#ffffff" },
         hovertemplate:
           lang === "es"
             ? "<b>%{label}</b><br>%{value} contratos<extra></extra>"
@@ -512,30 +512,28 @@ export function ContractsDashboard({
 
   return (
     <section className="cv-dashboard surface-soft">
-      <div className="cv-block__header cv-dashboard__header">
-        <div>
-          <p className="eyebrow">{lang === "es" ? "Visualiza el corte" : "Visualize the slice"}</p>
-          <h2>{lang === "es" ? "Seis lecturas que reaccionan al corte activo" : "Six reads that react to the active slice"}</h2>
-        </div>
-        <div className="cv-dashboard-legend">
-          <p>
-            {lang === "es"
-              ? activeDepartmentLabel
-                ? `Territorio activo: ${activeDepartmentLabel}. Cada gráfica se recalcula con el corte completo, no solo con la página de resultados visible.`
-                : "Cada gráfica se recalcula con el corte completo activo, no con una sola página de resultados."
-              : activeDepartmentLabel
-                ? `Active territory: ${activeDepartmentLabel}. Each chart recalculates from the full slice, not only the visible table page.`
-                : "Each chart recalculates from the full active slice, not from a single page of results."}
-          </p>
-          <ul className="cv-dashboard-legend__list">
-            <li><strong>{lang === "es" ? "Territorio" : "Territory"}</strong> — {lang === "es" ? "contratos por departamento, coloreados por intensidad" : "contracts by department, colored by intensity"}</li>
-            <li><strong>{lang === "es" ? "Tiempo" : "Time"}</strong> — {lang === "es" ? "curva mensual, clic para filtrar" : "monthly curve, click to filter"}</li>
-            <li><strong>{lang === "es" ? "Modalidad" : "Modality"}</strong> — {lang === "es" ? "distribución por tipo de contratación" : "distribution by contracting type"}</li>
-            <li><strong>{lang === "es" ? "Entidades" : "Entities"}</strong> — {lang === "es" ? "ranking de mayor carga del corte" : "slice load ranking"}</li>
-            <li><strong>{lang === "es" ? "Dispersión" : "Scatter"}</strong> — {lang === "es" ? "riesgo vs. valor por contrato visible" : "risk vs. value per visible contract"}</li>
-            <li><strong>{lang === "es" ? "Árbol" : "Treemap"}</strong> — {lang === "es" ? "modalidad → entidad → contratos" : "modality → entity → contracts"}</li>
-          </ul>
-        </div>
+      <div className="cv-dashboard__header cv-dashboard__header--centered">
+        <p className="eyebrow">{lang === "es" ? "Visualiza el corte" : "Visualize the slice"}</p>
+        <h2 className="cv-dashboard__title">
+          {lang === "es" ? "Seis lecturas que reaccionan al corte activo" : "Six reads that react to the active slice"}
+        </h2>
+        <p className="cv-dashboard__lede">
+          {lang === "es"
+            ? activeDepartmentLabel
+              ? `Territorio activo: ${activeDepartmentLabel}. Cada gráfica se recalcula con el corte completo, no solo con la página visible.`
+              : "Cada gráfica se recalcula con el corte completo activo — no con la página de resultados visible."
+            : activeDepartmentLabel
+              ? `Active territory: ${activeDepartmentLabel}. Each chart recalculates from the full slice, not only the visible page.`
+              : "Each chart recalculates from the full active slice — not from a single page of visible results."}
+        </p>
+        <ul className="cv-dashboard-legend__list">
+          <li><strong>{lang === "es" ? "Territorio" : "Territory"}</strong> · {lang === "es" ? "contratos por departamento" : "contracts by department"}</li>
+          <li><strong>{lang === "es" ? "Tiempo" : "Time"}</strong> · {lang === "es" ? "curva mensual, clic para filtrar" : "monthly curve, click to filter"}</li>
+          <li><strong>{lang === "es" ? "Modalidad" : "Modality"}</strong> · {lang === "es" ? "distribución por tipo" : "distribution by type"}</li>
+          <li><strong>{lang === "es" ? "Entidades" : "Entities"}</strong> · {lang === "es" ? "ranking de mayor carga" : "highest-load ranking"}</li>
+          <li><strong>{lang === "es" ? "Dispersión" : "Scatter"}</strong> · {lang === "es" ? "riesgo vs. valor" : "risk vs. value"}</li>
+          <li><strong>{lang === "es" ? "Árbol" : "Treemap"}</strong> · {lang === "es" ? "modalidad → entidad → contratos" : "modality → entity → contracts"}</li>
+        </ul>
       </div>
 
       <div className="cv-dashboard__grid">
@@ -771,7 +769,7 @@ export function ContractsDashboard({
         </article>
 
         {rows.length >= 4 || modalityMix.length ? (
-          <article className="cv-dashboard-card cv-dashboard-card--wide">
+          <article className="cv-dashboard-card cv-dashboard-card--wide cv-dashboard-card--treemap">
             <div className="cv-dashboard-card__head">
               <p className="cv-dashboard-card__kicker">{lang === "es" ? "Árbol de contratos" : "Contract tree"}</p>
               <strong>{lang === "es" ? "Modalidad → entidades dentro del corte visible" : "Modality → entities inside the visible slice"}</strong>
@@ -781,15 +779,19 @@ export function ContractsDashboard({
                   : "Click a cell to drill in. Size reflects the number of visible contracts in that branch."}
               </span>
             </div>
-            <div className="cv-dashboard-card__plot">
+            <div className="cv-dashboard-card__plot cv-dashboard-card__plot--treemap">
               <Plot
                 data={treemapData as any}
                 layout={{
                   ...baseLayout,
-                  margin: { l: 0, r: 0, t: 16, b: 0 },
+                  margin: { l: 4, r: 4, t: 28, b: 4 },
+                  paper_bgcolor: "#ffffff",
+                  plot_bgcolor: "#ffffff",
+                  font: { color: "#0c1322", family: "Inter, ui-sans-serif, system-ui, sans-serif", size: 14 },
                 }}
                 config={{ responsive: true, displaylogo: false, displayModeBar: false }}
-                style={{ width: "100%", height: 340 }}
+                style={{ width: "100%", height: 520 }}
+                useResizeHandler
               />
             </div>
           </article>
