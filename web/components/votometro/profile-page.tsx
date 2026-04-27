@@ -199,12 +199,18 @@ export function VotometroProfilePage({
             <div className={styles.detailList}>
               {profile.topicScores.length ? (
                 profile.topicScores.map((score) => (
-                  <div key={score.key} className={styles.detailItem}>
-                    <strong>{score.label}</strong>
-                    <span>
-                      {percentLabel(score.score, lang)} · {statNumber(score.votes)}{" "}
-                      {lang === "es" ? "votaciones" : "votes"}
-                    </span>
+                  <div key={score.key} className={styles.partyBarRow}>
+                    <div className={styles.partyBarLabel}>{score.label}</div>
+                    <div className={styles.partyBarTrack}>
+                      <div 
+                        className={styles.partyBarFill} 
+                        style={{ 
+                          width: `${score.score ?? 0}%`,
+                          background: `linear-gradient(90deg, var(--blue, #0d5bd7), var(--green, #18794e))`
+                        }} 
+                      />
+                    </div>
+                    <div className={styles.partyBarCount}>{percentLabel(score.score, lang)}</div>
                   </div>
                 ))
               ) : (
@@ -285,7 +291,15 @@ export function VotometroProfilePage({
                       <div className={styles.smallMuted}>{vote.topicLabel}</div>
                     </td>
                     <td>{vote.voteValue}</td>
-                    <td>{vote.promiseAlignment}</td>
+                    <td>
+                      <span className={`${styles.voteBadge} ${
+                        vote.promiseAlignment === "coherente" ? styles.isCoherent :
+                        vote.promiseAlignment === "inconsistente" ? styles.isInconsistent :
+                        styles.isNeutral
+                      }`}>
+                        {vote.promiseAlignment}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

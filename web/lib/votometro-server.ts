@@ -192,13 +192,23 @@ function getSenateImage(name: string): string | null {
         senateImagesCache = [];
       }
     }
-    const clean = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const match = senateImagesCache?.find(i => {
-      const c = i.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const parts = clean.split(' ');
-      return c.includes(parts[0]) && (parts.length > 1 ? c.includes(parts[1]) : true);
+    const cleanWords = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(' ').filter(w => w.length > 2);
+    let bestMatch = null;
+    let bestScore = 0;
+
+    senateImagesCache?.forEach(i => {
+      const cWords = i.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(' ');
+      let score = 0;
+      for (const w of cleanWords) {
+        if (cWords.includes(w)) score++;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = i;
+      }
     });
-    return match?.image || null;
+
+    return bestScore >= 2 ? bestMatch?.image || null : null;
   } catch (e) {
     return null;
   }
