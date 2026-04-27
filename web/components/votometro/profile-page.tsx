@@ -1,5 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowUpRight, CalendarDays, Mail, Phone } from "lucide-react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useRef } from "react";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -7,6 +13,8 @@ import type { Lang } from "@/lib/types";
 import type { LegislatorProfile, VotometroDataIssue } from "@/lib/votometro-types";
 
 import styles from "./votometro.module.css";
+
+gsap.registerPlugin(ScrollTrigger);
 
 function percentLabel(value: number | null, lang: Lang) {
   return value == null ? (lang === "es" ? "Sin revisar" : "Not reviewed") : `${Math.round(value)}%`;
@@ -49,9 +57,41 @@ export function VotometroProfilePage({
   profile: LegislatorProfile | null;
   issue: VotometroDataIssue | null;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      tl.fromTo(
+        `.${styles.hero}`,
+        { autoAlpha: 0, y: 30 },
+        { autoAlpha: 1, y: 0, duration: 0.8 },
+      );
+
+      gsap.utils.toArray<HTMLElement>(`.${styles.surface}, .${styles.tableSurface}`).forEach((el, i) => {
+        gsap.fromTo(
+          el,
+          { autoAlpha: 0, y: 25 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.7,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: el,
+              start: "top 88%",
+            },
+          }
+        );
+      });
+    },
+    { scope: containerRef, dependencies: [profile] }
+  );
+
   if (!profile) {
     return (
-      <div className={styles.shell}>
+      <div className={styles.shell} ref={containerRef}>
         <SiteNav lang={lang} />
         <main className={styles.main}>
           <section className={styles.alertCard}>
@@ -83,7 +123,7 @@ export function VotometroProfilePage({
   }
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} ref={containerRef}>
       <SiteNav lang={lang} />
       <main className={styles.main}>
         <section className={styles.hero}>
