@@ -598,39 +598,40 @@ export function VotometroDirectoryPage({
   return (
     <div className={styles.shell} ref={scope}>
       <SiteNav lang={lang} />
-      <main className={styles.main}>
-        {/* ── Hero ───────────────────────────────── */}
-        <section className={styles.hero} data-vm="hero">
-          <span className={styles.eyebrow} data-vm="eyebrow">
-            {c.eyebrow}
-          </span>
-          <div className={styles.heroGrid}>
-            <div>
-              <h1 className={styles.title} data-vm="title">
-                {c.title}
-              </h1>
-              <p className={styles.body} data-vm="body">
-                {c.body}
-              </p>
-            </div>
-            <div className={styles.statsGrid}>
-              {c.stats.map((s, i) => {
-                const Icon = s.icon;
-                return (
-                  <div
-                    key={s.label}
-                    className={styles.statCard}
-                    data-vm="stat"
-                  >
-                    <Icon size={18} />
-                    <strong>{sv[i]}</strong>
-                    <span>{s.label}</span>
-                  </div>
-                );
-              })}
-            </div>
+      {/* ── Hero ───────────────────────────────── */}
+      <section className={styles.hero} data-vm="hero">
+        <span className={styles.eyebrow} data-vm="eyebrow">
+          {c.eyebrow}
+        </span>
+        <div className={styles.heroGrid}>
+          <div>
+            <h1 className={styles.title} data-vm="title">
+              {c.title}
+            </h1>
+            <p className={styles.body} data-vm="body">
+              {c.body}
+            </p>
           </div>
-        </section>
+          <div className={styles.statsGrid}>
+            {c.stats.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <div
+                  key={s.label}
+                  className={styles.statCard}
+                  data-vm="stat"
+                >
+                  <Icon size={18} />
+                  <strong>{sv[i]}</strong>
+                  <span>{s.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <main className={styles.main}>
 
         {/* ── Issue ──────────────────────────────── */}
         {payload.issue ? (

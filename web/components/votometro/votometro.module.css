@@ -23,19 +23,20 @@
 /* ── Hero ─────────────────────────────────────────────── */
 .hero {
   position: relative;
+  width: 100%;
   min-height: clamp(380px, 46vw, 560px);
-  padding: clamp(2.5rem, 5vw, 4rem);
+  padding: clamp(2.5rem, 5vw, 4rem) max(clamp(1.25rem, 4vw, 2.5rem), calc((100% - 1240px) / 2));
   display: grid;
   align-content: end;
   gap: 2rem;
-  border-radius: var(--r-xl, 28px);
+  border-radius: 0;
   overflow: hidden;
   background:
     radial-gradient(ellipse 80% 60% at 5% 92%, rgba(245,197,24,.18), transparent),
     radial-gradient(ellipse 60% 50% at 92% 14%, rgba(13,91,215,.14), transparent),
     radial-gradient(ellipse 40% 35% at 78% 95%, rgba(198,40,57,.08), transparent),
     linear-gradient(160deg, #f8f3e8 0%, #f0eada 100%);
-  border: 1px solid var(--border, rgba(12,19,34,.09));
+  border-bottom: 1px solid var(--border, rgba(12,19,34,.09));
   box-shadow: var(--sh-lg, 0 20px 48px rgba(12,19,34,.13));
 }
 

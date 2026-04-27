@@ -149,44 +149,44 @@ export function VotometroProfilePage({
   return (
     <div className={styles.shell} ref={containerRef}>
       <SiteNav lang={lang} />
-      <main className={styles.main}>
-        <section className={styles.hero}>
-          <span className={styles.eyebrow}>
-            {lang === "es" ? "Perfil individual" : "Individual profile"}
-          </span>
-          <div className={styles.profileHero}>
-            {avatar(profile)}
-            <div>
-              <div className={styles.profileTop}>
-                <h1 className={styles.profileName}>{profile.canonicalName}</h1>
-                <span className={styles.chip}>{localizedChamberLabel(profile.chamber, lang)}</span>
-                <span className={`${styles.chip} ${styles.chipGood}`}>{profile.party}</span>
-              </div>
-              <p className={styles.profileMeta}>
-                {localizedRoleLabel(profile, lang)}
-                {profile.circunscription ? ` · ${profile.circunscription}` : ""}
-                {profile.commission ? ` · ${profile.commission}` : ""}
-              </p>
-              {profile.bio ? <p className={styles.body}>{profile.bio}</p> : null}
+      <section className={styles.hero}>
+        <span className={styles.eyebrow}>
+          {lang === "es" ? "Perfil individual" : "Individual profile"}
+        </span>
+        <div className={styles.profileHero}>
+          {avatar(profile)}
+          <div>
+            <div className={styles.profileTop}>
+              <h1 className={styles.profileName}>{profile.canonicalName}</h1>
+              <span className={styles.chip}>{localizedChamberLabel(profile.chamber, lang)}</span>
+              <span className={`${styles.chip} ${styles.chipGood}`}>{profile.party}</span>
+            </div>
+            <p className={styles.profileMeta}>
+              {localizedRoleLabel(profile, lang)}
+              {profile.circunscription ? ` · ${profile.circunscription}` : ""}
+              {profile.commission ? ` · ${profile.commission}` : ""}
+            </p>
+            {profile.bio ? <p className={styles.body}>{profile.bio}</p> : null}
 
-              <div className={styles.metricRow}>
-                <div className={styles.metricTile}>
-                  <strong>{percentLabel(profile.coherenceScore, lang)}</strong>
-                  <span>{lang === "es" ? "Coherencia" : "Coherence"}</span>
-                </div>
-                <div className={styles.metricTile}>
-                  <strong>{percentLabel(profile.attendance.rate, lang)}</strong>
-                  <span>{lang === "es" ? "Asistencia" : "Attendance"}</span>
-                </div>
-                <div className={styles.metricTile}>
-                  <strong>{statNumber(profile.votesIndexed)}</strong>
-                  <span>{lang === "es" ? "Votos indexados" : "Indexed votes"}</span>
-                </div>
+            <div className={styles.metricRow}>
+              <div className={styles.metricTile}>
+                <strong>{percentLabel(profile.coherenceScore, lang)}</strong>
+                <span>{lang === "es" ? "Coherencia" : "Coherence"}</span>
+              </div>
+              <div className={styles.metricTile}>
+                <strong>{percentLabel(profile.attendance.rate, lang)}</strong>
+                <span>{lang === "es" ? "Asistencia" : "Attendance"}</span>
+              </div>
+              <div className={styles.metricTile}>
+                <strong>{statNumber(profile.votesIndexed)}</strong>
+                <span>{lang === "es" ? "Votos indexados" : "Indexed votes"}</span>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
+      <main className={styles.main}>
         <div className={styles.splitGrid}>
           <section className={styles.surface}>
             <h2 className={styles.surfaceTitle}>
