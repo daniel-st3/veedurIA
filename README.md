@@ -76,6 +76,7 @@ El objetivo final es conectar contratistas, donantes, funcionarios, votaciones y
 
 La ruta `/etica-y-privacidad` documenta el alcance real del producto:
 
+- El landing enlaza esta política desde el bloque de impacto para que el uso responsable sea visible antes de navegar módulos.
 - VeedurIA muestra señales revisables, no conclusiones jurídicas.
 - Los puntajes no declaran culpabilidad, sanción, hallazgo fiscal ni irregularidad comprobada.
 - El usuario debe verificar SECOP, datos.gov.co, Senado abierto y documentos primarios antes de publicar, denunciar o tomar decisiones.

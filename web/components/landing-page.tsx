@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowRight, FileSearch, Radar, Waypoints, Database, Shield, Eye, BarChart3, Users, Globe } from "lucide-react";
+import { ArrowRight, FileSearch, Radar, Waypoints, Database, Shield, Eye, BarChart3, Users, Globe, Scale } from "lucide-react";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -850,6 +850,19 @@ export function LandingPage({
       body: signalData.cards.money.body,
     },
   ];
+  const legalHref = `/etica-y-privacidad?lang=${lang}`;
+  const legalBlock = {
+    eyebrow: lang === "es" ? "Uso responsable" : "Responsible use",
+    title:
+      lang === "es"
+        ? "Señales públicas, no acusaciones"
+        : "Public signals, not accusations",
+    body:
+      lang === "es"
+        ? "VeedurIA prioriza revisión ciudadana con fuentes oficiales. No emite asesoría legal, financiera o judicial; cada usuario debe verificar expedientes primarios antes de actuar."
+        : "VeedurIA prioritizes civic review with official sources. It does not provide legal, financial, or judicial advice; each user must verify primary records before acting.",
+    cta: lang === "es" ? "Leer límites legales" : "Read legal limits",
+  };
 
   return (
     <div className="shell" ref={scope}>
@@ -1132,92 +1145,6 @@ export function LandingPage({
                   );
                 })}
               </div>
-
-              <div className="lp-signal__pulse">
-                <span>{signalData.pulseLabel}</span>
-                <strong className="lp-signal__pulse-title">{signalData.pulseTitle}</strong>
-                <p>{signalData.pulseBody}</p>
-
-                {/* Live network visualization — three layers crossing */}
-                <svg
-                  className="lp-signal__pulse-viz"
-                  viewBox="0 0 320 320"
-                  aria-hidden="true"
-                  role="img"
-                >
-                  <defs>
-                    <radialGradient id="lp-pulse-glow" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stopColor="rgba(245,197,24,0.45)" />
-                      <stop offset="60%" stopColor="rgba(13,91,215,0.18)" />
-                      <stop offset="100%" stopColor="rgba(198,40,57,0)" />
-                    </radialGradient>
-                    <linearGradient id="lp-pulse-edge" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="rgba(245,197,24,0.55)" />
-                      <stop offset="55%" stopColor="rgba(13,91,215,0.55)" />
-                      <stop offset="100%" stopColor="rgba(198,40,57,0.55)" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="160" cy="160" r="120" fill="url(#lp-pulse-glow)" />
-                  <circle cx="160" cy="160" r="116" fill="none" stroke="rgba(255,255,255,.06)" strokeDasharray="2 8" />
-                  <circle cx="160" cy="160" r="78"  fill="none" stroke="rgba(255,255,255,.08)" strokeDasharray="3 6" />
-                  <circle cx="160" cy="160" r="42"  fill="none" stroke="rgba(255,255,255,.10)" />
-                  <path d="M68 108 C118 74 204 76 252 110" stroke="rgba(245,197,24,.42)" strokeWidth="1.4" fill="none" strokeDasharray="4 6" />
-                  <path d="M52 210 C118 188 207 188 278 212" stroke="rgba(13,91,215,.42)" strokeWidth="1.4" fill="none" strokeDasharray="4 6" />
-                  <path d="M105 280 C142 232 190 232 225 282" stroke="rgba(198,40,57,.42)" strokeWidth="1.4" fill="none" strokeDasharray="4 6" />
-                  {/* Edges */}
-                  <g stroke="url(#lp-pulse-edge)" strokeWidth="1.1" fill="none" opacity="0.85">
-                    <line x1="60"  y1="80"  x2="160" y2="160" />
-                    <line x1="260" y1="60"  x2="160" y2="160" />
-                    <line x1="40"  y1="200" x2="160" y2="160" />
-                    <line x1="280" y1="220" x2="160" y2="160" />
-                    <line x1="100" y1="280" x2="160" y2="160" />
-                    <line x1="220" y1="285" x2="160" y2="160" />
-                    <line x1="60"  y1="80"  x2="260" y2="60"  />
-                    <line x1="40"  y1="200" x2="100" y2="280" />
-                    <line x1="280" y1="220" x2="220" y2="285" />
-                  </g>
-                  {/* Outer nodes */}
-                  <g>
-                    <circle cx="60"  cy="80"  r="6" fill="#f5c518" />
-                    <circle cx="260" cy="60"  r="5" fill="#f5c518" />
-                    <circle cx="40"  cy="200" r="5" fill="#0d5bd7" />
-                    <circle cx="280" cy="220" r="6" fill="#0d5bd7" />
-                    <circle cx="100" cy="280" r="5" fill="#c62839" />
-                    <circle cx="220" cy="285" r="6" fill="#c62839" />
-                  </g>
-                  {/* Center hub */}
-                  <circle cx="160" cy="160" r="11" fill="#fff" opacity="0.96" />
-                  <circle cx="160" cy="160" r="5"  fill="#0d5bd7" />
-                  <g fontFamily="JetBrains Mono, monospace" fontSize="10" fontWeight="700" letterSpacing="1.2" fill="rgba(255,255,255,.72)">
-                    <text x="42" y="56">SECOP</text>
-                    <text x="246" y="46" textAnchor="middle">VOTO</text>
-                    <text x="160" y="306" textAnchor="middle">RED</text>
-                  </g>
-                  {/* Pulsing ring */}
-                  <circle
-                    cx="160" cy="160" r="42"
-                    fill="none" stroke="rgba(245,197,24,0.7)" strokeWidth="1.4"
-                    style={{ transformOrigin: "160px 160px", animation: "lp-pulse-ring 3.6s ease-out infinite" }}
-                  />
-                  <circle
-                    cx="160" cy="160" r="42"
-                    fill="none" stroke="rgba(13,91,215,0.55)" strokeWidth="1.2"
-                    style={{ transformOrigin: "160px 160px", animation: "lp-pulse-ring 3.6s ease-out 1.2s infinite" }}
-                  />
-                  <circle
-                    cx="160" cy="160" r="42"
-                    fill="none" stroke="rgba(198,40,57,0.5)" strokeWidth="1"
-                    style={{ transformOrigin: "160px 160px", animation: "lp-pulse-ring 3.6s ease-out 2.4s infinite" }}
-                  />
-                </svg>
-
-                {/* Mini metric strip below the viz */}
-                <div className="lp-signal__pulse-metrics" aria-hidden="true">
-                  <span><i style={{ background: "#f5c518" }} />{signalData.metrics.contracts}</span>
-                  <span><i style={{ background: "#0d5bd7" }} />{signalData.metrics.votes}</span>
-                  <span><i style={{ background: "#c62839" }} />{signalData.metrics.money}</span>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -1279,6 +1206,18 @@ export function LandingPage({
                   </div>
                 );
               })}
+              <Link href={legalHref} className="lp-impact-legal">
+                <span className="lp-impact-legal__icon">
+                  <Scale size={20} aria-hidden={true} />
+                </span>
+                <span className="eyebrow">{legalBlock.eyebrow}</span>
+                <strong>{legalBlock.title}</strong>
+                <p>{legalBlock.body}</p>
+                <span className="lp-impact-legal__cta">
+                  {legalBlock.cta}
+                  <ArrowRight size={14} aria-hidden={true} />
+                </span>
+              </Link>
             </div>
           </div>
         </section>
