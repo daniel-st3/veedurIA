@@ -185,6 +185,97 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   text-underline-offset: 3px;
 }
 
+.legal-page {
+  display: grid;
+  gap: 1.2rem;
+  padding-block: 1.4rem 4rem;
+}
+
+.legal-hero,
+.legal-card,
+.legal-note {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(12,19,34,.1);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.92), rgba(248,243,232,.72));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 18px 54px rgba(12,19,34,.07);
+}
+
+.legal-hero {
+  border-radius: calc(var(--r-xl) + 6px);
+  padding: clamp(2rem, 5vw, 4rem);
+}
+
+.legal-hero h1 {
+  max-width: 14ch;
+  margin: .6rem 0 1rem;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(2.5rem, 6.2vw, 5.4rem);
+  line-height: .92;
+  letter-spacing: -.065em;
+  text-wrap: balance;
+}
+
+.legal-hero p {
+  max-width: 72ch;
+  color: var(--ink-3);
+  font-size: clamp(1rem, 1.4vw, 1.12rem);
+  line-height: 1.72;
+}
+
+.legal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.legal-card {
+  border-radius: var(--r-lg);
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+}
+
+.legal-card h2 {
+  margin: 0 0 .7rem;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(1.2rem, 2vw, 1.65rem);
+  letter-spacing: -.045em;
+}
+
+.legal-card p,
+.legal-note p {
+  margin: .65rem 0 0;
+  color: var(--ink-3);
+  line-height: 1.68;
+  text-wrap: pretty;
+}
+
+.legal-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  align-items: baseline;
+  border-radius: var(--r-lg);
+  padding: 1.25rem 1.5rem;
+}
+
+.legal-note strong,
+.legal-note span {
+  font-family: "JetBrains Mono", monospace;
+  font-size: .72rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.legal-note span {
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.legal-note p {
+  flex-basis: 100%;
+}
+
 /* ═══════════════════════════════════════════════════════
    PAGE SHELLS
    ═══════════════════════════════════════════════════════ */
@@ -193,10 +284,18 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 .cv-page,
 .pmr-page,
 .sed-page {
-  width: 100%;
-  max-width: var(--page-w);
-  margin-inline: auto;
-  padding-inline: var(--page-px);
+  width: 100vw;
+  max-width: none;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding-inline: 0;
+  background:
+    radial-gradient(circle at 86% 16%, rgba(13,91,215,.12), transparent 32rem),
+    linear-gradient(180deg, #dfe8f3 0%, var(--cream) 44%, var(--cream) 100%);
+}
+
+.sed-page > * {
+  max-width: none;
 }
 
 .lp-page > *,
@@ -4585,17 +4684,44 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 .sed-canvas-wrap {
   position: relative;
   background:
-    radial-gradient(circle at 20% 18%, rgba(13,91,215,.13), transparent 26rem),
-    radial-gradient(circle at 82% 72%, rgba(10,122,78,.14), transparent 28rem),
-    repeating-linear-gradient(90deg, rgba(23,32,51,.035) 0 1px, transparent 1px 84px),
-    repeating-linear-gradient(0deg, rgba(23,32,51,.028) 0 1px, transparent 1px 84px),
-    linear-gradient(135deg, #f9fcff 0%, #e8f2ff 58%, #dce8f5 100%);
-  border: 1px solid rgba(13,91,215,.13);
+    radial-gradient(circle at 18% 24%, rgba(13,91,215,.26), transparent 24rem),
+    radial-gradient(circle at 82% 70%, rgba(10,122,78,.22), transparent 26rem),
+    radial-gradient(circle at 52% 50%, rgba(245,197,24,.10), transparent 22rem),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.055) 0 1px, transparent 1px 84px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, transparent 1px 84px),
+    linear-gradient(135deg, #07111f 0%, #10223a 54%, #08111e 100%);
+  border: 1px solid rgba(125,170,255,.24);
   border-radius: 28px;
   overflow: hidden;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.9),
-    0 22px 58px rgba(20,30,50,.1);
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 0 80px rgba(13,91,215,.12),
+    0 30px 90px rgba(7,17,31,.25);
+}
+
+.sed-canvas-wrap::before,
+.sed-canvas-wrap::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sed-canvas-wrap::before {
+  inset: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 22px;
+  background:
+    linear-gradient(90deg, transparent 0 49.8%, rgba(245,197,24,.14) 49.8% 50%, transparent 50%),
+    linear-gradient(0deg, transparent 0 49.8%, rgba(13,91,215,.16) 49.8% 50%, transparent 50%);
+}
+
+.sed-canvas-wrap::after {
+  inset: auto 1.2rem 1rem 1.2rem;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--yellow), var(--blue), var(--green), var(--red));
+  opacity: .78;
 }
 
 .sed-canvas-inner {
@@ -4661,10 +4787,10 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   align-items: center;
   gap: 0.45rem;
   padding: 0.42rem 0.9rem;
-  background: rgba(255,255,255,.9);
-  border: 1px solid rgba(13,91,215,.13);
+  background: rgba(7,17,31,.82);
+  border: 1px solid rgba(255,255,255,.14);
   border-radius: var(--r-pill);
-  color: var(--ink-3);
+  color: rgba(255,255,255,.78);
   font-size: 0.76rem;
   box-shadow: 0 12px 28px rgba(20,30,50,.08);
   pointer-events: none;
@@ -4687,8 +4813,8 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   height: 34px;
   display: grid;
   place-items: center;
-  background: rgba(255,255,255,.9);
-  border: 1px solid rgba(13,91,215,.13);
+  background: rgba(255,255,255,.86);
+  border: 1px solid rgba(255,255,255,.18);
   border-radius: var(--r-xs);
   color: var(--ink);
   cursor: pointer;
@@ -7565,8 +7691,9 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   position: relative;
   overflow: hidden;
   background:
+    linear-gradient(180deg, transparent 0 82%, rgba(245,240,228,.92) 100%),
     linear-gradient(180deg, #101828 0%, #0c1322 58%, #0a101c 100%);
-  padding: clamp(9rem, 14vw, 13rem) var(--page-px) clamp(4rem, 6vw, 5.5rem);
+  padding: clamp(9rem, 14vw, 13rem) var(--page-px) clamp(6.5rem, 9vw, 8rem);
   color: var(--white);
 }
 
@@ -7633,9 +7760,9 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 
 .lp-signal__frame {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(310px, 0.38fr);
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 0.42fr);
   gap: clamp(1rem, 3vw, 2rem);
-  align-items: start;
+  align-items: center;
 }
 .lp-signal__rail {
   display: none;
@@ -7732,26 +7859,34 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
    stack on its left so there's no dead space at the bottom. */
 .lp-signal__pulse {
   --pulse-line: rgba(245,197,24,.16);
+  position: sticky;
+  top: calc(var(--nav-h) + 1.4rem);
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
-  padding: clamp(1.5rem, 2.4vw, 2.4rem) clamp(1.5rem, 2vw, 2rem) clamp(2rem, 3vw, 2.6rem);
+  gap: 1rem;
+  padding: clamp(1.25rem, 2vw, 1.8rem);
   background:
     linear-gradient(90deg, transparent 0 42%, var(--pulse-line) 42% 42.5%, transparent 42.5%),
     repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 34px),
     linear-gradient(135deg, rgba(245,197,24,.1), rgba(255,255,255,.045) 42%, rgba(13,91,215,.08));
   border: 1px solid rgba(245,197,24,.2);
   border-radius: var(--r-md);
-  align-self: stretch;
-  height: 100%;
-  min-height: clamp(420px, 64vh, 640px);
-  justify-content: space-between;
+  align-self: center;
+  min-height: 0;
+  justify-content: center;
   overflow: hidden;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 28px 80px rgba(13,91,215,.08);
 }
-.lp-signal__frame { align-items: stretch; }
 .lp-signal__pulse::before {
-  content: none;
+  content: "";
+  position: absolute;
+  inset: 14px;
+  pointer-events: none;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: calc(var(--r-md) - 8px);
+  background:
+    linear-gradient(90deg, transparent 0 49.6%, rgba(255,255,255,.1) 49.6% 50%, transparent 50%),
+    linear-gradient(0deg, transparent 0 49.6%, rgba(255,255,255,.1) 49.6% 50%, transparent 50%);
 }
 .lp-signal__pulse::after {
   content: "";
@@ -7805,9 +7940,9 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 .lp-signal__pulse-viz {
   position: relative;
   z-index: 1;
-  width: clamp(220px, 80%, 320px);
+  width: min(100%, 350px);
   height: auto;
-  margin: 0.4rem auto 0.2rem;
+  margin: 0.1rem auto;
   display: block;
 }
 @keyframes lp-pulse-ring {
@@ -7849,9 +7984,22 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 
 /* ── PROCESS ─────────────────────────────────────────────────────────────────── */
 .lp-process {
+  position: relative;
+  overflow: hidden;
   background:
-    linear-gradient(180deg, var(--cream-2) 0%, var(--cream) 72%, rgba(245,240,228,1) 100%);
-  padding: clamp(5.5rem, 8vw, 7.5rem) var(--page-px) clamp(6rem, 10vw, 9rem);
+    linear-gradient(180deg, rgba(245,240,228,0) 0%, var(--cream-2) 12%, var(--cream) 72%, rgba(245,240,228,1) 100%);
+  padding: clamp(7rem, 10vw, 10rem) var(--page-px) clamp(6rem, 10vw, 9rem);
+  margin-top: -3.5rem;
+}
+.lp-process::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: clamp(140px, 16vw, 240px);
+  pointer-events: none;
+  background:
+    linear-gradient(178deg, rgba(10,16,28,.98) 0%, rgba(10,16,28,.72) 35%, rgba(245,240,228,.92) 75%, transparent 100%),
+    linear-gradient(165deg, transparent 0 62%, rgba(245,197,24,.75) 62% 62.6%, rgba(13,91,215,.75) 62.6% 63.2%, rgba(198,40,57,.75) 63.2% 63.8%, transparent 63.8%);
 }
 .lp-process__inner {
   max-width: var(--page-w);
@@ -8088,11 +8236,13 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   grid-template-rows: repeat(2, minmax(220px, auto));
   gap: clamp(.9rem, 2vw, 1.25rem);
   align-items: stretch;
-  will-change: clip-path, transform;
+  padding-block: 0.35rem;
+  overflow: visible;
+  will-change: transform;
 }
 .lp-impact-stat {
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
   justify-items: start;
@@ -8317,6 +8467,10 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   }
 }
 @media (max-width: 768px) {
+  .legal-grid {
+    grid-template-columns: 1fr;
+  }
+
   .lp-hero__stage {
     min-height: clamp(980px, calc(132svh - var(--nav-h)), 1120px);
     padding: clamp(4.25rem, 12vw, 5.75rem) var(--page-px) clamp(4.75rem, 14vw, 6rem);

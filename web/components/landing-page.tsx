@@ -685,15 +685,10 @@ export function LandingPage({
           y: 0,
           duration: 1.05,
           ease: "power4.out",
+          onComplete() { gsap.set(".lp-impact__grid", { clearProps: "clipPath,transform" }); },
           scrollTrigger: { trigger: ".lp-impact", start: "top 78%" },
         },
       );
-
-      gsap.to(".lp-impact-stat", {
-        yPercent: (index) => [-6, 5, -4, 7][index % 4],
-        ease: "none",
-        scrollTrigger: { trigger: ".lp-impact", start: "top bottom", end: "bottom top", scrub: 1.05 },
-      });
 
       gsap.fromTo(
         ".lp-portfolio-card",
@@ -1166,6 +1161,9 @@ export function LandingPage({
                   <circle cx="160" cy="160" r="116" fill="none" stroke="rgba(255,255,255,.06)" strokeDasharray="2 8" />
                   <circle cx="160" cy="160" r="78"  fill="none" stroke="rgba(255,255,255,.08)" strokeDasharray="3 6" />
                   <circle cx="160" cy="160" r="42"  fill="none" stroke="rgba(255,255,255,.10)" />
+                  <path d="M68 108 C118 74 204 76 252 110" stroke="rgba(245,197,24,.42)" strokeWidth="1.4" fill="none" strokeDasharray="4 6" />
+                  <path d="M52 210 C118 188 207 188 278 212" stroke="rgba(13,91,215,.42)" strokeWidth="1.4" fill="none" strokeDasharray="4 6" />
+                  <path d="M105 280 C142 232 190 232 225 282" stroke="rgba(198,40,57,.42)" strokeWidth="1.4" fill="none" strokeDasharray="4 6" />
                   {/* Edges */}
                   <g stroke="url(#lp-pulse-edge)" strokeWidth="1.1" fill="none" opacity="0.85">
                     <line x1="60"  y1="80"  x2="160" y2="160" />
@@ -1190,6 +1188,11 @@ export function LandingPage({
                   {/* Center hub */}
                   <circle cx="160" cy="160" r="11" fill="#fff" opacity="0.96" />
                   <circle cx="160" cy="160" r="5"  fill="#0d5bd7" />
+                  <g fontFamily="JetBrains Mono, monospace" fontSize="10" fontWeight="700" letterSpacing="1.2" fill="rgba(255,255,255,.72)">
+                    <text x="42" y="56">SECOP</text>
+                    <text x="246" y="46" textAnchor="middle">VOTO</text>
+                    <text x="160" y="306" textAnchor="middle">RED</text>
+                  </g>
                   {/* Pulsing ring */}
                   <circle
                     cx="160" cy="160" r="42"

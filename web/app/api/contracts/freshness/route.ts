@@ -18,6 +18,14 @@ const SOCRATA_LATEST =
 const SOCRATA_METADATA = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h";
 const SOURCE_FETCH_TIMEOUT_MS = 6500;
 
+function daysBetween(later: string | null, earlier: string | null) {
+  if (!later || !earlier) return null;
+  const left = new Date(`${later.slice(0, 10)}T00:00:00Z`).getTime();
+  const right = new Date(`${earlier.slice(0, 10)}T00:00:00Z`).getTime();
+  if (!Number.isFinite(left) || !Number.isFinite(right)) return null;
+  return Math.max(0, Math.round((left - right) / 86_400_000));
+}
+
 function readableText(value: unknown, fallback: string) {
   const text = String(value ?? "").trim();
   return text || fallback;
@@ -89,11 +97,10 @@ export async function GET(req: NextRequest) {
       : null;
 
   const scoredLatestDate = (statsData?.latestDate as string | null) ?? null;
-  const effectiveLatestDate = sourceLatestDate ?? scoredLatestDate;
-  const sourceFreshnessGapDays = sourceLatestDate && effectiveLatestDate ? 0 : null;
+  const sourceFreshnessGapDays = daysBetween(sourceLatestDate, scoredLatestDate);
 
   const payload: ContractsFreshnessPayload = {
-    latestContractDate: effectiveLatestDate,
+    latestContractDate: scoredLatestDate,
     sourceLatestContractDate: sourceLatestDate,
     sourceFreshnessGapDays,
     sourceRows,

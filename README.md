@@ -15,6 +15,7 @@ La app vive hoy en: `https://veeduria.vercel.app`
 - [Qué incluye hoy](#qué-incluye-hoy)
 - [Arquitectura del repo](#arquitectura-del-repo)
 - [VotóMeter](#votómeter)
+- [Legal, privacidad y seguridad](#legal-privacidad-y-seguridad)
 - [Desarrollo local](#desarrollo-local)
 - [Base de datos y bootstrap](#base-de-datos-y-bootstrap)
 - [Variables de entorno](#variables-de-entorno)
@@ -63,12 +64,23 @@ Es la siguiente capa del producto.
 
 Hoy muestra:
 
-- avance del módulo
-- semilla de datos ya disponible
-- vista previa del frente relacional
-- roadmap de construcción
+- red interactiva de entidades, proveedores y clusters territoriales
+- filtros por confianza, departamento y tipo de nodo
+- nodos sugeridos para empezar la lectura
+- paneles de concentración y evidencia
+- advertencia explícita de que la alerta no prueba irregularidad
 
 El objetivo final es conectar contratistas, donantes, funcionarios, votaciones y aprobaciones presupuestales dentro de una misma lectura.
+
+### 4. Legal, privacidad y seguridad
+
+La ruta `/etica-y-privacidad` documenta el alcance real del producto:
+
+- VeedurIA muestra señales revisables, no conclusiones jurídicas.
+- Los puntajes no declaran culpabilidad, sanción, hallazgo fiscal ni irregularidad comprobada.
+- El usuario debe verificar SECOP, datos.gov.co, Senado abierto y documentos primarios antes de publicar, denunciar o tomar decisiones.
+- La plataforma no solicita datos sensibles y no debe usarse para doxxing, acoso, extracción masiva de datos personales o decisiones de alto impacto.
+- La página no elimina todo riesgo legal; deja límites claros y remite a asesoría profesional cuando corresponda.
 
 ## Arquitectura del repo
 
@@ -136,6 +148,18 @@ Handlers internos de review:
 - `POST /api/votometro/review/logout`
 - `POST /api/votometro/review/promises/[id]`
 - `POST /api/votometro/review/conflicts/[id]`
+
+## Legal, privacidad y seguridad
+
+Rutas públicas:
+
+- `/etica-y-privacidad?lang=es`
+- `/etica-y-privacidad?lang=en`
+- `/legal?lang=es` redirige a la página principal legal.
+
+La página cubre naturaleza del servicio, fuentes y verificación, protección de datos personales, seguridad, uso permitido, responsabilidad del usuario y alcance legal realista. No se presenta como blindaje jurídico absoluto: su propósito es evitar que señales analíticas se conviertan en acusaciones sin verificación.
+
+En ContratoLimpio, la frescura de datos se obtiene por `GET /api/contracts/freshness`, con `cache: no-store`, consultando SECOP/datos.gov.co en vivo y comparando esa fecha contra el último scoring local.
 
 ## Desarrollo local
 

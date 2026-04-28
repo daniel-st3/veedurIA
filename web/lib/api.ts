@@ -253,10 +253,10 @@ export async function fetchContractsTable(
   }
 }
 
-export async function fetchContractsFreshness(): Promise<ContractsFreshnessPayload> {
+export async function fetchContractsFreshness(lang: Lang = "es"): Promise<ContractsFreshnessPayload> {
   try {
     const base = typeof window === "undefined" ? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000") : "";
-    const response = await fetch(`${base}/api/contracts/freshness`, { cache: "no-store" });
+    const response = await fetch(`${base}/api/contracts/freshness?lang=${lang}`, { cache: "no-store" });
     if (!response.ok) throw new Error("freshness route not ok");
     const payload = await response.json();
     if (!isValidFreshnessPayload(payload)) throw new Error("Incomplete freshness payload");

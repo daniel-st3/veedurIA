@@ -65,6 +65,70 @@
   pointer-events: none;
 }
 
+.heroFocus {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(0, 1fr));
+  gap: .65rem;
+  align-items: stretch;
+  padding: .75rem;
+  border: 1px solid rgba(12,19,34,.09);
+  border-radius: var(--r-lg, 20px);
+  background: rgba(255,255,255,.58);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.78), 0 18px 46px rgba(12,19,34,.08);
+  backdrop-filter: blur(10px);
+}
+
+.heroFocusKicker {
+  display: inline-flex;
+  align-items: center;
+  padding-inline: .85rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--blue, #0d5bd7);
+}
+
+.heroFocusItem {
+  display: grid;
+  gap: .15rem;
+  padding: .85rem .95rem;
+  border-radius: var(--r-sm, 12px);
+  color: var(--ink, #0c1322);
+  text-decoration: none;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.88), rgba(255,255,255,.54));
+  border: 1px solid rgba(12,19,34,.08);
+  transition: transform .24s cubic-bezier(.16,1,.3,1), border-color .24s, box-shadow .24s;
+}
+
+.heroFocusItem:hover {
+  transform: translateY(-2px);
+  border-color: rgba(13,91,215,.2);
+  box-shadow: 0 14px 28px rgba(12,19,34,.08);
+}
+
+.heroFocusItem > span {
+  font-family: "JetBrains Mono", monospace;
+  font-size: .68rem;
+  font-weight: 800;
+  color: var(--yellow, #f5c518);
+}
+
+.heroFocusItem strong {
+  font-family: "Sora", sans-serif;
+  font-size: .95rem;
+  letter-spacing: -.035em;
+}
+
+.heroFocusItem small {
+  color: var(--ink-3, #364b65);
+  font-size: .76rem;
+}
+
 .heroGrid {
   position: relative;
   z-index: 1;
@@ -264,7 +328,7 @@
   display: flex;
   gap: .65rem;
   flex-wrap: wrap;
-  align-items: end;
+  align-items: flex-end;
 }
 
 /* ── Buttons ──────────────────────────────────────────── */
@@ -706,6 +770,103 @@
   gap: 1rem;
   margin-top: 1.2rem;
 }
+
+.personChartGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .8rem;
+}
+
+.personChartCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, .95fr) minmax(180px, 1.25fr);
+  gap: .85rem;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(248,243,232,.92), rgba(255,255,255,.78));
+  border: 1px solid rgba(12,19,34,.08);
+  color: var(--ink, #0c1322);
+  text-decoration: none;
+  transition: transform .24s cubic-bezier(.16,1,.3,1), box-shadow .24s, border-color .24s;
+}
+
+.personChartCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(13,91,215,.2);
+  box-shadow: 0 14px 34px rgba(12,19,34,.08);
+}
+
+.personRank {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 12px;
+  background: var(--ink, #0c1322);
+  color: var(--yellow, #f5c518);
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 800;
+  font-size: .72rem;
+}
+
+.personChartCard strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Sora", sans-serif;
+  font-size: .92rem;
+  letter-spacing: -.035em;
+}
+
+.personChartCard small,
+.personMetrics {
+  color: var(--ink-3, #364b65);
+  font-size: .74rem;
+}
+
+.personBars {
+  display: grid;
+  gap: .32rem;
+}
+
+.personBars span {
+  display: block;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(12,19,34,.07);
+  overflow: hidden;
+}
+
+.personBars i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--yellow, #f5c518), var(--blue, #0d5bd7));
+}
+
+.personBars span:nth-child(2) i {
+  background: linear-gradient(90deg, var(--blue, #0d5bd7), #2f7cff);
+}
+
+.personBars span:nth-child(3) i {
+  background: linear-gradient(90deg, var(--green, #18794e), #30b677);
+}
+
+.personMetrics {
+  grid-column: 3;
+  display: flex;
+  gap: .55rem;
+  flex-wrap: wrap;
+}
+
+.personMetrics span {
+  padding: .18rem .45rem;
+  border-radius: 999px;
+  background: rgba(12,19,34,.045);
+}
 .analysisCard {
   background: rgba(255,255,255,.78);
   border: 1px solid rgba(12,19,34,.08);
@@ -805,6 +966,17 @@
   }
   .analysisGrid {
     grid-template-columns: 1fr 1fr;
+  }
+  .heroFocus,
+  .personChartGrid {
+    grid-template-columns: 1fr;
+  }
+  .personChartCard {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .personBars,
+  .personMetrics {
+    grid-column: 1 / -1;
   }
   .analysisCard:first-child {
     grid-column: 1 / -1;

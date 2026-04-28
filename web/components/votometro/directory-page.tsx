@@ -395,6 +395,14 @@ export function VotometroDirectoryPage({
   const partiesSorted = [...parties].sort((a, b) => b.memberCount - a.memberCount);
   const maxPartyMembers = Math.max(1, ...partiesSorted.map((p) => p.memberCount));
   const maxCommissionCount = Math.max(1, ...commissionCounts.map((c) => c.count));
+  const topPeople = [...payload.items]
+    .sort((left, right) => {
+      const leftScore = (left.coherenceScore ?? 0) * 1000 + left.votesIndexed + (left.attendanceRate ?? 0) * 10;
+      const rightScore = (right.coherenceScore ?? 0) * 1000 + right.votesIndexed + (right.attendanceRate ?? 0) * 10;
+      return rightScore - leftScore;
+    })
+    .slice(0, 6);
+  const maxPersonVotes = Math.max(1, ...topPeople.map((p) => p.votesIndexed));
 
   /* ── Copy ────────────────────────────────────────────── */
   const es = lang === "es";
@@ -629,6 +637,26 @@ export function VotometroDirectoryPage({
             })}
           </div>
         </div>
+        {topPeople.length ? (
+          <div className={styles.heroFocus} data-vm="body">
+            <span className={styles.heroFocusKicker}>
+              {es ? "Top para empezar" : "Start here"}
+            </span>
+            {topPeople.slice(0, 3).map((person, index) => (
+              <Link
+                key={person.id}
+                href={`/votometro/legislador/${person.slug}?lang=${lang}`}
+                className={styles.heroFocusItem}
+              >
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <strong>{person.canonicalName}</strong>
+                <small>
+                  {num(person.votesIndexed)} {es ? "votos" : "votes"} · {pct(person.coherenceScore, lang)} {es ? "coh." : "coh."}
+                </small>
+              </Link>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <main className={styles.main}>
@@ -740,6 +768,53 @@ export function VotometroDirectoryPage({
                   : "total records in public layer"}
               </p>
             ) : null}
+          </section>
+        ) : null}
+
+        {topPeople.length ? (
+          <section className={styles.surface} data-vm="section">
+            <span className={styles.eyebrow}>
+              {es ? "Gráfica por persona" : "Per-person view"}
+            </span>
+            <h2 className={styles.surfaceTitle} style={{ marginTop: ".5rem" }}>
+              {es ? "Quién concentra más señal visible" : "Who carries the strongest visible signal"}
+            </h2>
+            <p className={styles.surfaceIntro}>
+              {es
+                ? "Ranking calculado con el corte público actual: votos indexados, coherencia y asistencia. Sirve como punto de entrada, no como sentencia."
+                : "Ranking computed from the current public slice: indexed votes, coherence, and attendance. It is an entry point, not a verdict."}
+            </p>
+            <div className={styles.personChartGrid}>
+              {topPeople.map((person, index) => (
+                <Link
+                  key={person.id}
+                  href={`/votometro/legislador/${person.slug}?lang=${lang}`}
+                  className={styles.personChartCard}
+                >
+                  <span className={styles.personRank}>{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <strong>{person.canonicalName}</strong>
+                    <small>{person.party} · {person.chamber === "camara" ? (es ? "Cámara" : "House") : (es ? "Senado" : "Senate")}</small>
+                  </div>
+                  <div className={styles.personBars} aria-hidden="true">
+                    <span>
+                      <i style={{ width: `${Math.max(8, (person.votesIndexed / maxPersonVotes) * 100)}%` }} />
+                    </span>
+                    <span>
+                      <i style={{ width: `${person.coherenceScore ?? 0}%` }} />
+                    </span>
+                    <span>
+                      <i style={{ width: `${person.attendanceRate ?? 0}%` }} />
+                    </span>
+                  </div>
+                  <div className={styles.personMetrics}>
+                    <span>{num(person.votesIndexed)} {es ? "votos" : "votes"}</span>
+                    <span>{pct(person.coherenceScore, lang)} {es ? "coherencia" : "coherence"}</span>
+                    <span>{pct(person.attendanceRate, lang)} {es ? "asistencia" : "attendance"}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </section>
         ) : null}
 

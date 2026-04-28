@@ -219,6 +219,21 @@ export function NetworkCanvas({
           ctx.fill();
         }
 
+        if (typedNode.is_hub && !isDimmed) {
+          ctx.beginPath();
+          ctx.arc(typedNode.x, typedNode.y, radius + 13, 0, 2 * Math.PI);
+          ctx.strokeStyle = `${color}2e`;
+          ctx.lineWidth = 1.2 / globalScale;
+          ctx.setLineDash([5 / globalScale, 7 / globalScale]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.arc(typedNode.x, typedNode.y, radius + 21, 0, 2 * Math.PI);
+          ctx.strokeStyle = "rgba(245,197,24,0.18)";
+          ctx.lineWidth = 0.9 / globalScale;
+          ctx.stroke();
+        }
+
         ctx.shadowColor = isSelected
           ? "rgba(198,40,57,0.22)"
           : isHovered || isNeighbor
@@ -366,18 +381,18 @@ export function NetworkCanvas({
       const isSelectedEdge = link.id === selectedEdgeId;
       const touchesFocusedNode = focusedNodeId && (sourceId === focusedNodeId || targetId === focusedNodeId);
 
-      if (isSelectedEdge) return "#c62839";
+      if (isSelectedEdge) return "#ff5468";
       if (selectedNodeId) {
-        return touchesFocusedNode ? "rgba(13,91,215,0.55)" : "rgba(23,32,51,0.08)";
+        return touchesFocusedNode ? "rgba(83,151,255,0.72)" : "rgba(198,215,235,0.12)";
       }
       if (focusedNodeId) {
-        return touchesFocusedNode ? "rgba(13,91,215,0.55)" : "rgba(23,32,51,0.06)";
+        return touchesFocusedNode ? "rgba(83,151,255,0.70)" : "rgba(198,215,235,0.10)";
       }
       // Reference-image style: monochrome thin grey edges.
       // Confidence bumps the alpha rather than swapping hue — keeps the canvas calm.
-      if (link.confidence >= 80) return "rgba(23,32,51,0.32)";
-      if (link.confidence >= 60) return "rgba(23,32,51,0.22)";
-      return "rgba(23,32,51,0.14)";
+      if (link.confidence >= 80) return "rgba(190,214,255,0.44)";
+      if (link.confidence >= 60) return "rgba(190,214,255,0.30)";
+      return "rgba(190,214,255,0.18)";
     },
     [focusedNodeId, selectedEdgeId, selectedNodeId],
   );

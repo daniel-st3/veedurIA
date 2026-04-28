@@ -45,6 +45,40 @@ function groupByMonth(rows: TableRow[]) {
     .map(([month, count]) => ({ month, count }));
 }
 
+function monthKey(date: Date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function addMonths(month: string, delta: number) {
+  const date = new Date(`${month}-01T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return month;
+  date.setUTCMonth(date.getUTCMonth() + delta);
+  return monthKey(date);
+}
+
+function completeMonthlyTimeline(
+  source: Array<{ month: string; count: number }>,
+  throughMonth?: string | null,
+) {
+  const valid = source.filter((item) => /^\d{4}-\d{2}$/.test(item.month));
+  if (!valid.length) return source;
+
+  const counts = new Map(valid.map((item) => [item.month, item.count]));
+  const first = valid[0].month;
+  const currentMonth = monthKey(new Date());
+  const lastDataMonth = valid[valid.length - 1].month;
+  const target = [throughMonth?.slice(0, 7), currentMonth, lastDataMonth]
+    .filter((item): item is string => Boolean(item && /^\d{4}-\d{2}$/.test(item)))
+    .sort()
+    .at(-1) ?? lastDataMonth;
+
+  const months: Array<{ month: string; count: number }> = [];
+  for (let cursor = first; cursor <= target; cursor = addMonths(cursor, 1)) {
+    months.push({ month: cursor, count: counts.get(cursor) ?? 0 });
+  }
+  return months.slice(-30);
+}
+
 /** Normalize a modality/entity label for deduplication (case + accent insensitive) */
 function normalizeLabel(label: string) {
   return label
@@ -94,6 +128,7 @@ export function ContractsDashboard({
   summaryEntities = [],
   summaryModalities = [],
   analytics,
+  timelineThroughMonth,
   activeDepartmentLabel,
   onDepartmentPick,
   onMonthPick,
@@ -104,24 +139,29 @@ export function ContractsDashboard({
   summaryEntities?: OverviewPayload["summaries"]["entities"];
   summaryModalities?: OverviewPayload["summaries"]["modalities"];
   analytics?: OverviewPayload["analytics"];
+  timelineThroughMonth?: string | null;
   activeDepartmentLabel?: string | null;
   onDepartmentPick?: (department: string) => void;
   onMonthPick?: (month: string) => void;
 }) {
   const timeline = useMemo(
-    () =>
-      analytics?.months?.length
+    () => {
+      const source = analytics?.months?.length
         ? analytics.months.map((item) => ({ month: item.month, count: item.contracts }))
-        : groupByMonth(rows),
-    [analytics?.months, rows],
+        : groupByMonth(rows);
+      return completeMonthlyTimeline(source, timelineThroughMonth);
+    },
+    [analytics?.months, rows, timelineThroughMonth],
   );
   const topDepartments = useMemo(
     () =>
-      analytics?.departments?.length
-        ? analytics.departments.slice(0, 8)
+      (analytics?.departments?.length
+        ? analytics.departments
         : [...departments]
-            .sort((left, right) => right.contractCount - left.contractCount || right.avgRisk - left.avgRisk)
-            .slice(0, 8),
+      )
+        .filter((item) => item.contractCount > 0)
+        .sort((left, right) => right.contractCount - left.contractCount || right.avgRisk - left.avgRisk)
+        .slice(0, 8),
     [analytics?.departments, departments],
   );
   const modalityMix = useMemo(() => {
@@ -156,28 +196,30 @@ export function ContractsDashboard({
       }
     });
     return [...seen.values()]
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => b.count - a.count || b.meanRisk - a.meanRisk)
       .slice(0, 6);
   }, [analytics?.modalities, rows, summaryModalities]);
   const topEntities = useMemo(
     () =>
-      analytics?.entities?.length
-        ? analytics.entities.slice(0, 7).map((item) => ({
+      (analytics?.entities?.length
+        ? analytics.entities.map((item) => ({
             label: item.nombre_entidad,
             count: item.contracts,
             meanRisk: item.meanRisk,
           }))
         : summaryEntities.length
-          ? summaryEntities.slice(0, 7).map((item) => ({
+          ? summaryEntities.map((item) => ({
             label: item.nombre_entidad,
             count: item.contracts,
             meanRisk: item.meanRisk,
           }))
-          : groupByLabel(rows, "entity").slice(0, 7).map((item) => ({
+          : groupByLabel(rows, "entity").map((item) => ({
               label: item.label,
               count: item.count,
               meanRisk: item.peakScore / 100,
-            })),
+            })))
+        .sort((left, right) => right.count - left.count || right.meanRisk - left.meanRisk)
+        .slice(0, 7),
     [analytics?.entities, rows, summaryEntities],
   );
   const riskBandMix = useMemo(
@@ -215,20 +257,19 @@ export function ContractsDashboard({
   const territoryData = useMemo(
     () => [
       {
-        x: topDepartments.map((item) => item.contractCount).reverse(),
-        y: topDepartments.map((item) => truncateLabel(item.label, 24)).reverse(),
+        x: topDepartments.map((item) => item.contractCount),
+        y: topDepartments.map((item) => truncateLabel(item.label, 24)),
         type: "bar",
         orientation: "h",
-        customdata: topDepartments.map((item) => [item.label, Math.round(item.avgRisk * 100)]).reverse(),
+        customdata: topDepartments.map((item) => [item.label, Math.round(item.avgRisk * 100)]),
         marker: {
           color: topDepartments
             .map((item) =>
               item.avgRisk >= 0.7 ? RISK_COLORS.high : item.avgRisk >= 0.4 ? RISK_COLORS.medium : RISK_COLORS.low,
-            )
-            .reverse(),
+            ),
           line: { color: "rgba(40, 37, 29, 0.1)", width: 1 },
         },
-        text: topDepartments.map((item) => item.contractCount.toLocaleString(lang === "es" ? "es-CO" : "en-US")).reverse(),
+        text: topDepartments.map((item) => item.contractCount.toLocaleString(lang === "es" ? "es-CO" : "en-US")),
         textposition: "outside",
         cliponaxis: false,
         hovertemplate:
@@ -263,18 +304,18 @@ export function ContractsDashboard({
   const modalityData = useMemo(
     () => [
       {
-        x: modalityMix.map((item) => item.count).reverse(),
-        y: modalityMix.map((item) => truncateLabel(item.label, 26)).reverse(),
+        x: modalityMix.map((item) => item.count),
+        y: modalityMix.map((item) => truncateLabel(item.label, 26)),
         type: "bar",
         orientation: "h",
-        customdata: modalityMix.map((item) => [item.label, Math.round(item.meanRisk * 100)]).reverse(),
+        customdata: modalityMix.map((item) => [item.label, Math.round(item.meanRisk * 100)]),
         marker: {
           color: modalityMix.map((item) =>
             item.meanRisk >= 0.7 ? RISK_COLORS.high : item.meanRisk >= 0.4 ? RISK_COLORS.medium : CHART_PALETTE[0],
-          ).reverse(),
+          ),
           line: { color: "rgba(40, 37, 29, 0.08)", width: 1 },
         },
-        text: modalityMix.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")).reverse(),
+        text: modalityMix.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")),
         textposition: "outside",
         cliponaxis: false,
         hovertemplate:
@@ -289,11 +330,11 @@ export function ContractsDashboard({
   const entityData = useMemo(
     () => [
       {
-        x: topEntities.map((item) => item.count).reverse(),
-        y: topEntities.map((item) => truncateLabel(item.label, 28)).reverse(),
+        x: topEntities.map((item) => item.count),
+        y: topEntities.map((item) => truncateLabel(item.label, 28)),
         type: "bar",
         orientation: "h",
-        customdata: topEntities.map((item) => [item.label, Math.round(item.meanRisk * 100)]).reverse(),
+        customdata: topEntities.map((item) => [item.label, Math.round(item.meanRisk * 100)]),
         marker: {
           color: topEntities
             .map((item) =>
@@ -302,11 +343,10 @@ export function ContractsDashboard({
                 : item.meanRisk >= 0.4
                   ? RISK_COLORS.medium
                   : CHART_PALETTE[0],
-            )
-            .reverse(),
+            ),
           line: { color: "rgba(40, 37, 29, 0.08)", width: 1 },
         },
-        text: topEntities.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")).reverse(),
+        text: topEntities.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")),
         textposition: "outside",
         cliponaxis: false,
         hovertemplate:
@@ -354,10 +394,11 @@ export function ContractsDashboard({
       {
         x: source.map((item) => item.contractCount),
         y: source.map((item) => Math.round(item.avgRisk * 100)),
-        text: source.map((item) => item.label),
+        text: source.map((item, index) => (index < 6 || item.contractCount >= 18000 ? item.label : "")),
+        customdata: source.map((item) => item.label),
         type: "scatter",
         mode: "markers+text",
-        textposition: "top center",
+        textposition: source.map((_, index) => (index % 2 === 0 ? "top center" : "bottom center")),
         marker: {
           size: source.map((item) => Math.max(12, Math.min(36, 10 + Math.sqrt(item.contractCount) * 0.35))),
           color: source.map((item) =>
@@ -369,36 +410,43 @@ export function ContractsDashboard({
         textfont: { size: 10, color: "#1e1c17" },
         hovertemplate:
           lang === "es"
-            ? "<b>%{text}</b><br>%{x:,} contratos<br>Intensidad %{y}/100<extra></extra>"
-            : "<b>%{text}</b><br>%{x:,} contracts<br>Intensity %{y}/100<extra></extra>",
+            ? "<b>%{customdata}</b><br>%{x:,} contratos<br>Intensidad %{y}/100<extra></extra>"
+            : "<b>%{customdata}</b><br>%{x:,} contracts<br>Intensity %{y}/100<extra></extra>",
       },
     ];
   }, [analytics?.departments, departments, lang]);
 
   // ── Creative chart 1: Risk vs. Value bubble (from visible tableRows) ──────
   const bubbleData = useMemo(() => {
-    const sample = rows.slice(0, 120); // cap for perf
-    return [
-      {
-        x: sample.map((row) => row.value),
-        y: sample.map((row) => row.score),
-        text: sample.map((row) => row.entity),
+    const sample = rows
+      .filter((row) => Number.isFinite(row.value) && row.value >= 0)
+      .slice(0, 180);
+    return ([
+      ["high", lang === "es" ? "Riesgo alto" : "High risk", RISK_COLORS.high],
+      ["medium", lang === "es" ? "Riesgo medio" : "Medium risk", RISK_COLORS.medium],
+      ["low", lang === "es" ? "Riesgo bajo" : "Low risk", RISK_COLORS.low],
+    ] as const).map(([band, name, color]) => {
+      const group = sample.filter((row) => row.riskBand === band);
+      return {
+        x: group.map((row) => Math.max(row.value, 1)),
+        y: group.map((row) => row.score),
+        text: group.map((row) => row.entity),
+        customdata: group.map((row) => [row.modality, row.department]),
+        name,
         type: "scatter",
         mode: "markers",
         marker: {
-          size: 12,
-          color: sample.map((row) =>
-            row.riskBand === "high" ? RISK_COLORS.high : row.riskBand === "medium" ? RISK_COLORS.medium : RISK_COLORS.low,
-          ),
-          opacity: 0.78,
-          line: { color: "rgba(40,37,29,0.12)", width: 1 },
+          size: group.map((row) => Math.max(9, Math.min(22, 7 + Math.log10(Math.max(row.value, 1)) * 1.2))),
+          color,
+          opacity: 0.76,
+          line: { color: "rgba(255,255,255,0.86)", width: 1.2 },
         },
         hovertemplate:
           lang === "es"
-            ? "<b>%{text}</b><br>Valor: $%{x:,.0f}<br>Puntaje: %{y}/100<extra></extra>"
-            : "<b>%{text}</b><br>Value: $%{x:,.0f}<br>Score: %{y}/100<extra></extra>",
-      },
-    ];
+            ? "<b>%{text}</b><br>Valor: $%{x:,.0f}<br>Puntaje: %{y}/100<br>%{customdata[0]} · %{customdata[1]}<extra></extra>"
+            : "<b>%{text}</b><br>Value: $%{x:,.0f}<br>Score: %{y}/100<br>%{customdata[0]} · %{customdata[1]}<extra></extra>",
+      };
+    });
   }, [lang, rows]);
 
   // ── Creative chart 2: Treemap — modality → entity → contracts ────────────
@@ -572,7 +620,7 @@ export function ContractsDashboard({
                   tickfont: { size: 13 },
                   automargin: true,
                 },
-                yaxis: { tickfont: { size: 13 }, automargin: true },
+                yaxis: { tickfont: { size: 13 }, automargin: true, autorange: "reversed" },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               onClick={(event: any) => {
@@ -614,6 +662,9 @@ export function ContractsDashboard({
                   ticktext: timeline.map((item) => formatMonthTick(item.month, lang)),
                   tickfont: { size: 12 },
                   automargin: true,
+                  range: timeline.length
+                    ? [timeline[0].month, timeline[timeline.length - 1].month]
+                    : undefined,
                 },
                 hovermode: "x unified",
               }}
@@ -650,7 +701,7 @@ export function ContractsDashboard({
                   tickfont: { size: 13 },
                   automargin: true,
                 },
-                yaxis: { tickfont: { size: 13 }, automargin: true },
+                yaxis: { tickfont: { size: 13 }, automargin: true, autorange: "reversed" },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               style={{ width: "100%", height: 282 }}
@@ -681,7 +732,7 @@ export function ContractsDashboard({
                   tickfont: { size: 13 },
                   automargin: true,
                 },
-                yaxis: { tickfont: { size: 13 }, automargin: true },
+                yaxis: { tickfont: { size: 13 }, automargin: true, autorange: "reversed" },
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               style={{ width: "100%", height: 282 }}
@@ -705,7 +756,38 @@ export function ContractsDashboard({
                 data={bubbleData as any}
                 layout={{
                   ...baseLayout,
-                  margin: { l: 62, r: 24, t: 16, b: 52 },
+                margin: { l: 62, r: 24, t: 16, b: 52 },
+                showlegend: true,
+                legend: {
+                  orientation: "h",
+                  x: 0,
+                  y: 1.12,
+                  font: { size: 11 },
+                },
+                shapes: [
+                  {
+                    type: "rect",
+                    xref: "paper",
+                    x0: 0,
+                    x1: 1,
+                    y0: 70,
+                    y1: 105,
+                    fillcolor: "rgba(198,40,57,0.055)",
+                    line: { width: 0 },
+                    layer: "below",
+                  },
+                  {
+                    type: "rect",
+                    xref: "paper",
+                    x0: 0,
+                    x1: 1,
+                    y0: 40,
+                    y1: 70,
+                    fillcolor: "rgba(212,128,10,0.055)",
+                    line: { width: 0 },
+                    layer: "below",
+                  },
+                ],
                   xaxis: {
                     title: { text: lang === "es" ? "Valor (COP)" : "Value (COP)", standoff: 8 },
                     gridcolor: GRID_COLOR,
@@ -713,6 +795,8 @@ export function ContractsDashboard({
                     tickfont: { size: 12 },
                     automargin: true,
                     tickformat: "$.2s",
+                    type: "log",
+                    exponentformat: "SI",
                   },
                   yaxis: {
                     title: { text: lang === "es" ? "Puntaje" : "Score", standoff: 8 },

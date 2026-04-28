@@ -13,6 +13,14 @@ const SOCRATA_SUMMARY =
 const SOCRATA_METADATA = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h";
 const SOURCE_FETCH_TIMEOUT_MS = 6500;
 
+function daysBetween(later: string | null, earlier: string | null) {
+  if (!later || !earlier) return null;
+  const left = new Date(`${later.slice(0, 10)}T00:00:00Z`).getTime();
+  const right = new Date(`${earlier.slice(0, 10)}T00:00:00Z`).getTime();
+  if (!Number.isFinite(left) || !Number.isFinite(right)) return null;
+  return Math.max(0, Math.round((left - right) / 86_400_000));
+}
+
 const CONTRACT_SLICE_AGGREGATE_COLUMNS = "department, entity, modality, date, value, risk_score, risk_bucket";
 const CONTRACT_SLICE_LEAD_COLUMNS =
   "id, entity, provider, department, modality, date, value, risk_score, risk_bucket, secop_url, object_desc";
@@ -504,8 +512,7 @@ export async function GET(req: NextRequest) {
     ).values()];
 
     const scoredSnapshotDate = (g.latestDate as string | null) ?? null;
-    const liveScoringDate = sourceData.latestDate ?? scoredSnapshotDate;
-    const sourceFreshnessGapDays = liveScoringDate && sourceData.latestDate ? 0 : null;
+    const sourceFreshnessGapDays = daysBetween(sourceData.latestDate, scoredSnapshotDate);
 
     // ── 5. Compose OverviewPayload ───────────────────────────────────────────
     const payload: OverviewPayload = {
@@ -515,7 +522,7 @@ export async function GET(req: NextRequest) {
         totalRows: g.totalRows as number,
         shownRows: hasFilters ? sliceTotal : (g.totalRows as number),
         previewRows: Math.min(hasFilters ? sliceTotal : (g.totalRows as number), 48),
-        latestContractDate: liveScoringDate,
+        latestContractDate: scoredSnapshotDate,
         sourceLatestContractDate: sourceData.latestDate,
         sourceRows: sourceData.rows,
         sourceFreshnessGapDays,

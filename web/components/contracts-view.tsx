@@ -452,7 +452,7 @@ export function ContractsView({
 
   useEffect(() => {
     let alive = true;
-    fetchContractsFreshness()
+    fetchContractsFreshness(lang)
       .then((data) => {
         if (alive) setFreshness(data);
       })
@@ -460,7 +460,7 @@ export function ContractsView({
     return () => {
       alive = false;
     };
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     try {
@@ -968,8 +968,8 @@ export function ContractsView({
                 </strong>
                 <span>
                   {lang === "es"
-                    ? `La brecha actual es de ${freshnessGap} días. Última ejecución del pipeline: ${lastPipelineRun ?? "hoy, ciclo diario"}.`
-                    : `The current gap is ${freshnessGap} days. Last pipeline run: ${lastPipelineRun ?? "today, daily cycle"}.`}
+                    ? `La brecha actual es de ${freshnessGap} días. El GET /api/contracts/freshness consulta SECOP en vivo con cache no-store; última ejecución del scoring: ${lastPipelineRun ?? "pendiente de registro"}.`
+                    : `The current gap is ${freshnessGap} days. GET /api/contracts/freshness queries live SECOP with no-store cache; last scoring run: ${lastPipelineRun ?? "not recorded yet"}.`}
                 </span>
                 <button
                   type="button"
@@ -1003,8 +1003,8 @@ export function ContractsView({
                 </strong>
                 <span>
                   {lang === "es"
-                    ? `La brecha actual es cero. La lectura usa la fuente oficial SECOP más reciente disponible (${latestSourceDate}) y recalcula el tablero con cada corte.`
-                    : `Current gap is zero. The view uses the latest available official SECOP source (${latestSourceDate}) and recalculates this board for every slice.`}
+                    ? `La brecha actual es cero. El GET /api/contracts/freshness lee SECOP en vivo con cache no-store y compara esa fecha contra el último scoring local.`
+                    : `Current gap is zero. GET /api/contracts/freshness reads live SECOP with no-store cache and compares it against the latest local scoring date.`}
                 </span>
               </div>
             </div>
@@ -1307,6 +1307,7 @@ export function ContractsView({
           summaryEntities={summaryEntities}
           summaryModalities={summaryModalities}
           analytics={overview?.analytics}
+          timelineThroughMonth={latestSourceDate}
           activeDepartmentLabel={activeDepartmentLabel}
           onDepartmentPick={(department) => {
             const next = { ...filters, department };
