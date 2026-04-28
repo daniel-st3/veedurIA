@@ -16,7 +16,16 @@ const SOCRATA_LATEST =
   "&$select=fecha_de_firma,id_contrato,nombre_entidad,valor_del_contrato,departamento,urlproceso" +
   "&$order=fecha_de_firma%20DESC,id_contrato%20ASC&$limit=5";
 const SOCRATA_METADATA = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h";
-const SOURCE_FETCH_TIMEOUT_MS = 6500;
+const SOURCE_FETCH_TIMEOUT_MS = 10_000;
+
+async function fetchJson(url: string) {
+  const response = await fetch(url, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(SOURCE_FETCH_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`SECOP request failed: ${response.status}`);
+  return response.json();
+}
 
 function daysBetween(later: string | null, earlier: string | null) {
   if (!later || !earlier) return null;
@@ -33,13 +42,13 @@ function readableText(value: unknown, fallback: string) {
 
 export async function GET(req: NextRequest) {
   const lang = req.nextUrl.searchParams.get("lang") ?? "es";
-  const signal = AbortSignal.timeout(SOURCE_FETCH_TIMEOUT_MS);
 
-  // Fetch SECOP live data and local stats in parallel
+  // Fetch each SECOP request with its own timeout so a slow count query does
+  // not cancel the lighter latest-contract feed.
   const [socrataRes, latestRes, metadataRes, statsRes] = await Promise.allSettled([
-    fetch(SOCRATA_SUMMARY, { cache: "no-store", signal }),
-    fetch(SOCRATA_LATEST, { cache: "no-store", signal }),
-    fetch(SOCRATA_METADATA, { cache: "no-store", signal }),
+    fetchJson(SOCRATA_SUMMARY),
+    fetchJson(SOCRATA_LATEST),
+    fetchJson(SOCRATA_METADATA),
     createServerSupabase()
       .from("contracts_stats")
       .select("data, updated_at")
@@ -51,26 +60,26 @@ export async function GET(req: NextRequest) {
   let sourceLatestDate: string | null = null;
   let sourceUpdatedAt: string | null = null;
 
-  if (socrataRes.status === "fulfilled" && socrataRes.value.ok) {
+  if (socrataRes.status === "fulfilled") {
     try {
-      const json = await socrataRes.value.json();
+      const json = socrataRes.value;
       sourceRows = json?.[0]?.total ? Number(json[0].total) : null;
       sourceLatestDate = json?.[0]?.max_fecha?.slice(0, 10) ?? null;
     } catch { /* ignore */ }
   }
 
-  if (metadataRes.status === "fulfilled" && metadataRes.value.ok) {
+  if (metadataRes.status === "fulfilled") {
     try {
-      const metadata = await metadataRes.value.json();
+      const metadata = metadataRes.value;
       sourceUpdatedAt = metadata?.dataUpdatedAt ?? null;
     } catch { /* ignore */ }
   }
 
   let liveFeedContracts: ContractsFreshnessPayload["liveFeed"]["contracts"] = [];
 
-  if (latestRes.status === "fulfilled" && latestRes.value.ok) {
+  if (latestRes.status === "fulfilled") {
     try {
-      const rows = await latestRes.value.json();
+      const rows = latestRes.value;
       liveFeedContracts = (Array.isArray(rows) ? rows : []).slice(0, 5).map((r: Record<string, unknown>) => {
         const urlproceso = r.urlproceso as Record<string, string> | string | null;
         const secopUrl =
@@ -88,6 +97,7 @@ export async function GET(req: NextRequest) {
           secopUrl,
         };
       });
+      sourceLatestDate ??= liveFeedContracts.find((contract) => contract.date && contract.date !== "Sin fecha" && contract.date !== "No date")?.date ?? null;
     } catch { /* ignore */ }
   }
 

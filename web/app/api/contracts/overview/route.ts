@@ -10,8 +10,13 @@ export const dynamic = "force-dynamic";
 const SOCRATA_SUMMARY =
   "https://www.datos.gov.co/resource/jbjy-vk9h.json" +
   "?$select=max(fecha_de_firma)%20as%20max_fecha,%20count(*)%20as%20total&$limit=1";
+const SOCRATA_LATEST =
+  "https://www.datos.gov.co/resource/jbjy-vk9h.json" +
+  "?$where=fecha_de_firma%20IS%20NOT%20NULL" +
+  "&$select=fecha_de_firma" +
+  "&$order=fecha_de_firma%20DESC,id_contrato%20ASC&$limit=1";
 const SOCRATA_METADATA = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h";
-const SOURCE_FETCH_TIMEOUT_MS = 6500;
+const SOURCE_FETCH_TIMEOUT_MS = 10_000;
 
 function daysBetween(later: string | null, earlier: string | null) {
   if (!later || !earlier) return null;
@@ -357,24 +362,39 @@ async function fetchSliceRows(
 }
 
 async function fetchSourceStatus(): Promise<{ rows: number | null; latestDate: string | null; updatedAt: string | null }> {
-  try {
-    const signal = AbortSignal.timeout(SOURCE_FETCH_TIMEOUT_MS);
-    const [summaryRes, metadataRes] = await Promise.all([
-      fetch(SOCRATA_SUMMARY, { cache: "no-store", signal }),
-      fetch(SOCRATA_METADATA, { cache: "no-store", signal }),
-    ]);
-    if (!summaryRes.ok || !metadataRes.ok) {
-      return { rows: null, latestDate: null, updatedAt: null };
-    }
-    const [json, metadata] = await Promise.all([summaryRes.json(), metadataRes.json()]);
-    return {
-      rows: json?.[0]?.total ? Number(json[0].total) : null,
-      latestDate: json?.[0]?.max_fecha?.slice(0, 10) ?? null,
-      updatedAt: metadata?.dataUpdatedAt ?? null,
-    };
-  } catch {
-    return { rows: null, latestDate: null, updatedAt: null };
+  const fetchJson = async (url: string) => {
+    const response = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(SOURCE_FETCH_TIMEOUT_MS),
+    });
+    if (!response.ok) throw new Error(`SECOP request failed: ${response.status}`);
+    return response.json();
+  };
+
+  const [summaryRes, latestRes, metadataRes] = await Promise.allSettled([
+    fetchJson(SOCRATA_SUMMARY),
+    fetchJson(SOCRATA_LATEST),
+    fetchJson(SOCRATA_METADATA),
+  ]);
+
+  let rows: number | null = null;
+  let latestDate: string | null = null;
+  let updatedAt: string | null = null;
+
+  if (summaryRes.status === "fulfilled") {
+    rows = summaryRes.value?.[0]?.total ? Number(summaryRes.value[0].total) : null;
+    latestDate = summaryRes.value?.[0]?.max_fecha?.slice(0, 10) ?? null;
   }
+
+  if (latestRes.status === "fulfilled") {
+    latestDate ??= latestRes.value?.[0]?.fecha_de_firma?.slice(0, 10) ?? null;
+  }
+
+  if (metadataRes.status === "fulfilled") {
+    updatedAt = metadataRes.value?.dataUpdatedAt ?? null;
+  }
+
+  return { rows, latestDate, updatedAt };
 }
 
 export async function GET(req: NextRequest) {

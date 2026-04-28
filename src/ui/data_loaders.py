@@ -77,6 +77,17 @@ PREVIEW_SIZE = 50_000
 TABLE_PAGE_SIZE = 2_000
 
 
+def _streamlit_cache_data(**kwargs):
+    """Streamlit cache wrapper that still exposes .clear() in headless tests."""
+    def decorator(func):
+        cached = st.cache_data(**kwargs)(func)
+        if not hasattr(cached, "clear"):
+            cached.clear = lambda: None
+        return cached
+
+    return decorator
+
+
 def _resolve_parquet_path() -> Path | None:
     """Find the best available Parquet file."""
     scored = DATA_PROCESSED / "scored_contracts.parquet"
@@ -158,7 +169,7 @@ def _safe_read(path: Path, columns: list[str] | None = None,
 # Cached loaders
 # ---------------------------------------------------------------------------
 
-@st.cache_data(show_spinner="Cargando vista rápida…", max_entries=2, ttl=600)
+@_streamlit_cache_data(show_spinner="Cargando vista rápida…", max_entries=2, ttl=600)
 def load_preview() -> pd.DataFrame:
     """
     Load a fast preview: most recent 50k rows, UI columns only.
@@ -172,7 +183,7 @@ def load_preview() -> pd.DataFrame:
     return _safe_read(path, columns=UI_COLUMNS, nrows=PREVIEW_SIZE)
 
 
-@st.cache_data(show_spinner="Cargando historial completo…", max_entries=2, ttl=600)
+@_streamlit_cache_data(show_spinner="Cargando historial completo…", max_entries=2, ttl=600)
 def load_full() -> pd.DataFrame:
     """
     Load the full dataset: all rows, UI columns only.
@@ -186,7 +197,7 @@ def load_full() -> pd.DataFrame:
     return _safe_read(path, columns=UI_COLUMNS)
 
 
-@st.cache_data(show_spinner=False, max_entries=1, ttl=3600)
+@_streamlit_cache_data(show_spinner=False, max_entries=1, ttl=3600)
 def load_national_dept_summary() -> pd.DataFrame:
     """
     Load pre-aggregated department risk summary from the FULL dataset.
@@ -240,7 +251,7 @@ def get_total_row_count() -> int:
 # Legacy alias
 # ---------------------------------------------------------------------------
 
-@st.cache_data(show_spinner=True, max_entries=2)
+@_streamlit_cache_data(show_spinner=True, max_entries=2)
 def load_scored_data() -> pd.DataFrame:
     """
     Backward-compatible alias for load_preview().

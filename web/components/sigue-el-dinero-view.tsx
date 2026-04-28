@@ -117,7 +117,7 @@ export function SigueElDineroView({ lang }: Props) {
         const cacheKey = `overview_${lang}_${department || "all"}_${minConfidence}`;
         if (!forceRefresh) {
           const cached = getCachedGraph(cacheKey);
-          if (cached && (!serverVersion || !isCacheStale(cached, serverVersion))) {
+          if (cached?.nodes.length && (!serverVersion || !isCacheStale(cached, serverVersion))) {
             setNodes(cached.nodes);
             setEdges(cached.edges);
             setNetworkMeta(cached.meta);
@@ -140,7 +140,9 @@ export function SigueElDineroView({ lang }: Props) {
 
         // Cache it
         const cacheKey2 = `overview_${lang}_${department || "all"}_${minConfidence}`;
-        setCachedGraph(cacheKey2, payload, networkConfig.cache.ttlMs);
+        if (payload.nodes.length) {
+          setCachedGraph(cacheKey2, payload, networkConfig.cache.ttlMs);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error loading network");
       } finally {

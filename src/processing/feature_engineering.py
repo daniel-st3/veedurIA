@@ -278,8 +278,6 @@ def _build_group_b(df: pd.DataFrame) -> pd.DataFrame:
     duration = (fecha_fin - fecha_firma).dt.days.clip(lower=0)
     # Null → modality median
     if "modalidad_de_contratacion" in df.columns:
-        modality_median_dur = df.groupby("modalidad_de_contratacion")["_dur_raw"].transform("median") \
-            if "_dur_raw" in df.columns else duration
         df["_dur_raw"] = duration
         modality_median_dur = df.groupby("modalidad_de_contratacion")["_dur_raw"].transform("median")
         df["duration_days"] = duration.fillna(modality_median_dur).fillna(30)
@@ -305,9 +303,6 @@ def _build_group_b(df: pd.DataFrame) -> pd.DataFrame:
     objeto = df.get("objeto_del_contrato", pd.Series(dtype=str)).fillna("")
     obj_len = objeto.str.len()
     if "modalidad_de_contratacion" in df.columns:
-        df["object_description_brevity"] = df.groupby("modalidad_de_contratacion")[
-            "_obj_len"
-        ].transform(lambda x: x.rank(pct=True)) if "_obj_len" in df.columns else 0.5
         df["_obj_len"] = obj_len
         df["object_description_brevity"] = (
             df.groupby("modalidad_de_contratacion")["_obj_len"]
@@ -373,26 +368,33 @@ def _build_group_c(
     # 17. provider_age_months
     if has_dates:
         prov_first = fecha_firma.groupby(nit_prov).min()
+        first_seen = nit_prov.map(prov_first)
         df["provider_age_months"] = (
-            nit_prov.map(prov_first.to_dict()).apply(
-                lambda x: (fecha_firma.max() - x).days / 30.44 if pd.notna(x) else 0
-            )
+            ((fecha_firma.max() - first_seen).dt.days / 30.44)
+            .fillna(0)
+            .clip(lower=0)
         ).fillna(0).clip(lower=0)
     else:
         df["provider_age_months"] = 0.0
 
     # 18. provider_modality_mix (Shannon entropy, 12-month)
     if "modalidad_de_contratacion" in df.columns:
-        prov_mod = df.loc[provider_mask]["modalidad_de_contratacion"].groupby(nit_prov.loc[provider_mask]).value_counts()
-
-        def _prov_entropy(nit: str) -> float:
-            try:
-                counts = prov_mod.loc[nit]
-                return _shannon_entropy(counts)
-            except KeyError:
-                return 0.0
-
-        df["provider_modality_mix"] = nit_prov.apply(_prov_entropy)
+        prov_mod_counts = (
+            df.loc[provider_mask, "modalidad_de_contratacion"]
+            .groupby([nit_prov.loc[provider_mask], df.loc[provider_mask, "modalidad_de_contratacion"]])
+            .size()
+            .rename("count")
+            .reset_index()
+        )
+        if prov_mod_counts.empty:
+            df["provider_modality_mix"] = 0.0
+        else:
+            provider_col = prov_mod_counts.columns[0]
+            totals = prov_mod_counts.groupby(provider_col)["count"].transform("sum")
+            probs = prov_mod_counts["count"] / totals.replace(0, 1)
+            prov_mod_counts["_entropy_part"] = -(probs * np.log2(probs.where(probs > 0, 1)))
+            entropy = prov_mod_counts.groupby(provider_col)["_entropy_part"].sum()
+            df["provider_modality_mix"] = nit_prov.map(entropy).fillna(0.0)
     else:
         df["provider_modality_mix"] = 0.0
 
@@ -414,35 +416,24 @@ def _build_group_d(df: pd.DataFrame) -> pd.DataFrame:
     # 20. electoral_window (90 days before any election)
     if events:
         electoral_dates = [pd.Timestamp(e["event_date"], tz="UTC") for e in events]
-        def _in_electoral_window(dt: pd.Timestamp) -> int:
-            if pd.isna(dt):
-                return 0
-            for edate in electoral_dates:
-                if timedelta(0) <= (edate - dt) <= timedelta(days=90):
-                    return 1
-            return 0
-        df["electoral_window"] = fecha_firma.apply(_in_electoral_window)
+        electoral_window = pd.Series(False, index=df.index)
+        for edate in electoral_dates:
+            delta = edate - fecha_firma
+            electoral_window |= (delta >= timedelta(0)) & (delta <= timedelta(days=90))
+        df["electoral_window"] = electoral_window.fillna(False).astype(int)
     else:
         df["electoral_window"] = 0
 
     # 21. ley_garantias_period (direct award during restriction period)
     is_direct = df.get("is_direct_award", pd.Series(0, index=df.index))
     if events:
-        restriction_starts = [
-            pd.Timestamp(e["restriction_start"], tz="UTC")
-            for e in events if "restriction_start" in e
-        ]
-        electoral_dates_ley = [pd.Timestamp(e["event_date"], tz="UTC") for e in events]
-
-        def _in_garantias(dt: pd.Timestamp) -> int:
-            if pd.isna(dt):
-                return 0
-            for rstart, edate in zip(restriction_starts, electoral_dates_ley):
-                if rstart <= dt <= edate:
-                    return 1
-            return 0
-
-        ley_period = fecha_firma.apply(_in_garantias)
+        ley_period = pd.Series(False, index=df.index)
+        for event in events:
+            if "restriction_start" not in event:
+                continue
+            rstart = pd.Timestamp(event["restriction_start"], tz="UTC")
+            edate = pd.Timestamp(event["event_date"], tz="UTC")
+            ley_period |= (fecha_firma >= rstart) & (fecha_firma <= edate)
         df["ley_garantias_period"] = (is_direct.astype(int) & ley_period.astype(int)).astype(int)
     else:
         df["ley_garantias_period"] = 0
@@ -486,12 +477,8 @@ def _build_group_e(df: pd.DataFrame) -> pd.DataFrame:
     if "entity_provider_herfindahl" not in df.columns:
         if all(c in df.columns for c in ("nit_entidad", "nit_proveedor", "valor_contrato")):
             val = _safe_to_numeric(df["valor_contrato"]).fillna(0)
-            ent_prov_sum = df.groupby(["nit_entidad", "nit_proveedor"])["valor_contrato"].transform(
-                lambda x: _safe_to_numeric(x).sum()
-            )
-            ent_total = df.groupby("nit_entidad")["valor_contrato"].transform(
-                lambda x: _safe_to_numeric(x).sum()
-            )
+            ent_prov_sum = val.groupby([df["nit_entidad"], df["nit_proveedor"]]).transform("sum")
+            ent_total = val.groupby(df["nit_entidad"]).transform("sum")
             shares = ent_prov_sum / ent_total.replace(0, 1)
             shares_sq = shares ** 2
             hhi = df.assign(_share_sq=shares_sq).groupby("nit_entidad")["_share_sq"].transform("sum")
