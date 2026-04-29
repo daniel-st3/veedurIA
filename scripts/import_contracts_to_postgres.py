@@ -32,7 +32,9 @@ import unicodedata
 from datetime import datetime, timezone
 from typing import Any
 
+import duckdb
 import pandas as pd
+import requests
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "processed"
@@ -46,7 +48,9 @@ except ImportError:
     pass
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_KEY", "")
+_SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+_SUPABASE_ANON_OR_JWT_KEY = os.environ.get("SUPABASE_KEY", "").strip()
+SUPABASE_KEY = _SUPABASE_SERVICE_KEY or _SUPABASE_ANON_OR_JWT_KEY
 
 SLIM_COLS = [
     "id_contrato", "nombre_entidad", "nit_entidad", "proveedor_adjudicado",
@@ -56,6 +60,9 @@ SLIM_COLS = [
 ]
 
 BATCH = 500
+DELETE_BATCH = 500
+IMPORT_MIN_SCORE = float(os.environ.get("CONTRACTS_IMPORT_MIN_SCORE", "0.80"))
+IMPORT_SLICE_PATH = DATA / "contracts_import_slice.parquet"
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -84,6 +91,95 @@ def _find_parquet() -> pathlib.Path:
     if files:
         return files[-1]
     sys.exit("No scored parquet found in data/processed/")
+
+
+def _postgrest_headers(prefer: str = "return=minimal") -> dict[str, str]:
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": prefer,
+    }
+
+
+def _postgrest_upsert(table: str, rows: list[dict[str, Any]], on_conflict: str) -> None:
+    url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/{table}?on_conflict={on_conflict}"
+    response = requests.post(
+        url,
+        headers=_postgrest_headers("resolution=merge-duplicates,return=minimal"),
+        json=rows,
+        timeout=120,
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(f"Supabase upsert failed for {table}: {response.status_code} {response.text[:1000]}")
+
+
+def _postgrest_delete_all(table: str) -> None:
+    base_url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/{table}"
+    deleted = 0
+    while True:
+        response = requests.get(
+            f"{base_url}?select=id&limit={DELETE_BATCH}",
+            headers=_postgrest_headers("return=minimal"),
+            timeout=120,
+        )
+        if response.status_code >= 400:
+            raise RuntimeError(f"Supabase select failed for {table}: {response.status_code} {response.text[:1000]}")
+
+        ids = [str(row.get("id")) for row in response.json() if row.get("id")]
+        if not ids:
+            break
+
+        encoded_ids = ",".join(ids)
+        delete_response = requests.delete(
+            f"{base_url}?id=in.({encoded_ids})",
+            headers=_postgrest_headers("return=minimal"),
+            timeout=120,
+        )
+        if delete_response.status_code >= 400:
+            raise RuntimeError(
+                f"Supabase delete failed for {table}: "
+                f"{delete_response.status_code} {delete_response.text[:1000]}"
+            )
+        deleted += len(ids)
+        if deleted % 10_000 == 0:
+            print(f"  deleted {deleted:,} old rows", flush=True)
+
+
+def _materialize_import_slice(parquet_path: pathlib.Path) -> pathlib.Path:
+    """Create a compact, deduplicated parquet for the visible high-priority cut."""
+    cols = ", ".join(f'"{col}"' for col in SLIM_COLS)
+    con = duckdb.connect()
+    con.execute("set preserve_insertion_order=false")
+    con.execute("set threads=1")
+    con.execute(f"set temp_directory='{str((DATA / 'duckdb_tmp')).replace("'", "''")}'")
+    if IMPORT_SLICE_PATH.exists():
+        IMPORT_SLICE_PATH.unlink()
+    con.execute(
+        f"""
+        copy (
+            with ranked as (
+                select
+                    {cols},
+                    row_number() over (
+                        partition by id_contrato
+                        order by risk_score desc
+                    ) as _rn
+                from read_parquet(?)
+                where risk_score >= ?
+                  and id_contrato is not null
+                  and cast(id_contrato as varchar) <> ''
+            )
+            select {cols}
+            from ranked
+            where _rn = 1
+        )
+        to '{str(IMPORT_SLICE_PATH).replace("'", "''")}'
+        (format parquet)
+        """,
+        [str(parquet_path), IMPORT_MIN_SCORE],
+    )
+    return IMPORT_SLICE_PATH
 
 
 # ── stats computation ─────────────────────────────────────────────────────────
@@ -380,21 +476,16 @@ def main(full: bool = False) -> None:
             "Add them to .env or set as environment variables."
         )
 
-    try:
-        from supabase import create_client
-    except ImportError:
-        sys.exit("supabase not installed. Run: pip install supabase")
-
-    client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
     parquet_path = _find_parquet()
-    print(f"Reading {parquet_path.name} …")
-    df = pd.read_parquet(str(parquet_path), columns=SLIM_COLS)
-    print(f"  Total contracts: {len(df):,}")
+    print(f"Materializing import slice from {parquet_path.name} …", flush=True)
+    import_slice = _materialize_import_slice(parquet_path)
+    print(f"Reading {import_slice.name} …", flush=True)
+    df = pd.read_parquet(str(import_slice), columns=SLIM_COLS)
+    print(f"  Prioritized contracts (risk_score >= {IMPORT_MIN_SCORE:.2f}): {len(df):,}", flush=True)
 
     # Keep only red + yellow for the contracts table; full df feeds dept map stats
     flagged = df[df["risk_label"].isin(["risk_rojo", "risk_amarillo"])].copy()
-    print(f"  Red+Yellow: {len(flagged):,} contracts")
+    print(f"  Red+Yellow: {len(flagged):,} contracts", flush=True)
 
     # Transform
     flagged["value_num"] = pd.to_numeric(flagged["valor_del_contrato"], errors="coerce").fillna(0).astype("int64")
@@ -440,31 +531,36 @@ def main(full: bool = False) -> None:
             for k, v in r.items()
         })
 
-    print(f"Upserting {len(clean):,} rows to Supabase …")
+    if full:
+        print("Clearing existing contracts table for full refresh …", flush=True)
+        _postgrest_delete_all("contracts")
+
+    print(f"Upserting {len(clean):,} rows to Supabase …", flush=True)
     done = 0
     for i in range(0, len(clean), BATCH):
         batch = clean[i: i + BATCH]
-        client.table("contracts").upsert(batch, on_conflict="id").execute()
+        _postgrest_upsert("contracts", batch, "id")
         done += len(batch)
         if done % 10_000 == 0 or done == len(clean):
             pct = done / len(clean) * 100
-            print(f"  {done:,} / {len(clean):,}  ({pct:.0f}%)")
+            print(f"  {done:,} / {len(clean):,}  ({pct:.0f}%)", flush=True)
 
     # Compute + store global stats (dept map uses full df so all 33 regions show)
-    print("Computing global stats …")
+    print("Computing global stats …", flush=True)
     stats = compute_global_stats(flagged, df_all=df)
-    client.table("contracts_stats").upsert(
-        {"key": "global", "data": stats, "updated_at": datetime.now(timezone.utc).isoformat()},
-        on_conflict="key",
-    ).execute()
-    print("  Stats stored.")
+    _postgrest_upsert(
+        "contracts_stats",
+        [{"key": "global", "data": stats, "updated_at": datetime.now(timezone.utc).isoformat()}],
+        "key",
+    )
+    print("  Stats stored.", flush=True)
 
     # Persist sync timestamp
     state = _load_last_run()
     state["last_pg_sync"] = datetime.now(timezone.utc).isoformat()
     _save_last_run(state)
 
-    print("Done ✓")
+    print("Done ✓", flush=True)
 
 
 if __name__ == "__main__":

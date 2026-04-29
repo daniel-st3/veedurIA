@@ -31,6 +31,7 @@ permissions:
 env:
   SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
   SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
   SUPABASE_STORAGE_BUCKET: ${{ secrets.SUPABASE_STORAGE_BUCKET }}
   PYTHON_VERSION: "3.11"
@@ -39,7 +40,7 @@ jobs:
   ingest-secop:
     name: Ingest and score SECOP II contracts
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 180
 
     steps:
       # ── Fix B: Soft-skip when secrets are missing ─────────────────────
@@ -52,6 +53,7 @@ jobs:
           missing=""
           if [ -z "${{ secrets.SOCRATA_APP_TOKEN }}" ]; then missing="$missing SOCRATA_APP_TOKEN"; fi
           if [ -z "${{ secrets.SUPABASE_URL }}" ]; then missing="$missing SUPABASE_URL"; fi
+          if [ -z "${{ secrets.SUPABASE_SERVICE_KEY }}" ]; then missing="$missing SUPABASE_SERVICE_KEY"; fi
           if [ -z "${{ secrets.SUPABASE_KEY }}" ]; then missing="$missing SUPABASE_KEY"; fi
           if [ -z "${{ secrets.SUPABASE_STORAGE_BUCKET }}" ]; then missing="$missing SUPABASE_STORAGE_BUCKET"; fi
           if [ -n "$missing" ]; then
@@ -92,6 +94,11 @@ jobs:
         if: steps.check_secrets.outputs.skip != 'true'
         run: |
           python -m src.models.isolation_forest --action=score
+
+      - name: Merge incremental scoring with Supabase historical snapshot
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python scripts/merge_scored_contracts.py
 
       - name: Upload scored parquet to Supabase and persist state
         if: steps.check_secrets.outputs.skip != 'true'

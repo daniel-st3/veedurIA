@@ -723,7 +723,6 @@ export function ContractsView({
           ? "fuente nacional"
           : "national source";
 
-  const latestScoredDate = overview?.meta.latestContractDate ?? freshness?.latestContractDate ?? (lang === "es" ? "sin dato" : "no data");
   const latestSourceDate = freshness?.sourceLatestContractDate ?? overview?.meta.sourceLatestContractDate ?? (lang === "es" ? "sin dato" : "no data");
   const freshnessGap = freshness?.sourceFreshnessGapDays ?? overview?.meta.sourceFreshnessGapDays ?? null;
   const sourceUpdatedAt = freshness?.sourceUpdatedAt ?? overview?.meta.sourceUpdatedAt ?? null;
@@ -732,9 +731,14 @@ export function ContractsView({
     : null;
   const explorerGroups = useMemo(() => buildExplorerGroups(tableRows, explorerGroup), [tableRows, explorerGroup]);
   const selectedTone = selectedCase ? scoreTone(selectedCase.score) : "low";
-  const staleScore = freshnessGap !== null && freshnessGap > 0;
-  const lastPipelineRun = overview?.meta.lastRunTs ? formatPortalUpdated(lang, overview.meta.lastRunTs) : null;
-  const scoringCadence = lang === "es" ? "corrida diaria a las 12:00 a. m. (Colombia)" : "daily run at 12:00 a.m. Colombia time";
+  const scoringRunAt = freshness?.scoringRunAt ?? overview?.meta.lastRunTs ?? null;
+  const scoringRunDate = scoringRunAt?.slice(0, 10) ?? (lang === "es" ? "sin dato" : "no data");
+  const sourceUpdateDate = sourceUpdatedAt?.slice(0, 10) ?? latestSourceDate;
+  const operationalGap = freshness?.operationalGapDays ?? freshnessGap;
+  const maxAllowedGap = freshness?.maxAllowedGapDays ?? 2;
+  const staleScore = operationalGap !== null && operationalGap >= maxAllowedGap;
+  const lastPipelineRun = scoringRunAt ? formatPortalUpdated(lang, scoringRunAt) : null;
+  const scoringCadence = lang === "es" ? "corrida diaria completa: descarga SECOP, scoring e importación" : "full daily run: SECOP download, scoring, and import";
   const sliceMeanRisk = overview?.benchmarks?.sliceMeanRisk ?? leadCases.reduce((sum, item) => sum + item.score / 100, 0) / Math.max(leadCases.length, 1);
   const nationalMeanRisk = overview?.benchmarks?.nationalMeanRisk ?? sliceMeanRisk;
   const departmentMeanRisk = overview?.benchmarks?.departmentMeanRisk ?? currentDepartment?.avgRisk ?? null;
@@ -926,38 +930,38 @@ export function ContractsView({
                 <strong>
                   {staleScore
                     ? lang === "es"
-                      ? "SECOP ya avanzó; el scoring diario debe cerrar la brecha"
-                      : "SECOP moved ahead; daily scoring must close the gap"
+                      ? "La actualización completa está fuera de la meta de 2 días"
+                      : "The full refresh is outside the 2-day target"
                     : lang === "es"
-                      ? "Fuente y scoring sincronizados"
-                      : "Source and scoring synced"}
+                      ? "Fuente y scoring dentro de la meta operativa"
+                      : "Source and scoring are within the operating target"}
                 </strong>
                 <p>
                   {lang === "es"
-                    ? "La fecha de SECOP viene del GET en vivo; la fecha de scoring viene de la tabla importada por GitHub Actions."
-                    : "The SECOP date comes from the live GET; the scoring date comes from the GitHub Actions import table."}
+                    ? "La fuente se consulta en vivo; el scoring muestra la última ejecución real del pipeline."
+                    : "The source is queried live; scoring shows the real latest pipeline run."}
                 </p>
               </div>
               <div className="cv-hero-signal-tile__grid">
                 <span>
-                  <small>{lang === "es" ? "SECOP" : "SECOP"}</small>
-                  {latestSourceDate}
+                  <small>{lang === "es" ? "Fuente" : "Source"}</small>
+                  {sourceUpdateDate}
                 </span>
                 <span>
                   <small>{lang === "es" ? "Scoring" : "Scoring"}</small>
-                  {latestScoredDate}
+                  {scoringRunDate}
                 </span>
                 <span>
                   <small>{lang === "es" ? "Brecha" : "Gap"}</small>
-                  {freshnessGap === null
+                  {operationalGap === null
                     ? "—"
-                    : freshnessGap === 0
+                    : operationalGap === 0
                       ? "0"
-                      : `${freshnessGap}d`}
+                      : `${operationalGap}d`}
                 </span>
                 <span>
-                  <small>{lang === "es" ? "Cron" : "Cron"}</small>
-                  {lang === "es" ? "diario" : "daily"}
+                  <small>{lang === "es" ? "Meta" : "Target"}</small>
+                  {`<${maxAllowedGap}d`}
                 </span>
               </div>
             </div>
@@ -1019,13 +1023,13 @@ export function ContractsView({
               <div className="cv-status-banner__copy">
                 <strong>
                   {lang === "es"
-                    ? `Datos oficiales al ${latestSourceDate}; scoring visible al ${latestScoredDate}.`
-                    : `Official data through ${latestSourceDate}; visible scoring through ${latestScoredDate}.`}
+                    ? `Fuente actualizada al ${sourceUpdateDate}; scoring ejecutado al ${scoringRunDate}.`
+                    : `Source updated through ${sourceUpdateDate}; scoring run through ${scoringRunDate}.`}
                 </strong>
                 <span>
                   {lang === "es"
-                    ? `La brecha actual es de ${freshnessGap} días. El GET /api/contracts/freshness consulta SECOP en vivo con cache no-store; última ejecución del scoring: ${lastPipelineRun ?? "pendiente de registro"}.`
-                    : `The current gap is ${freshnessGap} days. GET /api/contracts/freshness queries live SECOP with no-store cache; last scoring run: ${lastPipelineRun ?? "not recorded yet"}.`}
+                    ? `La brecha operativa es de ${operationalGap} días y debe mantenerse por debajo de ${maxAllowedGap}. GET /api/contracts/freshness consulta SECOP en vivo; última ejecución completa: ${lastPipelineRun ?? "pendiente de registro"}.`
+                    : `The operating gap is ${operationalGap} days and must stay below ${maxAllowedGap}. GET /api/contracts/freshness queries live SECOP; latest full run: ${lastPipelineRun ?? "not recorded yet"}.`}
                 </span>
                 <button
                   type="button"
@@ -1039,8 +1043,8 @@ export function ContractsView({
                 <div className="cv-gap-explanation">
                   <p>
                     {lang === "es"
-                      ? "SECOP II publica contratos antes de que el parquet puntuado vuelva a procesarse. Este tablero te muestra ambas fechas para que la diferencia sea explícita y no confunda la lectura del corte."
-                      : "SECOP II publishes contracts before the scored parquet is processed again. This board shows both dates explicitly so the gap does not blur the slice you are reading."}
+                      ? "El refresh diario debe hacer la cadena completa: descargar SECOP, recalcular scoring e importar la tabla. Si cualquiera de esos pasos no actualiza la fila global, el tablero muestra la brecha operativa."
+                      : "The daily refresh must run the full chain: download SECOP, recompute scoring, and import the table. If any step fails to update the global row, the board shows the operating gap."}
                   </p>
                   <p>
                     <strong>{lang === "es" ? "Cadencia objetivo del refresh:" : "Target refresh cadence:"}</strong>{" "}
@@ -1054,13 +1058,13 @@ export function ContractsView({
               <div className="cv-status-banner__copy">
                 <strong>
                   {lang === "es"
-                    ? `Scoring visible sincronizado al ${latestScoredDate}.`
-                    : `Visible scoring synced through ${latestScoredDate}.`}
+                    ? `Scoring ejecutado al ${scoringRunDate}; fuente actualizada al ${sourceUpdateDate}.`
+                    : `Scoring run through ${scoringRunDate}; source updated through ${sourceUpdateDate}.`}
                 </strong>
                 <span>
                   {lang === "es"
-                    ? `La brecha actual es cero. El GET /api/contracts/freshness lee SECOP en vivo con cache no-store y compara esa fecha contra el último scoring local.`
-                    : `Current gap is zero. GET /api/contracts/freshness reads live SECOP with no-store cache and compares it against the latest local scoring date.`}
+                    ? `La brecha operativa está dentro de la meta de menos de ${maxAllowedGap} días. Los números visibles vienen de la API y de la fila global importada por el pipeline.`
+                    : `The operating gap is within the less-than-${maxAllowedGap}-day target. Visible numbers come from the API and the global row imported by the pipeline.`}
                 </span>
               </div>
             </div>

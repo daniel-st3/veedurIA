@@ -272,6 +272,9 @@ export async function fetchContractsFreshness(lang: Lang = "es"): Promise<Contra
         sourceRows: live.sourceRows,
         sourceUpdatedAt: live.sourceUpdatedAt,
         sourceFreshnessGapDays: live.latestDate ? 0 : mock.sourceFreshnessGapDays ?? null,
+        scoringRunAt: new Date().toISOString(),
+        operationalGapDays: live.latestDate ? 0 : mock.operationalGapDays ?? null,
+        maxAllowedGapDays: 2,
         liveFeed: {
           latestDate: live.latestDate,
           rowsAtSource: live.sourceRows,

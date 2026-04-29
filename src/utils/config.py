@@ -125,6 +125,9 @@ def get_supabase_url() -> str:
 
 @lru_cache(maxsize=1)
 def get_supabase_key() -> str:
+    service_key = _get_optional("SUPABASE_SERVICE_KEY")
+    if service_key and service_key.startswith("eyJ"):
+        return service_key
     return _get("SUPABASE_KEY")
 
 

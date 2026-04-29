@@ -867,6 +867,116 @@
   border-radius: 999px;
   background: rgba(12,19,34,.045);
 }
+
+.compareWorkbench {
+  display: grid;
+  grid-template-columns: minmax(220px, .48fr) minmax(0, 1fr);
+  gap: 1rem;
+  margin-top: 1.25rem;
+  align-items: stretch;
+}
+
+.compareControls,
+.comparePersonCard {
+  border: 1px solid rgba(12,19,34,.08);
+  background: linear-gradient(135deg, rgba(255,255,255,.86), rgba(248,243,232,.72));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.78), 0 12px 30px rgba(12,19,34,.06);
+}
+
+.compareControls {
+  display: grid;
+  gap: 1rem;
+  align-content: center;
+  padding: 1.1rem;
+  border-radius: 18px;
+}
+
+.compareControls label {
+  display: grid;
+  gap: .5rem;
+  color: rgba(12,19,34,.72);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.compareControls input[type="range"] {
+  width: 100%;
+  accent-color: var(--blue, #0d5bd7);
+}
+
+.comparePeopleGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .8rem;
+}
+
+.comparePersonCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: .85rem;
+  align-content: start;
+  padding: 1rem;
+  border-radius: 18px;
+  color: var(--ink, #0c1322);
+  text-decoration: none;
+  transition: transform .24s cubic-bezier(.16,1,.3,1), border-color .24s, box-shadow .24s;
+}
+
+.comparePersonCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(13,91,215,.2);
+  box-shadow: 0 16px 34px rgba(12,19,34,.09);
+}
+
+.comparePersonCard strong,
+.comparePersonCard small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comparePersonCard strong {
+  font-family: "Sora", sans-serif;
+  font-size: .95rem;
+  letter-spacing: -.035em;
+}
+
+.comparePersonCard small {
+  margin-top: .18rem;
+  color: var(--ink-3, #364b65);
+  font-size: .72rem;
+}
+
+.comparePersonCard dl {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: .45rem;
+  margin: .35rem 0 0;
+}
+
+.comparePersonCard dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+  padding-top: .45rem;
+  border-top: 1px solid rgba(12,19,34,.08);
+}
+
+.comparePersonCard dt,
+.comparePersonCard dd {
+  margin: 0;
+  font-size: .74rem;
+}
+
+.comparePersonCard dt {
+  color: rgba(12,19,34,.56);
+}
+
+.comparePersonCard dd {
+  font-weight: 800;
+  color: var(--ink, #0c1322);
+}
 .analysisCard {
   background: rgba(255,255,255,.78);
   border: 1px solid rgba(12,19,34,.08);
@@ -968,7 +1078,11 @@
     grid-template-columns: 1fr 1fr;
   }
   .heroFocus,
-  .personChartGrid {
+  .personChartGrid,
+  .compareWorkbench {
+    grid-template-columns: 1fr;
+  }
+  .comparePeopleGrid {
     grid-template-columns: 1fr;
   }
   .personChartCard {

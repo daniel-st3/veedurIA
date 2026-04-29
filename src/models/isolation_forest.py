@@ -27,6 +27,8 @@ from typing import Any
 import joblib
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from sklearn.ensemble import IsolationForest
 
 from src.processing.feature_engineering import FEATURE_COLUMNS, build_features
@@ -185,6 +187,69 @@ def score(
     return df
 
 
+def score_parquet_files(
+    parquet_files: list[Path],
+    model: IsolationForest,
+    metadata: dict[str, Any] | None,
+    out_path: Path,
+) -> int:
+    """
+    Score raw SECOP parquet files one at a time and stream the result to disk.
+
+    The daily SECOP snapshot is too large to concatenate in memory. Each raw
+    parquet is feature-engineered, scored, and appended to a single parquet
+    writer so GitHub Actions and local runs can complete with bounded memory.
+    """
+    writer: pq.ParquetWriter | None = None
+    tmp_path = out_path.with_suffix(".tmp.parquet")
+    total_rows = 0
+
+    if tmp_path.exists():
+        tmp_path.unlink()
+
+    try:
+        for idx, parquet_file in enumerate(parquet_files, start=1):
+            logger.info(
+                "Scoring parquet %d/%d: %s",
+                idx,
+                len(parquet_files),
+                parquet_file.name,
+            )
+            df_raw = pd.read_parquet(parquet_file, engine="pyarrow")
+            if df_raw.empty:
+                logger.info("Skipping empty parquet: %s", parquet_file.name)
+                continue
+
+            df_features = build_features(df_raw)
+            df_scored = score(df_features, model, metadata=metadata)
+            table = pa.Table.from_pandas(df_scored, preserve_index=False)
+
+            if writer is None:
+                writer = pq.ParquetWriter(tmp_path, table.schema)
+            else:
+                for field in writer.schema:
+                    if field.name not in table.column_names:
+                        table = table.append_column(
+                            field.name,
+                            pa.nulls(len(table), type=field.type),
+                        )
+                table = table.select(writer.schema.names)
+                table = table.cast(writer.schema)
+
+            writer.write_table(table)
+            total_rows += len(df_scored)
+            logger.info("Scored %d rows so far", total_rows)
+
+        if writer is None:
+            raise RuntimeError("No rows were scored; refusing to write an empty scored parquet")
+    finally:
+        if writer is not None:
+            writer.close()
+
+    tmp_path.replace(out_path)
+    return total_rows
+
+
 # ---------------------------------------------------------------------------
 # Artifact management
 # ---------------------------------------------------------------------------
@@ -299,19 +364,14 @@ def main() -> None:
         logger.info("Loading model and data for scoring...")
         model, metadata = load_latest_artifacts()
         data_dir = PROJECT_ROOT / "data" / "processed"
-        parquet_files = list(data_dir.glob("secop_contratos_*.parquet"))
+        parquet_files = sorted(data_dir.glob("secop_contratos_*.parquet"))
         if not parquet_files:
             logger.error("No Parquet files found")
             return
 
-        dfs = [pd.read_parquet(f) for f in parquet_files]
-        df = pd.concat(dfs, ignore_index=True)
-        df = build_features(df)
-        df_scored = score(df, model)
-
         out_path = data_dir / "scored_contracts.parquet"
-        df_scored.to_parquet(out_path, engine="pyarrow", index=False)
-        logger.info("Scored %d contracts → %s", len(df_scored), out_path)
+        total_rows = score_parquet_files(parquet_files, model, metadata, out_path)
+        logger.info("Scored %d contracts → %s", total_rows, out_path)
 
 
 if __name__ == "__main__":

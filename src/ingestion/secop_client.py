@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
+import requests
 
 if TYPE_CHECKING:
     from sodapy import Socrata
@@ -478,22 +479,26 @@ def upload_to_supabase(parquet_path: Path) -> dict[str, str] | None:
     scored parquet without committing large binaries to git.
     """
     try:
-        from supabase import create_client
-
         from src.utils.config import get_supabase_key, get_supabase_storage_bucket, get_supabase_url
 
-        supabase = create_client(get_supabase_url(), get_supabase_key())
+        key = os.getenv("SUPABASE_SERVICE_KEY") or get_supabase_key()
         bucket = get_supabase_storage_bucket()
-
-        with open(parquet_path, "rb") as f:
-            file_bytes = f.read()
-
         remote_path = f"data/{parquet_path.name}"
-        supabase.storage.from_(bucket).upload(
-            remote_path,
-            file_bytes,
-            file_options={"content-type": "application/octet-stream"},
+        file_bytes = parquet_path.read_bytes()
+        response = requests.post(
+            f"{get_supabase_url().rstrip('/')}/storage/v1/object/{bucket}/{remote_path}",
+            headers={
+                "apikey": key,
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/octet-stream",
+                "x-upsert": "true",
+            },
+            data=file_bytes,
+            timeout=300,
         )
+        if response.status_code >= 400:
+            raise RuntimeError(f"Storage upload failed: {response.status_code} {response.text[:500]}")
+
         log_etl_event(
             "supabase_upload_success",
             bucket=bucket,
@@ -527,42 +532,81 @@ def _generate_monthly_slices(start_year: int, end_year: int) -> list[tuple[str, 
 
 
 def run_incremental(client: "Socrata") -> None:
-    """Run incremental ingestion: fetch → normalize → write → upload → save state."""
+    """Run incremental ingestion page-by-page to avoid holding SECOP in memory."""
     state = load_last_run()
     dataset_key = state.get("dataset_key", "contratos")
 
     # Default cutoff if this is the very first run
     last_updated_at = state.get("last_updated_at") or "2023-01-01T00:00:00.000"
+    if dataset_key not in DATASETS:
+        raise KeyError(
+            f"Unknown dataset key '{dataset_key}'. Valid keys: {list(DATASETS.keys())}"
+        )
 
     log_etl_event("etl_incremental_start", since=last_updated_at)
 
-    rows = fetch_incremental(dataset_key, last_updated_at, client=client)
+    dataset_id = DATASETS[dataset_key]
+    where_clause = f":updated_at > '{last_updated_at}'"
+    run_label = datetime.now(timezone.utc).strftime("%Y%m%d")
+    offset = 0
+    total_new_rows = 0
 
-    if not rows:
+    log_etl_event(
+        "secop_fetch_start",
+        dataset=dataset_key,
+        dataset_id=dataset_id,
+        since=last_updated_at,
+    )
+
+    while True:
+        page = _fetch_page_with_retry(
+            client=client,
+            dataset_id=dataset_id,
+            where=where_clause,
+            limit=DEFAULT_PAGE_SIZE,
+            offset=offset,
+        )
+        page_len = len(page)
+
+        log_etl_event(
+            "secop_fetch_page",
+            dataset=dataset_key,
+            offset=offset,
+            page_rows=page_len,
+            total_so_far=total_new_rows + page_len,
+        )
+
+        if page_len:
+            df = normalize_dataframe(pd.DataFrame(page))
+            label = f"incremental_{run_label}_part_{offset // DEFAULT_PAGE_SIZE + 1:04d}"
+            write_parquet(df, label)
+            total_new_rows += page_len
+
+        if page_len < DEFAULT_PAGE_SIZE:
+            break
+
+        offset += DEFAULT_PAGE_SIZE
+
+    log_etl_event(
+        "secop_fetch_complete",
+        dataset=dataset_key,
+        total_rows=total_new_rows,
+    )
+
+    if total_new_rows == 0:
         logger.info("No new rows since %s — nothing to do.", last_updated_at)
-        # Still update last_run_ts to show the pipeline ran
         state["last_run_ts"] = datetime.now(timezone.utc).isoformat()
         save_last_run(state)
         return
-
-    df = pd.DataFrame(rows)
-    df = normalize_dataframe(df)
-
-    label = f"incremental_{datetime.now(timezone.utc).strftime('%Y%m%d')}"
-    parquet_path = write_parquet(df, label)
-    upload_result = upload_to_supabase(parquet_path)
 
     # Update state
     now = datetime.now(timezone.utc).isoformat()
     state["last_updated_at"] = now
     state["last_run_ts"] = now
-    state["rows_fetched"] = state.get("rows_fetched", 0) + len(rows)
-    if upload_result:
-        state["latest_remote_path"] = upload_result["remote_path"]
-        state["latest_uploaded_at"] = now
+    state["rows_fetched"] = state.get("rows_fetched", 0) + total_new_rows
     save_last_run(state)
 
-    log_etl_event("etl_incremental_complete", new_rows=len(rows), total=state["rows_fetched"])
+    log_etl_event("etl_incremental_complete", new_rows=total_new_rows, total=state["rows_fetched"])
 
 
 def run_backfill(client: "Socrata") -> None:

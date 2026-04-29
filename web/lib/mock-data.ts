@@ -1002,15 +1002,20 @@ export function getMockTable(
 }
 
 export function getMockFreshness(): ContractsFreshnessPayload {
+  const today = new Date().toISOString();
+  const todayDate = today.slice(0, 10);
   return {
-    latestContractDate: "2025-12-31",
-    sourceLatestContractDate: "2026-04-02",
-    sourceFreshnessGapDays: 92,
-    sourceRows: 5_596_689,
-    sourceUpdatedAt: "2026-04-03T17:47:26+0000",
+    latestContractDate: todayDate,
+    sourceLatestContractDate: todayDate,
+    sourceFreshnessGapDays: 0,
+    scoringRunAt: today,
+    operationalGapDays: 0,
+    maxAllowedGapDays: 2,
+    sourceRows: ALL_ROWS.length,
+    sourceUpdatedAt: today,
     liveFeed: {
-      latestDate: "2026-04-02",
-      rowsAtSource: 5_596_689,
+      latestDate: todayDate,
+      rowsAtSource: ALL_ROWS.length,
       contracts: ALL_ROWS.slice(0, 5).map((r) => ({
         id: r.id,
         entity: r.entity,

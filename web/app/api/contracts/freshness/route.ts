@@ -17,6 +17,7 @@ const SOCRATA_LATEST =
   "&$order=fecha_de_firma%20DESC,id_contrato%20ASC&$limit=5";
 const SOCRATA_METADATA = "https://www.datos.gov.co/api/views/metadata/v1/jbjy-vk9h";
 const SOURCE_FETCH_TIMEOUT_MS = 10_000;
+const MAX_ALLOWED_GAP_DAYS = 2;
 
 async function fetchJson(url: string) {
   const response = await fetch(url, {
@@ -33,6 +34,14 @@ function daysBetween(later: string | null, earlier: string | null) {
   const right = new Date(`${earlier.slice(0, 10)}T00:00:00Z`).getTime();
   if (!Number.isFinite(left) || !Number.isFinite(right)) return null;
   return Math.max(0, Math.round((left - right) / 86_400_000));
+}
+
+function isoDate(raw: string | null | undefined) {
+  if (!raw) return null;
+  const normalized = raw.replace(/([+-]\d{2})(\d{2})$/, "$1:$2");
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return raw.slice(0, 10);
+  return date.toISOString().slice(0, 10);
 }
 
 function readableText(value: unknown, fallback: string) {
@@ -107,12 +116,23 @@ export async function GET(req: NextRequest) {
       : null;
 
   const scoredLatestDate = (statsData?.latestDate as string | null) ?? null;
+  const scoringRunAt =
+    statsRes.status === "fulfilled" && !statsRes.value.error
+      ? (statsRes.value.data?.updated_at as string | null)
+      : null;
   const sourceFreshnessGapDays = daysBetween(sourceLatestDate, scoredLatestDate);
+  const operationalGapDays = daysBetween(
+    isoDate(sourceUpdatedAt) ?? sourceLatestDate,
+    isoDate(scoringRunAt) ?? scoredLatestDate,
+  );
 
   const payload: ContractsFreshnessPayload = {
     latestContractDate: scoredLatestDate,
     sourceLatestContractDate: sourceLatestDate,
     sourceFreshnessGapDays,
+    scoringRunAt,
+    operationalGapDays,
+    maxAllowedGapDays: MAX_ALLOWED_GAP_DAYS,
     sourceRows,
     sourceUpdatedAt,
     liveFeed: {

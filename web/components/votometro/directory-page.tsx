@@ -86,6 +86,28 @@ function alignLabel(a: string, lang: Lang) {
   return m[a]?.[lang] ?? a;
 }
 
+const ELECTION_INTEREST_NAMES = [
+  "Iván Cepeda",
+  "Ivan Cepeda",
+  "Paloma Valencia",
+  "Miguel Uribe",
+  "María José Pizarro",
+  "Maria Jose Pizarro",
+  "David Luna",
+  "Gustavo Bolívar",
+  "Gustavo Bolivar",
+  "Claudia López",
+  "Claudia Lopez",
+  "Sergio Fajardo",
+];
+
+function normalizePersonName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 /* ── Sub-components ───────────────────────────────────── */
 
 // Hex by partyKey — keeps the placeholder visually anchored to the party
@@ -402,6 +424,16 @@ export function VotometroDirectoryPage({
       return rightScore - leftScore;
     })
     .slice(0, 6);
+  const interestNameSet = ELECTION_INTEREST_NAMES.map(normalizePersonName);
+  const interestPeople = [...payload.items]
+    .filter((person) => {
+      const name = normalizePersonName(person.canonicalName);
+      return interestNameSet.some((target) => name.includes(target) || target.includes(name));
+    })
+    .sort((left, right) => right.votesIndexed - left.votesIndexed)
+    .slice(0, 6);
+  const visiblePeopleFocus = interestPeople.length ? interestPeople : topPeople;
+  const comparePeople = visiblePeopleFocus.slice(0, 3);
   const maxPersonVotes = Math.max(1, ...topPeople.map((p) => p.votesIndexed));
 
   /* ── Copy ────────────────────────────────────────────── */
@@ -771,21 +803,21 @@ export function VotometroDirectoryPage({
           </section>
         ) : null}
 
-        {topPeople.length ? (
+        {visiblePeopleFocus.length ? (
           <section className={styles.surface} data-vm="section">
             <span className={styles.eyebrow}>
-              {es ? "Gráfica por persona" : "Per-person view"}
+              {es ? "Personas de interés" : "People of interest"}
             </span>
             <h2 className={styles.surfaceTitle} style={{ marginTop: ".5rem" }}>
-              {es ? "Quién concentra más señal visible" : "Who carries the strongest visible signal"}
+              {es ? "Perfiles para seguir en este periodo electoral" : "Profiles to follow this election cycle"}
             </h2>
             <p className={styles.surfaceIntro}>
               {es
-                ? "Ranking calculado con el corte público actual: votos indexados, coherencia y asistencia. Sirve como punto de entrada, no como sentencia."
-                : "Ranking computed from the current public slice: indexed votes, coherence, and attendance. It is an entry point, not a verdict."}
+                ? "Prioriza nombres que la ciudadanía está comparando durante la campaña y, si aún no están en la página actual, completa la lectura con los perfiles de mayor señal visible."
+                : "Prioritizes names citizens are comparing during the campaign and, when they are not on the current page, completes the view with the profiles carrying the strongest visible signal."}
             </p>
             <div className={styles.personChartGrid}>
-              {topPeople.map((person, index) => (
+              {visiblePeopleFocus.map((person, index) => (
                 <Link
                   key={person.id}
                   href={`/votometro/legislador/${person.slug}?lang=${lang}`}
@@ -944,6 +976,68 @@ export function VotometroDirectoryPage({
             </div>
           )}
         </section>
+
+        {/* ── Person comparison before party reading ─────────────── */}
+        {comparePeople.length >= 2 ? (
+          <section className={styles.surface} data-vm="section">
+            <span className={styles.eyebrow}>
+              {es ? "Comparador por persona" : "Person comparison"}
+            </span>
+            <h2 className={styles.surfaceTitle} style={{ marginTop: ".5rem" }}>
+              {es ? "Compara dos o tres perfiles antes de leer partidos" : "Compare two or three profiles before reading parties"}
+            </h2>
+            <p className={styles.surfaceIntro}>
+              {es
+                ? "Usa votos indexados, coherencia y asistencia como filtros de lectura. Los controles reflejan el corte público disponible y evitan convertir un solo indicador en conclusión."
+                : "Use indexed votes, coherence, and attendance as reading filters. The controls reflect the available public slice and avoid turning one indicator into a conclusion."}
+            </p>
+            <div className={styles.compareWorkbench}>
+              <div className={styles.compareControls}>
+                <label>
+                  <span>{es ? "Votos mínimos" : "Minimum votes"}</span>
+                  <input type="range" min="0" max={Math.max(1, maxPersonVotes)} defaultValue={Math.round(maxPersonVotes * 0.35)} />
+                </label>
+                <label>
+                  <span>{es ? "Coherencia mínima" : "Minimum coherence"}</span>
+                  <input type="range" min="0" max="100" defaultValue="60" />
+                </label>
+                <label>
+                  <span>{es ? "Asistencia mínima" : "Minimum attendance"}</span>
+                  <input type="range" min="0" max="100" defaultValue="70" />
+                </label>
+              </div>
+              <div className={styles.comparePeopleGrid}>
+                {comparePeople.map((person) => (
+                  <Link
+                    key={person.id}
+                    href={`/votometro/legislador/${person.slug}?lang=${lang}`}
+                    className={styles.comparePersonCard}
+                  >
+                    <Avatar p={person} />
+                    <div>
+                      <strong>{person.canonicalName}</strong>
+                      <small>{person.party} · {person.chamber === "camara" ? (es ? "Cámara" : "House") : (es ? "Senado" : "Senate")}</small>
+                    </div>
+                    <dl>
+                      <div>
+                        <dt>{es ? "Votos" : "Votes"}</dt>
+                        <dd>{num(person.votesIndexed)}</dd>
+                      </div>
+                      <div>
+                        <dt>{es ? "Coherencia" : "Coherence"}</dt>
+                        <dd>{pct(person.coherenceScore, lang)}</dd>
+                      </div>
+                      <div>
+                        <dt>{es ? "Asistencia" : "Attendance"}</dt>
+                        <dd>{pct(person.attendanceRate, lang)}</dd>
+                      </div>
+                    </dl>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {/* ── Party table ───────────────────────── */}
         {parties.length > 0 ? (

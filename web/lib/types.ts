@@ -109,6 +109,9 @@ export type ContractsFreshnessPayload = {
   latestContractDate?: string | null;
   sourceLatestContractDate?: string | null;
   sourceFreshnessGapDays?: number | null;
+  scoringRunAt?: string | null;
+  operationalGapDays?: number | null;
+  maxAllowedGapDays?: number | null;
   sourceRows?: number | null;
   sourceUpdatedAt?: string | null;
   liveFeed: {

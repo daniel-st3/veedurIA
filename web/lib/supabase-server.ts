@@ -8,9 +8,9 @@ import { deptDisplayLabel, deptGeoName } from "@/lib/colombia-departments";
  */
 export function createServerSupabase() {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_KEY;
   if (!url || !key) {
-    throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY must be set");
+    throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_KEY) must be set");
   }
   return createClient(url, key, { auth: { persistSession: false } });
 }
@@ -22,7 +22,8 @@ export function createServerSupabase() {
  */
 export function createServiceSupabase() {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+  const key = serviceKey?.startsWith("eyJ") ? serviceKey : process.env.SUPABASE_KEY ?? process.env.SUPABASE_ANON_KEY;
   if (!url || !key) {
     throw new Error("SUPABASE_URL and SUPABASE_SERVICE_KEY (or SUPABASE_KEY) must be set");
   }
