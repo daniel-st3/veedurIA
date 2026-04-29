@@ -914,6 +914,39 @@ export function ContractsView({
               </p>
             </div>
 
+            <div className="cv-hero-signal-tile" aria-label={lang === "es" ? "Estado del corte" : "Slice status"}>
+              <span className="cv-hero-signal-tile__kicker">
+                {lang === "es" ? "Corte vivo" : "Live slice"}
+              </span>
+              <strong>
+                {staleScore
+                  ? lang === "es"
+                    ? "Fuente oficial por delante del scoring"
+                    : "Official source ahead of scoring"
+                  : lang === "es"
+                    ? "Fuente y scoring sincronizados"
+                    : "Source and scoring synced"}
+              </strong>
+              <div className="cv-hero-signal-tile__grid">
+                <span>
+                  <small>{lang === "es" ? "SECOP" : "SECOP"}</small>
+                  {latestSourceDate}
+                </span>
+                <span>
+                  <small>{lang === "es" ? "Scoring" : "Scoring"}</small>
+                  {latestScoredDate}
+                </span>
+                <span>
+                  <small>{lang === "es" ? "Brecha" : "Gap"}</small>
+                  {freshnessGap === null
+                    ? "—"
+                    : freshnessGap === 0
+                      ? "0"
+                      : `${freshnessGap}d`}
+                </span>
+              </div>
+            </div>
+
             <div className="cv-hero-kpis">
               <article className="cv-hero-kpi cv-hero-kpi--yellow">
                 <span>

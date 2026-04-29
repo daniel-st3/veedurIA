@@ -24,14 +24,19 @@ function truncateLabel(label: string, max = 28) {
   return `${label.slice(0, Math.max(0, max - 1)).trim()}…`;
 }
 
-function formatMonthTick(month: string, lang: Lang) {
+function formatMonthTickCompact(month: string, lang: Lang) {
   const date = new Date(`${month}-01T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return month;
-  return new Intl.DateTimeFormat(lang === "es" ? "es-CO" : "en-US", {
+  const locale = lang === "es" ? "es-CO" : "en-US";
+  const monthLabel = new Intl.DateTimeFormat(locale, {
     month: "short",
+    timeZone: "UTC",
+  }).format(date);
+  const year = new Intl.DateTimeFormat(locale, {
     year: "numeric",
     timeZone: "UTC",
   }).format(date);
+  return `${monthLabel.replace(".", "")}<br>${year}`;
 }
 
 function groupByMonth(rows: TableRow[]) {
@@ -282,22 +287,47 @@ export function ContractsDashboard({
   );
 
   const timelineData = useMemo(
-    () => [
-      {
-        x: timeline.map((item) => item.month),
-        y: timeline.map((item) => item.count),
-        type: "scatter",
-        mode: "lines+markers",
-        fill: "tozeroy",
-        fillcolor: "rgba(1, 95, 101, 0.16)",
-        line: { color: CHART_PALETTE[0], width: 3.2, shape: "spline" },
-        marker: { color: "#f9f8f5", size: 8, line: { color: CHART_PALETTE[0], width: 2 } },
-        hovertemplate:
-          lang === "es"
-            ? "<b>%{x}</b><br>%{y} contratos visibles<extra></extra>"
-            : "<b>%{x}</b><br>%{y} visible contracts<extra></extra>",
-      },
-    ],
+    () => {
+      const maxCount = Math.max(...timeline.map((item) => item.count), 1);
+      const gapBar = Math.max(Math.round(maxCount * 0.018), 1);
+      const actualCounts = timeline.map((item) => item.count);
+      return [
+        {
+          x: timeline.map((item) => item.month),
+          y: timeline.map((item) => (item.count > 0 ? item.count : gapBar)),
+          customdata: actualCounts,
+          type: "bar",
+          marker: {
+            color: timeline.map((item) => (item.count > 0 ? "rgba(13,91,215,0.82)" : "rgba(12,19,34,0.10)")),
+            line: {
+              color: timeline.map((item) => (item.count > 0 ? "rgba(13,91,215,0.95)" : "rgba(12,19,34,0.16)")),
+              width: 1,
+            },
+          },
+          hovertemplate:
+            lang === "es"
+              ? "<b>%{x}</b><br>%{customdata:,} contratos visibles<extra></extra>"
+              : "<b>%{x}</b><br>%{customdata:,} visible contracts<extra></extra>",
+        },
+        {
+          x: timeline.filter((item) => item.count > 0).map((item) => item.month),
+          y: timeline.filter((item) => item.count > 0).map((item) => item.count),
+          text: timeline
+            .filter((item) => item.count > 0)
+            .map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")),
+          type: "scatter",
+          mode: "markers+text",
+          textposition: "top center",
+          marker: {
+            color: "#f9f8f5",
+            size: 10,
+            line: { color: CHART_PALETTE[0], width: 2.5 },
+          },
+          textfont: { size: 11, color: "#0c1322" },
+          hoverinfo: "skip",
+        },
+      ];
+    },
     [lang, timeline],
   );
 
@@ -640,8 +670,8 @@ export function ContractsDashboard({
             <strong>{lang === "es" ? "Ritmo visible por mes" : "Visible monthly pace"}</strong>
             <span>
               {lang === "es"
-                ? "Curva del corte completo. Haz clic en un mes para concentrar el tablero en esa ventana."
-                : "Curve of the full slice. Click a month to focus the board on that window."}
+                ? "Barras mensuales del corte completo. Gris marca meses sin scoring visible; haz clic en un mes para filtrar."
+                : "Monthly bars for the full slice. Gray marks months with no visible scoring; click a month to filter."}
             </span>
           </div>
           <div className="cv-dashboard-card__plot">
@@ -649,24 +679,30 @@ export function ContractsDashboard({
               data={timelineData as any}
               layout={{
                 ...baseLayout,
-                margin: { l: 62, r: 24, t: 16, b: 56 },
+                margin: { l: 62, r: 24, t: 26, b: 50 },
+                bargap: 0.48,
+                showlegend: false,
                 yaxis: {
                   title: { text: lang === "es" ? "Contratos" : "Contracts", standoff: 8 },
                   gridcolor: GRID_COLOR,
                   zeroline: false,
                   tickfont: { size: 13 },
                   automargin: true,
+                  rangemode: "tozero",
+                  fixedrange: true,
                 },
                 xaxis: {
                   tickvals: timeline.map((item) => item.month),
-                  ticktext: timeline.map((item) => formatMonthTick(item.month, lang)),
+                  ticktext: timeline.map((item) => formatMonthTickCompact(item.month, lang)),
                   tickfont: { size: 12 },
                   automargin: true,
+                  tickangle: 0,
+                  fixedrange: true,
                   range: timeline.length
                     ? [timeline[0].month, timeline[timeline.length - 1].month]
                     : undefined,
                 },
-                hovermode: "x unified",
+                hovermode: "closest",
               }}
               config={{ responsive: true, displaylogo: false, displayModeBar: false }}
               onClick={(event: any) => {
