@@ -308,13 +308,13 @@ Notas importantes:
 El refresh diario de contratos queda dividido en dos capas:
 
 - **Vercel Cron**
-  `web/vercel.json` programa una llamada diaria a `/api/cron/contracts-refresh` a las `03:20 UTC` (10:20 p. m. Colombia).
+  `web/vercel.json` programa una llamada diaria a `/api/cron/contracts-refresh` a las `05:00 UTC` (12:00 a. m. Colombia).
 - **Route handler seguro**
   `web/app/api/cron/contracts-refresh/route.ts` valida `CRON_SECRET` y dispara el workflow `secop_ingestion.yml` vía GitHub Actions.
 - **Workflow pesado**
-  `.github/workflows/secop_ingestion.yml` queda como job manual / despachable. Ahí sigue viviendo la ingesta de SECOP, re-score del modelo, upload del parquet y upsert a Supabase.
+  `.github/workflows/secop_ingestion.yml` también conserva un cron diario de respaldo y el disparo manual. Ahí vive la ingesta de SECOP, re-score del modelo, upload del parquet y upsert a Supabase.
 
-Este split evita intentar correr la ETL Python dentro del límite de ejecución de Vercel y deja un solo scheduler diario visible desde producción.
+Este split evita intentar correr la ETL Python dentro del límite de ejecución de Vercel. Si la app muestra una brecha entre SECOP y scoring, significa que la fuente oficial avanzó pero la tabla puntuada publicada por el pipeline todavía no cerró ese corte.
 
 ### Fuentes actuales
 

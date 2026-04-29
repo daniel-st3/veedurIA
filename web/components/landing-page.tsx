@@ -408,14 +408,14 @@ export function LandingPage({
     if (typeof window === "undefined") return;
     const handlePageHide = () => {
       gsap.set(
-        ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__lead, .lp-hero__source-row, .lp-hero__story-panel, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
+        ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__lead, .lp-hero__source-row, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
         { clearProps: "all" },
       );
     };
     const handlePageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
         gsap.set(
-          ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__lead, .lp-hero__source-row, .lp-hero__story-panel, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
+          ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__lead, .lp-hero__source-row, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
           { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
         );
       }
@@ -433,7 +433,7 @@ export function LandingPage({
       const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (reduceMotion) {
         gsap.set(
-          ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__lead, .lp-hero__source-row, .lp-hero__story-panel, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
+          ".lp-hero__eyebrow, .lp-hero__flagbar, .lp-hero__title-line, .lp-hero__lead, .lp-hero__source-row, .lp-hero__scroll-cue, .lp-reveal, .lp-story-stat, .lp-map-grid, .lp-module-card, .lp-signal__frame, .lp-signal-card, .lp-portfolio-card, .lp-process-step, .lp-impact-stat",
           { autoAlpha: 1, y: 0, rotateX: 0, scale: 1 },
         );
         return;
@@ -461,31 +461,33 @@ export function LandingPage({
           onComplete() { gsap.set(this.targets(), { clearProps: "opacity,visibility,transform" }); } },
       );
 
-      gsap.fromTo(
-        ".lp-hero__story-panel",
-        { autoAlpha: 0, y: -30, scale: 0.976 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          scale: 1,
-          duration: 1.1,
-          ease: "power4.out",
-          delay: 0.85,
-        },
-      );
+      if (document.querySelector(".lp-hero__story-panel")) {
+        gsap.fromTo(
+          ".lp-hero__story-panel",
+          { autoAlpha: 0, y: -30, scale: 0.976 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            duration: 1.1,
+            ease: "power4.out",
+            delay: 0.85,
+          },
+        );
 
-      /* ── STORY-PANEL: slide down on scroll to fill the gap above stats ── */
-      const panelTravel = Math.min(220, Math.max(120, window.innerHeight * 0.18));
-      gsap.to(".lp-hero__story-panel", {
-        y: panelTravel,
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".lp-hero",
-          start: "top top",
-          end: "bottom top",
-          scrub: 0.8,
-        },
-      });
+        /* ── STORY-PANEL: slide down on scroll to fill the gap above stats ── */
+        const panelTravel = Math.min(220, Math.max(120, window.innerHeight * 0.18));
+        gsap.to(".lp-hero__story-panel", {
+          y: panelTravel,
+          ease: "none",
+          scrollTrigger: {
+            trigger: ".lp-hero",
+            start: "top top",
+            end: "bottom top",
+            scrub: 0.8,
+          },
+        });
+      }
 
       gsap.fromTo(
         ".lp-hero__scroll-cue",
@@ -642,11 +644,13 @@ export function LandingPage({
         },
       );
 
-      gsap.to(".lp-signal__pulse", {
-        yPercent: 16,
-        ease: "none",
-        scrollTrigger: { trigger: ".lp-signal__frame", start: "top 72%", end: "bottom 28%", scrub: true },
-      });
+      if (document.querySelector(".lp-signal__pulse")) {
+        gsap.to(".lp-signal__pulse", {
+          yPercent: 16,
+          ease: "none",
+          scrollTrigger: { trigger: ".lp-signal__frame", start: "top 72%", end: "bottom 28%", scrub: true },
+        });
+      }
 
       /* ── PROCESS STEPS ── */
       gsap.utils.toArray<HTMLElement>(".lp-process-step").forEach((step) => {

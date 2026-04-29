@@ -160,7 +160,7 @@ function formatPortalUpdated(lang: Lang, raw?: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "America/Bogota",
-  }).format(date);
+  }).format(date).replace(/[\u00a0\u202f]/g, " ");
 }
 
 function scoreTone(score: number) {
@@ -678,11 +678,10 @@ export function ContractsView({
 
   const headlineContracts = useMemo(() => {
     if (!hasStrongFilters) {
-      // No filters → show the official SECOP source count (the full ~5M universe)
+      // No filters -> show the scored slice count. The full SECOP universe is
+      // shown separately only when the live source count is available.
       return (
         firstPositiveNumber(
-          freshness?.sourceRows,
-          overview?.meta.sourceRows,
           overview?.meta.totalRows,
           overview?.meta.shownRows,
           overview?.slice.totalContracts,
@@ -691,7 +690,7 @@ export function ContractsView({
       );
     }
     return firstPositiveNumber(overview?.slice.totalContracts, overview?.meta.shownRows, table?.total) ?? 0;
-  }, [freshness?.sourceRows, hasStrongFilters, overview, table?.total]);
+  }, [hasStrongFilters, overview, table?.total]);
   const visibleContracts = useMemo(() => {
     const bestVisible = firstPositiveNumber(table?.total, overview?.slice.totalContracts, overview?.meta.shownRows);
     if (bestVisible !== null) return bestVisible;
@@ -699,7 +698,12 @@ export function ContractsView({
     return 0;
   }, [overview?.meta.shownRows, overview?.slice.totalContracts, table?.total]);
   const sourceContracts =
-    firstPositiveNumber(freshness?.sourceRows, overview?.meta.sourceRows, overview?.meta.totalRows, headlineContracts) ?? 0;
+    firstPositiveNumber(
+      freshness?.sourceRows,
+      freshness?.liveFeed.rowsAtSource,
+      overview?.meta.sourceRows,
+      overview?.liveFeed.rowsAtSource,
+    ) ?? 0;
   const redAlertsCount =
     firstPositiveNumber(
       overview?.slice.redAlerts,
@@ -915,18 +919,25 @@ export function ContractsView({
             </div>
 
             <div className="cv-hero-signal-tile" aria-label={lang === "es" ? "Estado del corte" : "Slice status"}>
-              <span className="cv-hero-signal-tile__kicker">
-                {lang === "es" ? "Corte vivo" : "Live slice"}
-              </span>
-              <strong>
-                {staleScore
-                  ? lang === "es"
-                    ? "Fuente oficial por delante del scoring"
-                    : "Official source ahead of scoring"
-                  : lang === "es"
-                    ? "Fuente y scoring sincronizados"
-                    : "Source and scoring synced"}
-              </strong>
+              <div className="cv-hero-signal-tile__copy">
+                <span className="cv-hero-signal-tile__kicker">
+                  {lang === "es" ? "Estado del corte" : "Slice status"}
+                </span>
+                <strong>
+                  {staleScore
+                    ? lang === "es"
+                      ? "SECOP ya avanzó; el scoring diario debe cerrar la brecha"
+                      : "SECOP moved ahead; daily scoring must close the gap"
+                    : lang === "es"
+                      ? "Fuente y scoring sincronizados"
+                      : "Source and scoring synced"}
+                </strong>
+                <p>
+                  {lang === "es"
+                    ? "La fecha de SECOP viene del GET en vivo; la fecha de scoring viene de la tabla importada por GitHub Actions."
+                    : "The SECOP date comes from the live GET; the scoring date comes from the GitHub Actions import table."}
+                </p>
+              </div>
               <div className="cv-hero-signal-tile__grid">
                 <span>
                   <small>{lang === "es" ? "SECOP" : "SECOP"}</small>
@@ -943,6 +954,10 @@ export function ContractsView({
                     : freshnessGap === 0
                       ? "0"
                       : `${freshnessGap}d`}
+                </span>
+                <span>
+                  <small>{lang === "es" ? "Cron" : "Cron"}</small>
+                  {lang === "es" ? "diario" : "daily"}
                 </span>
               </div>
             </div>
@@ -966,8 +981,12 @@ export function ContractsView({
                       ? `${filteredContractsNote} · universo ${(overview?.meta.totalRows ?? 0).toLocaleString("es-CO")} analizados`
                       : `${filteredContractsNote} · universe: ${(overview?.meta.totalRows ?? 0).toLocaleString("en-US")} analyzed`
                     : lang === "es"
-                      ? `del universo SECOP de ${sourceContracts > 0 ? sourceContracts.toLocaleString("es-CO") : "~5,6 M"} contratos`
-                      : `from the SECOP universe of ${sourceContracts > 0 ? sourceContracts.toLocaleString("en-US") : "~5.6M"} contracts`}
+                      ? sourceContracts > 0
+                        ? `del universo SECOP de ${sourceContracts.toLocaleString("es-CO")} contratos`
+                        : "del universo SECOP consultado en vivo"
+                      : sourceContracts > 0
+                        ? `from the SECOP universe of ${sourceContracts.toLocaleString("en-US")} contracts`
+                        : "from the live SECOP universe"}
                 </p>
               </article>
               <article className="cv-hero-kpi cv-hero-kpi--red">
@@ -984,8 +1003,12 @@ export function ContractsView({
                 </strong>
                 <span>
                   {lang === "es"
-                    ? `El modelo procesó los ${sourceContracts > 0 ? sourceContracts.toLocaleString("es-CO") : "~5,6 M"} contratos de SECOP II y priorizó ${overview.meta.totalRows.toLocaleString("es-CO")} con señal de riesgo (rojo o amarillo). El resto no generó alerta y no aparece en este tablero.`
-                    : `The model processed the ${sourceContracts > 0 ? sourceContracts.toLocaleString("en-US") : "~5.6M"} SECOP II contracts and prioritized ${overview.meta.totalRows.toLocaleString("en-US")} with a risk signal (red or yellow). The rest produced no alert and does not appear here.`}
+                    ? sourceContracts > 0
+                      ? `El modelo procesó los ${sourceContracts.toLocaleString("es-CO")} contratos de SECOP II y priorizó ${overview.meta.totalRows.toLocaleString("es-CO")} con señal de riesgo (rojo o amarillo). El resto no generó alerta y no aparece en este tablero.`
+                      : `El modelo priorizó ${overview.meta.totalRows.toLocaleString("es-CO")} contratos con señal de riesgo (rojo o amarillo). El total oficial de SECOP se consulta en vivo y no se sustituye por un número local si la fuente tarda en responder.`
+                    : sourceContracts > 0
+                      ? `The model processed the ${sourceContracts.toLocaleString("en-US")} SECOP II contracts and prioritized ${overview.meta.totalRows.toLocaleString("en-US")} with a risk signal (red or yellow). The rest produced no alert and does not appear here.`
+                      : `The model prioritized ${overview.meta.totalRows.toLocaleString("en-US")} contracts with a risk signal (red or yellow). The official SECOP total is queried live and is not replaced with a local number when the source is slow.`}
                 </span>
               </div>
             ) : null}
@@ -1340,7 +1363,6 @@ export function ContractsView({
           summaryEntities={summaryEntities}
           summaryModalities={summaryModalities}
           analytics={overview?.analytics}
-          timelineThroughMonth={latestSourceDate}
           activeDepartmentLabel={activeDepartmentLabel}
           onDepartmentPick={(department) => {
             const next = { ...filters, department };

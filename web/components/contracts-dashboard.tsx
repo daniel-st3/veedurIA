@@ -63,22 +63,18 @@ function addMonths(month: string, delta: number) {
 
 function completeMonthlyTimeline(
   source: Array<{ month: string; count: number }>,
-  throughMonth?: string | null,
 ) {
-  const valid = source.filter((item) => /^\d{4}-\d{2}$/.test(item.month));
+  const valid = source
+    .filter((item) => /^\d{4}-\d{2}$/.test(item.month) && item.count > 0)
+    .sort((left, right) => left.month.localeCompare(right.month));
   if (!valid.length) return source;
 
   const counts = new Map(valid.map((item) => [item.month, item.count]));
   const first = valid[0].month;
-  const currentMonth = monthKey(new Date());
   const lastDataMonth = valid[valid.length - 1].month;
-  const target = [throughMonth?.slice(0, 7), currentMonth, lastDataMonth]
-    .filter((item): item is string => Boolean(item && /^\d{4}-\d{2}$/.test(item)))
-    .sort()
-    .at(-1) ?? lastDataMonth;
 
   const months: Array<{ month: string; count: number }> = [];
-  for (let cursor = first; cursor <= target; cursor = addMonths(cursor, 1)) {
+  for (let cursor = first; cursor <= lastDataMonth; cursor = addMonths(cursor, 1)) {
     months.push({ month: cursor, count: counts.get(cursor) ?? 0 });
   }
   return months.slice(-30);
@@ -133,7 +129,6 @@ export function ContractsDashboard({
   summaryEntities = [],
   summaryModalities = [],
   analytics,
-  timelineThroughMonth,
   activeDepartmentLabel,
   onDepartmentPick,
   onMonthPick,
@@ -144,7 +139,6 @@ export function ContractsDashboard({
   summaryEntities?: OverviewPayload["summaries"]["entities"];
   summaryModalities?: OverviewPayload["summaries"]["modalities"];
   analytics?: OverviewPayload["analytics"];
-  timelineThroughMonth?: string | null;
   activeDepartmentLabel?: string | null;
   onDepartmentPick?: (department: string) => void;
   onMonthPick?: (month: string) => void;
@@ -154,9 +148,9 @@ export function ContractsDashboard({
       const source = analytics?.months?.length
         ? analytics.months.map((item) => ({ month: item.month, count: item.contracts }))
         : groupByMonth(rows);
-      return completeMonthlyTimeline(source, timelineThroughMonth);
+      return completeMonthlyTimeline(source);
     },
-    [analytics?.months, rows, timelineThroughMonth],
+    [analytics?.months, rows],
   );
   const topDepartments = useMemo(
     () =>
@@ -288,42 +282,48 @@ export function ContractsDashboard({
 
   const timelineData = useMemo(
     () => {
-      const maxCount = Math.max(...timeline.map((item) => item.count), 1);
-      const gapBar = Math.max(Math.round(maxCount * 0.018), 1);
-      const actualCounts = timeline.map((item) => item.count);
+      const positiveTimeline = timeline.filter((item) => item.count > 0);
+      const maxCount = Math.max(...positiveTimeline.map((item) => item.count), 1);
+      const peakMonth = positiveTimeline.find((item) => item.count === maxCount)?.month;
+      const lastMonth = positiveTimeline[positiveTimeline.length - 1]?.month;
       return [
         {
-          x: timeline.map((item) => item.month),
-          y: timeline.map((item) => (item.count > 0 ? item.count : gapBar)),
-          customdata: actualCounts,
+          x: positiveTimeline.map((item) => item.month),
+          y: positiveTimeline.map((item) => item.count),
+          customdata: positiveTimeline.map((item) => [
+            item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US"),
+            formatMonthTickCompact(item.month, lang).replace("<br>", " "),
+          ]),
           type: "bar",
           marker: {
-            color: timeline.map((item) => (item.count > 0 ? "rgba(13,91,215,0.82)" : "rgba(12,19,34,0.10)")),
+            color: positiveTimeline.map((item) =>
+              item.month === peakMonth
+                ? "rgba(198,40,57,0.82)"
+                : item.month === lastMonth
+                  ? "rgba(245,197,24,0.88)"
+                  : "rgba(13,91,215,0.78)",
+            ),
             line: {
-              color: timeline.map((item) => (item.count > 0 ? "rgba(13,91,215,0.95)" : "rgba(12,19,34,0.16)")),
-              width: 1,
+              color: "rgba(12,19,34,0.18)",
+              width: 1.2,
             },
           },
           hovertemplate:
             lang === "es"
-              ? "<b>%{x}</b><br>%{customdata:,} contratos visibles<extra></extra>"
-              : "<b>%{x}</b><br>%{customdata:,} visible contracts<extra></extra>",
+              ? "<b>%{customdata[1]}</b><br>%{customdata[0]} contratos visibles<extra></extra>"
+              : "<b>%{customdata[1]}</b><br>%{customdata[0]} visible contracts<extra></extra>",
         },
         {
-          x: timeline.filter((item) => item.count > 0).map((item) => item.month),
-          y: timeline.filter((item) => item.count > 0).map((item) => item.count),
-          text: timeline
-            .filter((item) => item.count > 0)
-            .map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")),
+          x: positiveTimeline.map((item) => item.month),
+          y: positiveTimeline.map((item) => item.count),
           type: "scatter",
-          mode: "markers+text",
-          textposition: "top center",
+          mode: "lines+markers",
+          line: { color: "rgba(12,19,34,0.52)", width: 2, shape: "spline" },
           marker: {
             color: "#f9f8f5",
-            size: 10,
-            line: { color: CHART_PALETTE[0], width: 2.5 },
+            size: 7,
+            line: { color: "rgba(12,19,34,0.68)", width: 1.7 },
           },
-          textfont: { size: 11, color: "#0c1322" },
           hoverinfo: "skip",
         },
       ];
@@ -670,8 +670,8 @@ export function ContractsDashboard({
             <strong>{lang === "es" ? "Ritmo visible por mes" : "Visible monthly pace"}</strong>
             <span>
               {lang === "es"
-                ? "Barras mensuales del corte completo. Gris marca meses sin scoring visible; haz clic en un mes para filtrar."
-                : "Monthly bars for the full slice. Gray marks months with no visible scoring; click a month to filter."}
+                ? "Meses realmente puntuados. Escala logarítmica para que los meses bajos no desaparezcan."
+                : "Actually scored months. Log scale keeps lower-volume months visible."}
             </span>
           </div>
           <div className="cv-dashboard-card__plot">
@@ -683,17 +683,20 @@ export function ContractsDashboard({
                 bargap: 0.48,
                 showlegend: false,
                 yaxis: {
-                  title: { text: lang === "es" ? "Contratos" : "Contracts", standoff: 8 },
+                  title: { text: lang === "es" ? "Contratos (log)" : "Contracts (log)", standoff: 8 },
+                  type: "log",
                   gridcolor: GRID_COLOR,
                   zeroline: false,
-                  tickfont: { size: 13 },
+                  tickvals: [1000, 2500, 5000, 10000, 25000, 50000],
+                  ticktext: ["1k", "2.5k", "5k", "10k", "25k", "50k"],
+                  tickfont: { size: 12 },
                   automargin: true,
-                  rangemode: "tozero",
+                  range: [3, Math.log10(Math.max(...timeline.map((item) => item.count), 1000) * 1.55)],
                   fixedrange: true,
                 },
                 xaxis: {
-                  tickvals: timeline.map((item) => item.month),
-                  ticktext: timeline.map((item) => formatMonthTickCompact(item.month, lang)),
+                  tickvals: timeline.filter((item) => item.count > 0).map((item) => item.month),
+                  ticktext: timeline.filter((item) => item.count > 0).map((item) => formatMonthTickCompact(item.month, lang)),
                   tickfont: { size: 12 },
                   automargin: true,
                   tickangle: 0,

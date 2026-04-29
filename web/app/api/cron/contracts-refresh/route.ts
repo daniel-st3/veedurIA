@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 const GITHUB_API_BASE = "https://api.github.com";
 const WORKFLOW_FILE = "secop_ingestion.yml";
+const CRON_SCHEDULE_UTC = "0 5 * * *";
 
 function requiredEnv(name: string) {
   const value = process.env[name]?.trim();
@@ -18,7 +19,7 @@ function unauthorized() {
   return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 }
 
-export async function GET(request: Request) {
+async function dispatchContractsRefresh(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return unauthorized();
@@ -46,6 +47,7 @@ export async function GET(request: Request) {
           ref,
           inputs: {
             mode: "incremental",
+            reason: "daily-secops-scoring-refresh",
           },
         }),
         cache: "no-store",
@@ -71,6 +73,9 @@ export async function GET(request: Request) {
       repository: repo,
       ref,
       mode: "incremental",
+      scheduleUtc: CRON_SCHEDULE_UTC,
+      scheduleColombia: "00:00 America/Bogota",
+      pipeline: "SECOP ingestion -> isolation forest scoring -> Supabase import",
       triggeredAt: new Date().toISOString(),
     });
   } catch (error) {
@@ -82,4 +87,12 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
+}
+
+export async function GET(request: Request) {
+  return dispatchContractsRefresh(request);
+}
+
+export async function POST(request: Request) {
+  return dispatchContractsRefresh(request);
 }
