@@ -341,6 +341,17 @@ export function SigueElDineroView({ lang }: Props) {
       .slice(0, 6);
   }, [nodes]);
 
+  const networkFreshnessLabel = useMemo(() => {
+    if (!networkMeta?.built_at) return null;
+    const date = new Date(networkMeta.built_at);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleDateString(lang === "es" ? "es-CO" : "en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    });
+  }, [lang, networkMeta?.built_at]);
+
   useGSAP(
     () => {
       const reduceMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -608,7 +619,7 @@ export function SigueElDineroView({ lang }: Props) {
             <span className="sed-version-tag">
               {networkMeta?.source === "mock"
                 ? lang === "es" ? "Referencia · 2026" : "Reference · 2026"
-                : `v${dataVersion}`}
+                : `${lang === "es" ? "Cron diario" : "Daily cron"} · ${networkFreshnessLabel ?? `v${dataVersion}`}`}
             </span>
           )}
         </div>
@@ -711,8 +722,7 @@ export function SigueElDineroView({ lang }: Props) {
         </div>
       </div>
 
-      {/* ── Sliding node detail drawer ──────────────────────────────── */}
-      {/* Backdrop */}
+      {/* ── Centered node detail modal ──────────────────────────────── */}
       {selectedNodeId && (
         <div
           className="sed-drawer-backdrop"

@@ -122,6 +122,12 @@ function riskBandLabel(lang: Lang, band: "high" | "medium" | "low") {
   return lang === "es" ? "Bajo" : "Low";
 }
 
+function colorForMeanRisk(value: number) {
+  if (value >= 0.85) return RISK_COLORS.high;
+  if (value >= 0.78) return RISK_COLORS.medium;
+  return RISK_COLORS.low;
+}
+
 export function ContractsDashboard({
   lang,
   departments,
@@ -262,10 +268,7 @@ export function ContractsDashboard({
         orientation: "h",
         customdata: topDepartments.map((item) => [item.label, Math.round(item.avgRisk * 100)]),
         marker: {
-          color: topDepartments
-            .map((item) =>
-              item.avgRisk >= 0.7 ? RISK_COLORS.high : item.avgRisk >= 0.4 ? RISK_COLORS.medium : RISK_COLORS.low,
-            ),
+          color: topDepartments.map((item) => colorForMeanRisk(item.avgRisk)),
           line: { color: "rgba(40, 37, 29, 0.1)", width: 1 },
         },
         text: topDepartments.map((item) => item.contractCount.toLocaleString(lang === "es" ? "es-CO" : "en-US")),
@@ -330,6 +333,12 @@ export function ContractsDashboard({
     },
     [lang, timeline],
   );
+  const timelineTicks = useMemo(() => {
+    const positive = timeline.filter((item) => item.count > 0);
+    if (positive.length <= 10) return positive;
+    const every = Math.ceil(positive.length / 8);
+    return positive.filter((_, index) => index === 0 || index === positive.length - 1 || index % every === 0);
+  }, [timeline]);
 
   const modalityData = useMemo(
     () => [
@@ -340,9 +349,7 @@ export function ContractsDashboard({
         orientation: "h",
         customdata: modalityMix.map((item) => [item.label, Math.round(item.meanRisk * 100)]),
         marker: {
-          color: modalityMix.map((item) =>
-            item.meanRisk >= 0.7 ? RISK_COLORS.high : item.meanRisk >= 0.4 ? RISK_COLORS.medium : CHART_PALETTE[0],
-          ),
+          color: modalityMix.map((item) => colorForMeanRisk(item.meanRisk)),
           line: { color: "rgba(40, 37, 29, 0.08)", width: 1 },
         },
         text: modalityMix.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")),
@@ -366,14 +373,7 @@ export function ContractsDashboard({
         orientation: "h",
         customdata: topEntities.map((item) => [item.label, Math.round(item.meanRisk * 100)]),
         marker: {
-          color: topEntities
-            .map((item) =>
-              item.meanRisk >= 0.7
-                ? RISK_COLORS.high
-                : item.meanRisk >= 0.4
-                  ? RISK_COLORS.medium
-                  : CHART_PALETTE[0],
-            ),
+          color: topEntities.map((item) => colorForMeanRisk(item.meanRisk)),
           line: { color: "rgba(40, 37, 29, 0.08)", width: 1 },
         },
         text: topEntities.map((item) => item.count.toLocaleString(lang === "es" ? "es-CO" : "en-US")),
@@ -431,9 +431,7 @@ export function ContractsDashboard({
         textposition: source.map((_, index) => (index % 2 === 0 ? "top center" : "bottom center")),
         marker: {
           size: source.map((item) => Math.max(12, Math.min(36, 10 + Math.sqrt(item.contractCount) * 0.35))),
-          color: source.map((item) =>
-            item.avgRisk >= 0.7 ? RISK_COLORS.high : item.avgRisk >= 0.4 ? RISK_COLORS.medium : RISK_COLORS.low,
-          ),
+          color: source.map((item) => colorForMeanRisk(item.avgRisk)),
           opacity: 0.82,
           line: { color: "rgba(249,248,245,0.92)", width: 2 },
         },
@@ -679,7 +677,7 @@ export function ContractsDashboard({
               data={timelineData as any}
               layout={{
                 ...baseLayout,
-                margin: { l: 62, r: 24, t: 26, b: 50 },
+                margin: { l: 62, r: 24, t: 26, b: 74 },
                 bargap: 0.48,
                 showlegend: false,
                 yaxis: {
@@ -695,11 +693,11 @@ export function ContractsDashboard({
                   fixedrange: true,
                 },
                 xaxis: {
-                  tickvals: timeline.filter((item) => item.count > 0).map((item) => item.month),
-                  ticktext: timeline.filter((item) => item.count > 0).map((item) => formatMonthTickCompact(item.month, lang)),
-                  tickfont: { size: 12 },
+                  tickvals: timelineTicks.map((item) => item.month),
+                  ticktext: timelineTicks.map((item) => formatMonthTickCompact(item.month, lang)),
+                  tickfont: { size: 11 },
                   automargin: true,
-                  tickangle: 0,
+                  tickangle: -35,
                   fixedrange: true,
                   range: timeline.length
                     ? [timeline[0].month, timeline[timeline.length - 1].month]

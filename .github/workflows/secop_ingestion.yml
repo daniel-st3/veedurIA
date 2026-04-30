@@ -129,12 +129,21 @@ jobs:
         run: |
           python scripts/import_contracts_to_postgres.py --full
 
+      - name: Rebuild SigueElDinero network snapshot
+        if: steps.check_secrets.outputs.skip != 'true'
+        run: |
+          python - <<'PY'
+          from src.processing.graph_builder import build_network_graph, current_cache_key
+
+          build_network_graph(current_cache_key(), "es")
+          PY
+
       - name: Commit last_run.json update
         if: steps.check_secrets.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/processed/last_run.json
+          git add data/processed/last_run.json data/processed/network_graph_meta.json
           if git diff --cached --quiet; then
             echo "No refreshed state to commit."
             exit 0

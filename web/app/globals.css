@@ -1867,7 +1867,7 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 /* Content blocks below workbench */
 .cv-block {
   margin-top: 1rem;
-  padding: 1.3rem;
+  padding: clamp(1.35rem, 2.2vw, 2rem);
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
@@ -1897,10 +1897,11 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 }
 
 .cv-focus-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  padding: 0.15rem 0 0.45rem;
 }
 
 .cv-focus-head-copy {
@@ -1923,10 +1924,10 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 .cv-score-badge {
   display: grid;
   gap: 0.15rem;
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1.15rem;
   border-radius: var(--r-md);
   text-align: center;
-  min-width: 72px;
+  min-width: 116px;
   flex-shrink: 0;
 }
 
@@ -1971,14 +1972,16 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 .cv-focus-comparison {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.6rem;
+  gap: 0.75rem;
 }
 
 .cv-focus-compare-card {
   display: grid;
   gap: 0.2rem;
-  padding: 0.75rem 0.85rem;
-  background: var(--cream);
+  min-height: 88px;
+  align-content: center;
+  padding: 0.85rem 0.95rem;
+  background: rgba(255,253,248,.76);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
 }
@@ -2001,15 +2004,17 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 /* Focus metadata */
 .cv-focus-meta {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .cv-focus-meta div {
   display: grid;
   gap: 0.18rem;
-  padding: 0.65rem 0.8rem;
-  background: var(--cream);
+  min-height: 82px;
+  align-content: center;
+  padding: 0.75rem 0.9rem;
+  background: rgba(255,253,248,.76);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
 }
@@ -2033,8 +2038,9 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 .cv-focus-summary {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
+  padding-top: 0.25rem;
 }
 
 .cv-focus-summary p {
@@ -5093,11 +5099,11 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 
 .sed-filter-apply:hover { background: var(--yellow-2); }
 
-/* Node panel (side drawer) */
+/* Node panel (centered modal) */
 .sed-node-panel {
   display: grid;
-  gap: 1.2rem;
-  padding: 1.4rem;
+  gap: 1.35rem;
+  padding: clamp(1.35rem, 2vw, 2rem);
   color: #f0eada;
 }
 
@@ -5110,17 +5116,17 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 
 .sed-node-panel__header {
   display: grid;
-  gap: 0.35rem;
-  padding-bottom: 1rem;
+  gap: 0.45rem;
+  padding-bottom: 1.1rem;
   border-bottom: 1px solid rgba(255,255,255,.08);
 }
 
 .sed-node-panel__name {
   font-family: "Sora", sans-serif;
-  font-size: 1.25rem;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
   font-weight: 700;
   letter-spacing: -0.04em;
-  line-height: 1.2;
+  line-height: 1.12;
   color: #f0eada;
 }
 
@@ -5369,30 +5375,39 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
 .sed-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(12,19,34,.5);
-  backdrop-filter: blur(3px);
+  background: rgba(12,19,34,.58);
+  backdrop-filter: blur(7px);
   z-index: 79;
 }
 
 .sed-node-drawer {
   position: fixed;
-  top: var(--nav-h);
-  right: 0;
-  bottom: 0;
+  top: calc(var(--nav-h) + 50%);
+  left: 50%;
+  right: auto;
+  bottom: auto;
   z-index: 80;
-  width: min(430px, calc(100vw - 1rem));
+  width: min(720px, calc(100vw - 2rem));
+  max-height: min(760px, calc(100vh - var(--nav-h) - 2rem));
   overflow-y: auto;
   background:
     linear-gradient(180deg, rgba(17,31,54,.98), rgba(9,15,27,.98)),
     var(--ink);
-  border-left: 1px solid rgba(255,255,255,.1);
-  box-shadow: -28px 0 80px rgba(6,10,18,.28);
-  transform: translateX(calc(100% + 1rem));
-  transition: transform 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 24px;
+  box-shadow: 0 34px 110px rgba(6,10,18,.46);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -46%) scale(.96);
+  transition:
+    opacity 0.22s ease,
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sed-node-drawer--open {
-  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 /* Ethical banner */
@@ -7153,7 +7168,11 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   .sed-concentration-view,
   .sed-evidence-view { border-radius: 20px; }
   .sed-node-lead { min-height: 112px; }
-  .sed-node-drawer { width: 100vw; }
+  .sed-node-drawer {
+    width: calc(100vw - 1rem);
+    max-height: calc(100vh - var(--nav-h) - 1rem);
+    border-radius: 18px;
+  }
   .sed-stats-bar { gap: 0.55rem; }
   .sed-stats-bar__sep { display: none; }
   .sed-node-stats { grid-template-columns: 1fr; }

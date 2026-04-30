@@ -62,6 +62,7 @@ SLIM_COLS = [
 BATCH = 500
 DELETE_BATCH = 500
 IMPORT_MIN_SCORE = float(os.environ.get("CONTRACTS_IMPORT_MIN_SCORE", "0.80"))
+CONTRACTS_HIGH_RISK_SCORE = float(os.environ.get("CONTRACTS_HIGH_RISK_SCORE", "0.90"))
 IMPORT_SLICE_PATH = DATA / "contracts_import_slice.parquet"
 
 
@@ -300,6 +301,11 @@ def _compute_lead_case_signals(row: pd.Series, risk_label: str) -> dict:
     return {"pickReason": pick_reason, "signal": signal, "factors": factors[:3]}
 
 
+def _visible_risk_label(score: Any) -> str:
+    numeric = float(pd.to_numeric(score, errors="coerce") or 0)
+    return "risk_rojo" if numeric >= CONTRACTS_HIGH_RISK_SCORE else "risk_amarillo"
+
+
 def _pad_departments(departments: list[dict]) -> list[dict]:
     """Ensure all 33 canonical GeoJSON departments appear, even those with 0 flagged contracts."""
     ALL_GEO_NAMES = [
@@ -370,7 +376,7 @@ def compute_global_stats(df_flagged: pd.DataFrame, df_all: pd.DataFrame | None =
         signals = _compute_lead_case_signals(r, str(r.get("risk_label", "")))
         lead_cases.append({
             "id": str(r["id_contrato"]),
-            "score": int(round(float(r["risk_score"]) * 100)),
+            "score": min(100, int(round(float(r["risk_score"]) * 100))),
             "riskBand": "high" if r["risk_label"] == "risk_rojo" else "medium",
             "entity": str(r["nombre_entidad"] or ""),
             "provider": str(r["proveedor_adjudicado"] or ""),
@@ -483,8 +489,11 @@ def main(full: bool = False) -> None:
     df = pd.read_parquet(str(import_slice), columns=SLIM_COLS)
     print(f"  Prioritized contracts (risk_score >= {IMPORT_MIN_SCORE:.2f}): {len(df):,}", flush=True)
 
-    # Keep only red + yellow for the contracts table; full df feeds dept map stats
-    flagged = df[df["risk_label"].isin(["risk_rojo", "risk_amarillo"])].copy()
+    # The import slice is already prioritized. Reclassify the visible cut so
+    # "high alerts" remains the top band instead of mirroring all analyzed rows.
+    flagged = df.copy()
+    flagged["risk_label"] = flagged["risk_score"].apply(_visible_risk_label)
+    flagged["risk_score"] = pd.to_numeric(flagged["risk_score"], errors="coerce").fillna(0).clip(0, 1)
     print(f"  Red+Yellow: {len(flagged):,} contracts", flush=True)
 
     # Transform

@@ -154,9 +154,12 @@ function buildRiskStops(values: number[]) {
 }
 
 function toneForRisk(value: number, stops: { medium: number; high: number; peak: number }) {
-  if (value >= stops.peak) return "rgba(192, 57, 43, 0.92)";
-  if (value >= stops.high) return MAP_TONES.high;
-  if (value >= stops.medium) return MAP_TONES.medium;
+  // Keep the map legible across narrow high-risk slices. The daily import is
+  // already prioritized, so absolute score bands communicate better than pure
+  // percentiles when most departments cluster between 0.80 and 0.90.
+  if (value >= 0.85 || value >= stops.peak) return "rgba(192, 57, 43, 0.92)";
+  if (value >= 0.78 || value >= stops.high) return MAP_TONES.medium;
+  if (value >= stops.medium) return "rgba(203, 151, 74, 0.78)";
   return MAP_TONES.low;
 }
 
@@ -357,7 +360,7 @@ export function ColombiaMap({
           {features.map((feature, index) => {
             const datum = summary.get(feature.key);
             const isActive = normalizedCurrentDepartment === feature.key;
-            const isHot = (datum?.avgRisk ?? 0) >= 0.7;
+            const isHot = (datum?.avgRisk ?? 0) >= 0.85;
             const fill =
               datum
                 ? toneForRisk(datum.avgRisk, stops)
