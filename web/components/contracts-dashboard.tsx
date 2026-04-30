@@ -123,8 +123,8 @@ function riskBandLabel(lang: Lang, band: "high" | "medium" | "low") {
 }
 
 function colorForMeanRisk(value: number) {
-  if (value >= 0.85) return RISK_COLORS.high;
-  if (value >= 0.78) return RISK_COLORS.medium;
+  if (value >= 0.9) return RISK_COLORS.high;
+  if (value >= 0.82) return RISK_COLORS.medium;
   return RISK_COLORS.low;
 }
 
@@ -157,6 +157,15 @@ export function ContractsDashboard({
       return completeMonthlyTimeline(source);
     },
     [analytics?.months, rows],
+  );
+  const chartRevision = useMemo(
+    () =>
+      [
+        activeDepartmentLabel ?? "all",
+        rows.length,
+        analytics?.months?.map((item) => `${item.month}:${item.contracts}`).join("|") ?? "rows",
+      ].join("::"),
+    [activeDepartmentLabel, analytics?.months, rows.length],
   );
   const topDepartments = useMemo(
     () =>
@@ -674,9 +683,12 @@ export function ContractsDashboard({
           </div>
           <div className="cv-dashboard-card__plot">
             <Plot
+              key={`timeline-${chartRevision}`}
+              revision={chartRevision}
               data={timelineData as any}
               layout={{
                 ...baseLayout,
+                datarevision: chartRevision,
                 margin: { l: 62, r: 24, t: 26, b: 74 },
                 bargap: 0.48,
                 showlegend: false,

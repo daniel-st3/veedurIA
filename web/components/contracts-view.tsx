@@ -1199,7 +1199,8 @@ export function ContractsView({
                   }}
                 >
                   {actionPending || loading || tableLoading ? <LoaderCircle size={15} className="is-spinning" aria-hidden={true} /> : <Filter size={15} aria-hidden={true} />}
-                  {lang === "es" ? "Filtrar contratos →" : "Filter contracts →"}
+                  {lang === "es" ? "Filtrar contratos" : "Filter contracts"}
+                  <ArrowUpRight size={14} aria-hidden={true} />
                 </button>
 
                 <button type="button" className="btn-secondary cv-filter-action" onClick={resetFilters}>

@@ -324,6 +324,7 @@ function Nav({
     circunscription: filters.circunscription,
     commission: filters.commission,
     topic: filters.topic,
+    min_votes: filters.votesMin,
     attendance_min: filters.attendanceMin,
     coherence_min: filters.coherenceMin,
   };
@@ -435,6 +436,21 @@ export function VotometroDirectoryPage({
   const visiblePeopleFocus = interestPeople.length ? interestPeople : topPeople;
   const comparePeople = visiblePeopleFocus.slice(0, 3);
   const maxPersonVotes = Math.max(1, ...topPeople.map((p) => p.votesIndexed));
+  const compareVotesMin = payload.filters.votesMin ?? Math.round(maxPersonVotes * 0.35);
+  const compareCoherenceMin = payload.filters.coherenceMin ?? 60;
+  const compareAttendanceMin = payload.filters.attendanceMin ?? 70;
+  const comparePool = payload.items.filter(
+    (person) =>
+      person.votesIndexed >= compareVotesMin &&
+      (person.coherenceScore ?? -1) >= compareCoherenceMin &&
+      (person.attendanceRate ?? -1) >= compareAttendanceMin,
+  );
+  const compareAvgCoherence = comparePool.length
+    ? Math.round(comparePool.reduce((sum, person) => sum + (person.coherenceScore ?? 0), 0) / comparePool.length)
+    : null;
+  const compareAvgAttendance = comparePool.length
+    ? Math.round(comparePool.reduce((sum, person) => sum + (person.attendanceRate ?? 0), 0) / comparePool.length)
+    : null;
 
   /* ── Copy ────────────────────────────────────────────── */
   const es = lang === "es";
@@ -824,6 +840,9 @@ export function VotometroDirectoryPage({
                   className={styles.personChartCard}
                 >
                   <span className={styles.personRank}>{String(index + 1).padStart(2, "0")}</span>
+                  <span className={styles.personChartAvatar}>
+                    <Avatar p={person} />
+                  </span>
                   <div>
                     <strong>{person.canonicalName}</strong>
                     <small>{person.party} · {person.chamber === "camara" ? (es ? "Cámara" : "House") : (es ? "Senado" : "Senate")}</small>
@@ -992,19 +1011,45 @@ export function VotometroDirectoryPage({
                 : "Use indexed votes, coherence, and attendance as reading filters. The controls reflect the available public slice and avoid turning one indicator into a conclusion."}
             </p>
             <div className={styles.compareWorkbench}>
-              <div className={styles.compareControls}>
+              <form method="get" className={styles.compareControls}>
+                <input type="hidden" name="lang" value={lang} />
+                {payload.filters.party ? <input type="hidden" name="party" value={payload.filters.party} /> : null}
+                {payload.filters.chamber ? <input type="hidden" name="chamber" value={payload.filters.chamber} /> : null}
+                {payload.filters.circunscription ? <input type="hidden" name="circunscription" value={payload.filters.circunscription} /> : null}
+                {payload.filters.commission ? <input type="hidden" name="commission" value={payload.filters.commission} /> : null}
+                {payload.filters.topic ? <input type="hidden" name="topic" value={payload.filters.topic} /> : null}
                 <label>
-                  <span>{es ? "Votos mínimos" : "Minimum votes"}</span>
-                  <input type="range" min="0" max={Math.max(1, maxPersonVotes)} defaultValue={Math.round(maxPersonVotes * 0.35)} />
+                  <span>{es ? `Votos mínimos: ${num(compareVotesMin)}` : `Minimum votes: ${num(compareVotesMin)}`}</span>
+                  <input name="min_votes" type="range" min="0" max={Math.max(1, maxPersonVotes)} defaultValue={compareVotesMin} />
                 </label>
                 <label>
-                  <span>{es ? "Coherencia mínima" : "Minimum coherence"}</span>
-                  <input type="range" min="0" max="100" defaultValue="60" />
+                  <span>{es ? `Coherencia mínima: ${compareCoherenceMin}%` : `Minimum coherence: ${compareCoherenceMin}%`}</span>
+                  <input name="coherence_min" type="range" min="0" max="100" defaultValue={compareCoherenceMin} />
                 </label>
                 <label>
-                  <span>{es ? "Asistencia mínima" : "Minimum attendance"}</span>
-                  <input type="range" min="0" max="100" defaultValue="70" />
+                  <span>{es ? `Asistencia mínima: ${compareAttendanceMin}%` : `Minimum attendance: ${compareAttendanceMin}%`}</span>
+                  <input name="attendance_min" type="range" min="0" max="100" defaultValue={compareAttendanceMin} />
                 </label>
+                <button type="submit" className={styles.button}>
+                  {es ? "Aplicar lectura" : "Apply reading"}
+                </button>
+              </form>
+              <div className={styles.compareInsightGrid}>
+                <article>
+                  <span>{es ? "Perfiles que pasan" : "Profiles passing"}</span>
+                  <strong>{num(comparePool.length)}</strong>
+                  <small>{es ? "con los umbrales actuales" : "under current thresholds"}</small>
+                </article>
+                <article>
+                  <span>{es ? "Coherencia media" : "Average coherence"}</span>
+                  <strong>{compareAvgCoherence == null ? "—" : `${compareAvgCoherence}%`}</strong>
+                  <small>{es ? "entre los perfiles filtrados" : "across filtered profiles"}</small>
+                </article>
+                <article>
+                  <span>{es ? "Asistencia media" : "Average attendance"}</span>
+                  <strong>{compareAvgAttendance == null ? "—" : `${compareAvgAttendance}%`}</strong>
+                  <small>{es ? "para evitar lecturas por volumen solo" : "to avoid volume-only reads"}</small>
+                </article>
               </div>
               <div className={styles.comparePeopleGrid}>
                 {comparePeople.map((person) => (

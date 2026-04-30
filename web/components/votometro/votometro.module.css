@@ -779,7 +779,7 @@
 
 .personChartCard {
   display: grid;
-  grid-template-columns: auto minmax(0, .95fr) minmax(180px, 1.25fr);
+  grid-template-columns: auto auto minmax(0, .95fr) minmax(180px, 1.25fr);
   gap: .85rem;
   align-items: center;
   padding: 1rem;
@@ -790,6 +790,19 @@
   color: var(--ink, #0c1322);
   text-decoration: none;
   transition: transform .24s cubic-bezier(.16,1,.3,1), box-shadow .24s, border-color .24s;
+}
+
+.personChartAvatar {
+  display: block;
+  width: 3.35rem;
+  height: 3.35rem;
+}
+
+.personChartAvatar .avatar,
+.personChartAvatar .avatarPlaceholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
 }
 
 .personChartCard:hover {
@@ -856,7 +869,7 @@
 }
 
 .personMetrics {
-  grid-column: 3;
+  grid-column: 4;
   display: flex;
   gap: .55rem;
   flex-wrap: wrap;
@@ -870,17 +883,51 @@
 
 .compareWorkbench {
   display: grid;
-  grid-template-columns: minmax(220px, .48fr) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, .42fr) minmax(240px, .58fr) minmax(0, 1.3fr);
   gap: 1rem;
   margin-top: 1.25rem;
   align-items: stretch;
 }
 
 .compareControls,
+.compareInsightGrid article,
 .comparePersonCard {
   border: 1px solid rgba(12,19,34,.08);
   background: linear-gradient(135deg, rgba(255,255,255,.86), rgba(248,243,232,.72));
   box-shadow: inset 0 1px 0 rgba(255,255,255,.78), 0 12px 30px rgba(12,19,34,.06);
+}
+
+.compareInsightGrid {
+  display: grid;
+  gap: .65rem;
+}
+
+.compareInsightGrid article {
+  display: grid;
+  align-content: center;
+  gap: .12rem;
+  padding: .85rem 1rem;
+  border-radius: 16px;
+}
+
+.compareInsightGrid span {
+  font-family: "JetBrains Mono", monospace;
+  font-size: .62rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(12,19,34,.52);
+}
+
+.compareInsightGrid strong {
+  font-family: "Sora", sans-serif;
+  font-size: 1.25rem;
+  line-height: 1;
+  letter-spacing: -.045em;
+}
+
+.compareInsightGrid small {
+  color: rgba(12,19,34,.58);
+  font-size: .72rem;
 }
 
 .compareControls {
@@ -1086,7 +1133,7 @@
     grid-template-columns: 1fr;
   }
   .personChartCard {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: auto auto minmax(0, 1fr);
   }
   .personBars,
   .personMetrics {

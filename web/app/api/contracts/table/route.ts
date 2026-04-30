@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
     let q = sb
       .from("contracts")
-      .select("id, entity, provider, department, modality, date, value, risk_score, risk_bucket, secop_url, object_desc", { count: "planned" })
+      .select("id, entity, provider, department, modality, date, value, risk_score, risk_bucket, secop_url, object_desc", { count: "exact" })
       .order("risk_score", { ascending: false })
       .order("value", { ascending: false })
       .range(offset, offset + limit - 1);

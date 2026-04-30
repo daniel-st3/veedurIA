@@ -331,6 +331,7 @@ function emptyDirectory(
 
 export function parseVotometroFilters(input: SearchParamInput): VotometroFilters {
   const chamber = readSearchParam(input, "chamber");
+  const votesMin = toNumber(readSearchParam(input, "min_votes"));
   const attendanceMin = toNumber(readSearchParam(input, "attendance_min"));
   const coherenceMin = toNumber(readSearchParam(input, "coherence_min"));
   const page = Math.max(1, toNumber(readSearchParam(input, "page")) ?? 1);
@@ -341,6 +342,7 @@ export function parseVotometroFilters(input: SearchParamInput): VotometroFilters
     circunscription: toStringValue(readSearchParam(input, "circunscription")) || undefined,
     commission: toStringValue(readSearchParam(input, "commission")) || undefined,
     topic: toStringValue(readSearchParam(input, "topic")) || undefined,
+    votesMin: votesMin ?? undefined,
     attendanceMin: attendanceMin ?? undefined,
     coherenceMin: coherenceMin ?? undefined,
     page,
@@ -388,6 +390,7 @@ export async function getVotometroDirectory(filtersInput: SearchParamInput | Vot
         !filters.commission ||
         item.commission.toLocaleLowerCase("es-CO").includes(filters.commission.toLocaleLowerCase("es-CO")),
       )
+      .filter((item) => filters.votesMin == null || item.votesIndexed >= filters.votesMin)
       .filter((item) => filters.attendanceMin == null || (item.attendanceRate ?? -1) >= filters.attendanceMin)
       .filter((item) => filters.coherenceMin == null || (item.coherenceScore ?? -1) >= filters.coherenceMin)
       .filter((item) => {

@@ -119,6 +119,7 @@ export type VotometroFilters = {
   circunscription?: string;
   commission?: string;
   topic?: VotometroTopicKey | string;
+  votesMin?: number;
   attendanceMin?: number;
   coherenceMin?: number;
   page: number;

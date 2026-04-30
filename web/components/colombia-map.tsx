@@ -136,7 +136,9 @@ function buildProjectedFeatures(geojson: Props["geojson"]): ProjectedFeature[] {
 }
 
 function buildRiskStops(values: number[]) {
-  const sorted = [...values].sort((left, right) => left - right);
+  const sorted = [...values]
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((left, right) => left - right);
   if (!sorted.length) {
     return { medium: 0.4, high: 0.7, peak: 0.82 };
   }
@@ -154,12 +156,12 @@ function buildRiskStops(values: number[]) {
 }
 
 function toneForRisk(value: number, stops: { medium: number; high: number; peak: number }) {
-  // Keep the map legible across narrow high-risk slices. The daily import is
-  // already prioritized, so absolute score bands communicate better than pure
-  // percentiles when most departments cluster between 0.80 and 0.90.
-  if (value >= 0.85 || value >= stops.peak) return "rgba(192, 57, 43, 0.92)";
-  if (value >= 0.78 || value >= stops.high) return MAP_TONES.medium;
-  if (value >= stops.medium) return "rgba(203, 151, 74, 0.78)";
+  // Department averages are computed inside the prioritized slice, so their
+  // numeric range is intentionally narrow. Use slice-relative terciles for the
+  // map: red means high within this cut, amber means middle, green means lower.
+  if (value <= 0) return MAP_TONES.neutral;
+  if (value >= stops.high) return "rgba(192, 57, 43, 0.92)";
+  if (value >= stops.medium) return "rgba(203, 151, 74, 0.86)";
   return MAP_TONES.low;
 }
 
@@ -360,7 +362,7 @@ export function ColombiaMap({
           {features.map((feature, index) => {
             const datum = summary.get(feature.key);
             const isActive = normalizedCurrentDepartment === feature.key;
-            const isHot = (datum?.avgRisk ?? 0) >= 0.85;
+            const isHot = (datum?.avgRisk ?? 0) >= stops.high;
             const fill =
               datum
                 ? toneForRisk(datum.avgRisk, stops)

@@ -68,10 +68,6 @@ export function SiteNav({ lang, links }: SiteNavProps) {
             <span />
           </span>
           <span className="language-hint__text">{lang === "es" ? "Change the language" : "Cambia el lenguaje"}</span>
-          <span className="language-hint__track" aria-hidden="true">
-            <span>ES</span>
-            <span>EN</span>
-          </span>
           <Languages size={13} strokeWidth={1.8} />
         </span>
         <Suspense fallback={<span style={{ width: 52 }} />}>
