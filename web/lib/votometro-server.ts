@@ -298,7 +298,7 @@ function itemFromDirectoryRow(row: DirectoryRow): LegislatorListItem {
     inconsistentVotes: toNumber(row.inconsistent_votes) ?? 0,
     absentVotes: toNumber(row.absent_votes) ?? 0,
     coherenceScore,
-    topTopics: parseTopTopics(row.top_topics),
+    topTopics: votesIndexed > 0 ? parseTopTopics(row.top_topics) : [],
     topicScores: parseTopicScores(row.topic_scores),
     updatedAt: toStringValue(row.updated_at) || null,
   };

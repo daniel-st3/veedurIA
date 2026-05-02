@@ -320,6 +320,7 @@ function Nav({
   page: number;
   pageCount: number;
 }) {
+  if (pageCount <= 1) return null;
   const b = {
     lang,
     chamber: filters.chamber,
