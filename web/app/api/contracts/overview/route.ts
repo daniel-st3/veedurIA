@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase, formatCop } from "@/lib/supabase-server";
 import { departmentFilterVariants, deptDisplayLabel, deptGeoName, getAllGeoNames } from "@/lib/colombia-departments";
+import { displayEntityName } from "@/lib/format";
 import type { OverviewPayload } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -97,7 +98,7 @@ function buildLeadCases(rows: SliceRow[], lang: "es" | "en", limit = 48): Overvi
       id: String(row.id ?? ""),
       score: Math.round(numericValue(row.risk_score) * 100),
       riskBand: bucketRisk(row.risk_bucket),
-      entity: readableText(row.entity, lang === "es" ? "Entidad sin nombre disponible" : "Entity name unavailable"),
+      entity: displayEntityName(readableText(row.entity, lang === "es" ? "Entidad sin nombre disponible" : "Entity name unavailable")),
       provider: readableText(row.provider, lang === "es" ? "Proveedor no disponible" : "Provider unavailable"),
       department: deptDisplayLabel(String(row.department ?? "")),
       modality: readableText(row.modality, lang === "es" ? "Modalidad no disponible" : "Modality unavailable"),
@@ -154,7 +155,7 @@ function buildTopEntities(rows: SliceRow[]): OverviewPayload["summaries"]["entit
   const buckets = new Map<string, { nombre_entidad: string; contracts: number; totalRisk: number; maxRisk: number }>();
 
   rows.forEach((row) => {
-    const label = readableText(row.entity, "Entidad sin dato");
+    const label = displayEntityName(readableText(row.entity, "Entidad sin dato"));
     const key = normalizeGroupKey(label);
     const current = buckets.get(key) ?? {
       nombre_entidad: label,

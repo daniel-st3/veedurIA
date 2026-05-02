@@ -186,7 +186,7 @@ const SIGNAL_TEXT = {
     metrics: {
       contracts: "registros trazados",
       votes: "votos indexados",
-      money: "alertas enlazadas",
+      money: "Capa relacional en construcción",
     },
     cards: {
       contracts: {
@@ -214,7 +214,7 @@ const SIGNAL_TEXT = {
     metrics: {
       contracts: "records traced",
       votes: "votes indexed",
-      money: "linked alerts",
+      money: "Relationship layer in progress",
     },
     cards: {
       contracts: {
@@ -235,6 +235,21 @@ const SIGNAL_TEXT = {
 
 function hasNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+type DeptRow = { geoName: string; label: string; avgRisk: number; contractCount: number };
+
+export function pickHottestDepartment<T extends DeptRow>(rows: T[]): T | undefined {
+  if (!rows || rows.length === 0) return undefined;
+  return [...rows].sort((a, b) => {
+    const aRisk = Number.isFinite(a.avgRisk) ? a.avgRisk : -Infinity;
+    const bRisk = Number.isFinite(b.avgRisk) ? b.avgRisk : -Infinity;
+    if (bRisk !== aRisk) return bRisk - aRisk;
+    if ((b.contractCount ?? 0) !== (a.contractCount ?? 0)) {
+      return (b.contractCount ?? 0) - (a.contractCount ?? 0);
+    }
+    return String(a.label ?? a.geoName).localeCompare(String(b.label ?? b.geoName));
+  })[0];
 }
 
 function formatLandingNumber(value: number | null | undefined, lang: Lang) {
@@ -325,7 +340,9 @@ export function LandingPage({
   const [overview, setOverview] = useState<OverviewPayload>(initialOverview);
   const [votometroStats, setVotometroStats] = useState<VotometroLandingStats>(initialVotometroStats);
   const [geojson, setGeojson] = useState<any | null>(null);
-  const [activeDepartment, setActiveDepartment] = useState(initialOverview.map.departments[0]?.geoName);
+  const [activeDepartment, setActiveDepartment] = useState(
+    pickHottestDepartment(initialOverview.map.departments)?.geoName,
+  );
   const [hoveredDepartment, setHoveredDepartment] = useState<string | null>(null);
   const [showHeroCanvas, setShowHeroCanvas] = useState(false);
 
@@ -343,7 +360,7 @@ export function LandingPage({
         .then((data) => {
           if (!alive) return;
           setOverview(data);
-          setActiveDepartment((current) => current ?? data.map.departments[0]?.geoName);
+          setActiveDepartment((current) => current ?? pickHottestDepartment(data.map.departments)?.geoName);
         })
         .catch(() => {});
     }, 2600);
@@ -748,9 +765,10 @@ export function LandingPage({
     overview.meta.sourceLatestContractDate ??
     overview.meta.latestContractDate ??
     (lang === "es" ? "sin fecha visible" : "no visible date");
+  const hottestDepartment = pickHottestDepartment(overview.map.departments);
   const currentDepartmentData =
-    overview.map.departments.find((item) => item.geoName === activeDepartment) ?? overview.map.departments[0];
-  const focusedDepartment = hoveredDepartment ?? activeDepartment ?? overview.map.departments[0]?.geoName ?? null;
+    overview.map.departments.find((item) => item.geoName === activeDepartment) ?? hottestDepartment;
+  const focusedDepartment = hoveredDepartment ?? activeDepartment ?? hottestDepartment?.geoName ?? null;
   const focusedDepartmentData =
     overview.map.departments.find((item) => item.geoName === focusedDepartment) ??
     (focusedDepartment
@@ -792,8 +810,8 @@ export function LandingPage({
   const votometroCoverageSubLabel =
     votometroStats.available && hasNumber(votometroStats.activeLegislators)
       ? lang === "es"
-        ? `${formatLandingNumber(votometroStats.activeLegislators, lang)} legisladores activos`
-        : `${formatLandingNumber(votometroStats.activeLegislators, lang)} active legislators`
+        ? `${formatLandingNumber(votometroStats.activeLegislators, lang)} perfiles sincronizados`
+        : `${formatLandingNumber(votometroStats.activeLegislators, lang)} synced profiles`
       : impactData.stats[1].sublabel;
   const votometroIndexedValue =
     votometroStats.available && hasNumber(votometroStats.indexedVotes) && votometroStats.indexedVotes > 0
@@ -806,8 +824,8 @@ export function LandingPage({
     votometroIndexedValue !== null
       ? signalData.metrics.votes
       : lang === "es"
-        ? "legisladores activos"
-        : "active legislators";
+        ? "perfiles sincronizados"
+        : "synced profiles";
   const impactStats = [
     {
       ...impactData.stats[0],
@@ -819,8 +837,8 @@ export function LandingPage({
         votometroIndexedValue !== null
           ? impactData.stats[1].label
           : lang === "es"
-            ? "Legisladores en API pública"
-            : "Legislators in public API",
+            ? "Perfiles legislativos sincronizados"
+            : "Synced legislative profiles",
       value: formatLandingNumber(votometroPrimaryValue, lang),
       sublabel: votometroCoverageSubLabel,
     },
@@ -1099,17 +1117,20 @@ export function LandingPage({
                 </div>
                 {features.map((feature) => {
                   const Icon = feature.icon;
-                  return (
-                    <Link
-                      key={feature.title}
-                      href={feature.href}
-                      className={`lp-module-card lp-module-card--${feature.tone}`}
-                    >
+                  const isMoneyGated = feature.title === "SigueElDinero";
+                  const cardClass = `lp-module-card lp-module-card--${feature.tone}${isMoneyGated ? " lp-module-card--gated" : ""}`;
+                  const inner = (
+                    <>
                       <div className="lp-module-card__top">
                         <span className={`lp-module-card__icon lp-module-card__icon--${feature.tone}`}>
                           <Icon size={16} />
                         </span>
                         <span className="lp-module-card__kicker">{feature.kicker}</span>
+                        {isMoneyGated ? (
+                          <span className="lp-module-card__pill" aria-label={lang === "es" ? "En construcción" : "In progress"}>
+                            {lang === "es" ? "En construcción" : "In progress"}
+                          </span>
+                        ) : null}
                       </div>
                       <strong className="lp-module-card__title">{feature.title}</strong>
                       <p className="lp-module-card__body">{feature.body}</p>
@@ -1122,10 +1143,27 @@ export function LandingPage({
                           ))}
                         </span>
                         <span className="lp-module-card__cta">
-                          {feature.cta}
-                          <ArrowRight size={13} aria-hidden={true} />
+                          {isMoneyGated ? (lang === "es" ? "Próximamente" : "Coming soon") : feature.cta}
+                          {isMoneyGated ? null : <ArrowRight size={13} aria-hidden={true} />}
                         </span>
                       </span>
+                    </>
+                  );
+                  if (isMoneyGated) {
+                    return (
+                      <div
+                        key={feature.title}
+                        className={cardClass}
+                        role="group"
+                        aria-disabled="true"
+                      >
+                        {inner}
+                      </div>
+                    );
+                  }
+                  return (
+                    <Link key={feature.title} href={feature.href} className={cardClass}>
+                      {inner}
                     </Link>
                   );
                 })}
@@ -1148,8 +1186,10 @@ export function LandingPage({
               <div className="lp-signal__grid">
                 {signalCards.map((card) => {
                   const CardIcon = card.icon;
-                  return (
-                    <Link key={card.kicker} href={card.href} className={`lp-signal-card lp-signal-card--${card.tone}`}>
+                  const isMoneyGated = card.kicker === "SigueElDinero";
+                  const cardClass = `lp-signal-card lp-signal-card--${card.tone}${isMoneyGated ? " lp-signal-card--gated" : ""}`;
+                  const inner = (
+                    <>
                       <div className="lp-signal-card__top">
                         <span className={`lp-signal-card__icon lp-signal-card__icon--${card.tone}`}>
                           <CardIcon size={18} />
@@ -1159,13 +1199,31 @@ export function LandingPage({
                       <strong className="lp-signal-card__title">{card.title}</strong>
                       <p className="lp-signal-card__body">{card.body}</p>
                       <div className="lp-signal-card__metric">
-                        <strong>{card.value}</strong>
+                        {isMoneyGated ? (
+                          <strong>{lang === "es" ? "Próximamente" : "Coming soon"}</strong>
+                        ) : (
+                          <strong>{card.value}</strong>
+                        )}
                         <span>{card.metric}</span>
                       </div>
                       <span className="lp-signal-card__cta">
-                        {lang === "es" ? "Seguir capa" : "Follow layer"}
-                        <ArrowRight size={14} aria-hidden={true} />
+                        {isMoneyGated
+                          ? lang === "es" ? "Próximamente" : "Coming soon"
+                          : lang === "es" ? "Seguir capa" : "Follow layer"}
+                        {isMoneyGated ? null : <ArrowRight size={14} aria-hidden={true} />}
                       </span>
+                    </>
+                  );
+                  if (isMoneyGated) {
+                    return (
+                      <div key={card.kicker} className={cardClass} role="group" aria-disabled="true">
+                        {inner}
+                      </div>
+                    );
+                  }
+                  return (
+                    <Link key={card.kicker} href={card.href} className={cardClass}>
+                      {inner}
                     </Link>
                   );
                 })}

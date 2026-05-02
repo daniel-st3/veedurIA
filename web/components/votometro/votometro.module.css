@@ -1337,6 +1337,21 @@
   color: rgba(12,19,34,.68);
 }
 
+.seedBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: .5rem;
+  padding: .12rem .45rem;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: rgba(12,19,34,.7);
+  background: rgba(255, 200, 0, .18);
+  border: 1px solid rgba(255, 200, 0, .42);
+  border-radius: 999px;
+}
+
 .sourcePending {
   display: inline-flex;
   padding: .3rem .55rem;

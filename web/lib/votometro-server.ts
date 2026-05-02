@@ -154,7 +154,16 @@ function chamberLabel(chamber: string): string {
   return chamber === "camara" ? "Cámara de Representantes" : "Senado";
 }
 
-const LEGISLATOR_STATUSES = new Set(["Activo", "Retirado", "Fallecido", "Histórico", "Suspendido"]);
+const LEGISLATOR_STATUSES = new Set([
+  "Activo",
+  "Retirado",
+  "Fallecido",
+  "Histórico",
+  "Suspendido",
+  "Exsenador",
+  "Exrepresentante",
+  "En revisión",
+]);
 
 function verifiedUrl(value: unknown) {
   const url = toStringValue(value);
@@ -173,7 +182,9 @@ function statusForRow(row: DirectoryRow, canonicalName: string) {
   const raw = toStringValue(row.status);
   if (LEGISLATOR_STATUSES.has(raw)) return raw as LegislatorListItem["status"];
   if (normalizeForMatch(canonicalName).join(" ").includes("miguel uribe turbay")) return "Fallecido";
-  return "Activo";
+  // Without a verified current-office signal in the seed feed, default to "En revisión"
+  // rather than implying every profile is currently in office.
+  return "En revisión";
 }
 
 // Party-colored avatar palette (background, foreground always white).

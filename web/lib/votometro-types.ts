@@ -1,7 +1,15 @@
 import type { VotometroTopicKey } from "@/lib/votometro-topics";
 
 export type VotometroChamber = "senado" | "camara";
-export type LegislatorStatus = "Activo" | "Retirado" | "Fallecido" | "Histórico" | "Suspendido";
+export type LegislatorStatus =
+  | "Activo"
+  | "Retirado"
+  | "Fallecido"
+  | "Histórico"
+  | "Suspendido"
+  | "Exsenador"
+  | "Exrepresentante"
+  | "En revisión";
 export type PromiseAlignment = "coherente" | "inconsistente" | "ausente" | "sin-promesa";
 export type VotometroIssueCode = "missing_env" | "missing_schema" | "query_error";
 

@@ -28,7 +28,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { fetchContractsFreshness, fetchContractsTable, fetchGeoJson, fetchOverview } from "@/lib/api";
 import { contractsCopy } from "@/lib/copy";
-import { formatCompactCop } from "@/lib/format";
+import { formatCompactCop, formatCopValue } from "@/lib/format";
 import type { ContractsFreshnessPayload, Lang, LeadCase, OverviewPayload, TablePayload } from "@/lib/types";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -364,11 +364,9 @@ function monthBounds(month: string) {
   return { start, end };
 }
 
-function contractValueFlag(value: number, lang: Lang) {
-  if (value === 1) return lang === "es" ? "Valor reportado en fuente oficial" : "Value reported by official source";
-  if (value <= 0) return lang === "es" ? "Valor no disponible en campo importado" : "Value unavailable in imported field";
-  if (value >= 1_000_000_000_000) return lang === "es" ? "Valor extremo — revisa documentos del proceso" : "Extreme value — review process documents";
-  return null;
+function contractValueFlag(value: number | null | undefined, lang: Lang) {
+  const { badge } = formatCopValue(value, lang);
+  return badge || null;
 }
 
 export function ContractsView({
@@ -1460,6 +1458,9 @@ export function ContractsView({
                 <div>
                   <span>{lang === "es" ? "Valor" : "Value"}</span>
                   <strong>{formatCompactCop(selectedCase.value, lang)}</strong>
+                  {contractValueFlag(selectedCase.value, lang) ? (
+                    <small className="value-flag">{contractValueFlag(selectedCase.value, lang)}</small>
+                  ) : null}
                 </div>
               </div>
 
@@ -1530,6 +1531,9 @@ export function ContractsView({
                   </div>
                   <h3>{item.entity}</h3>
                   <p>{formatCompactCop(item.value, lang)}</p>
+                  {contractValueFlag(item.value, lang) ? (
+                    <small className="value-flag">{contractValueFlag(item.value, lang)}</small>
+                  ) : null}
                   <div className="cv-case-chip__bar">
                     <span
                       data-width={`${Math.max(14, (item.score / leadCaseMax) * 100)}%`}
@@ -1567,8 +1571,8 @@ export function ContractsView({
             <summary>
               <span>
                 {lang === "es"
-                  ? `Ver contratos recientes (${liveContracts.length} nuevos hoy)`
-                  : `View recent contracts (${liveContracts.length} new today)`}
+                  ? `Ver contratos recientes (${liveContracts.length} en la vista rápida)`
+                  : `View recent contracts (${liveContracts.length} in the quick view)`}
               </span>
             </summary>
 
@@ -1624,9 +1628,16 @@ export function ContractsView({
               </div>
             ) : (
               <div className="cv-empty-state surface-soft">
-                {lang === "es"
-                  ? "Conectando con SECOP en tiempo real. Si la muestra no aparece, el portal oficial puede tener una demora temporal."
-                  : "Connecting to SECOP in real time. If the sample does not appear, the official portal may have a temporary delay."}
+                <strong>
+                  {lang === "es"
+                    ? "No hay contratos recientes cargados en esta ventana."
+                    : "No recent contracts are loaded in this window."}
+                </strong>
+                <p>
+                  {lang === "es"
+                    ? "La fuente oficial está actualizada, pero la vista rápida no recibió registros para mostrar. Filas en fuente y última fecha se mantienen como referencia separada."
+                    : "The official source is updated, but the quick view did not receive records to display. Rows at source and latest date remain as separate references."}
+                </p>
               </div>
             )}
           </details>

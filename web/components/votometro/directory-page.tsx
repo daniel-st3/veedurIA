@@ -209,8 +209,20 @@ function Card({ p, lang }: { p: LegislatorListItem; lang: Lang }) {
         <Avatar p={p} />
         <div>
           <h3 className={styles.cardTitle}>{p.canonicalName}</h3>
-          <span className={`${styles.statusBadge} ${p.status === "Fallecido" ? styles.statusBadgeMuted : ""}`}>
-            {lang === "es" ? p.status : p.status === "Fallecido" ? "Deceased" : p.status === "Activo" ? "Active" : p.status}
+          <span className={`${styles.statusBadge} ${p.status === "Fallecido" || p.status === "En revisión" ? styles.statusBadgeMuted : ""}`}>
+            {lang === "es"
+              ? (p.status === "En revisión" ? "Estado en revisión" : p.status)
+              : (p.status === "Fallecido"
+                ? "Deceased"
+                : p.status === "Activo"
+                  ? "Active"
+                  : p.status === "En revisión"
+                    ? "Status under review"
+                    : p.status === "Exsenador"
+                      ? "Former senator"
+                      : p.status === "Exrepresentante"
+                        ? "Former representative"
+                        : p.status)}
           </span>
           <p className={styles.cardMeta}>
             {p.roleLabel} · {p.party}
@@ -466,10 +478,10 @@ export function VotometroDirectoryPage({
       ? "¿Votaron como prometieron?"
       : "Did they vote as promised?",
     body: es
-      ? "Directorio vivo de legisladores colombianos con votos, asistencia y coherencia programática. Los datos se actualizan diariamente desde fuentes oficiales del Congreso."
-      : "Live directory of Colombian legislators with votes, attendance, and programmatic coherence. Data updates daily from official Congressional sources.",
+      ? "Directorio público de perfiles legislativos colombianos con votos, asistencia y coherencia programática. Los datos se actualizan periódicamente desde fuentes oficiales del Congreso."
+      : "Public directory of Colombian legislative profiles with votes, attendance, and programmatic coherence. Data updates periodically from official Congressional sources.",
     stats: [
-      { label: es ? "Legisladores activos" : "Active legislators", icon: Users },
+      { label: es ? "Perfiles sincronizados" : "Synced profiles", icon: Users },
       { label: es ? "Votos nominales" : "Nominal votes", icon: Landmark },
       { label: es ? "Coherencia promedio" : "Average coherence", icon: ShieldCheck },
       { label: es ? "Partidos visibles" : "Visible parties", icon: Filter },

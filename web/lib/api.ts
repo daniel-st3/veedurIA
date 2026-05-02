@@ -20,7 +20,7 @@ import {
   getMockNetworkNodeDetail,
   getMockNetworkVersion,
 } from "@/lib/mock-data";
-import { formatCompactCop } from "@/lib/format";
+import { displayEntityName, formatCompactCop } from "@/lib/format";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? (typeof window === "undefined" ? "http://127.0.0.1:8000" : "");
@@ -169,7 +169,7 @@ async function fetchOfficialContractsFallback(lang: Lang) {
         const value = parseOfficialCurrency(row.valor_del_contrato);
         return {
           id: String(row.id_contrato ?? ""),
-          entity: String(row.nombre_entidad ?? ""),
+          entity: displayEntityName(String(row.nombre_entidad ?? "")),
           department: String(row.departamento ?? ""),
           date: String(row.fecha_de_firma ?? "").slice(0, 10),
           value,

@@ -19,7 +19,6 @@ function defaultLinks(lang: Lang) {
   return [
     { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
     { href: `/votometro?lang=${lang}`, label: "Votómetro" },
-    { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
   ];
 }
 
@@ -67,7 +66,7 @@ export function SiteNav({ lang, links }: SiteNavProps) {
             <span />
             <span />
           </span>
-          <span className="language-hint__text">{lang === "es" ? "Change the language" : "Cambiar idioma"}</span>
+          <span className="language-hint__text">{lang === "es" ? "Cambiar idioma" : "Change language"}</span>
           <Languages size={13} strokeWidth={1.8} />
         </span>
         <Suspense fallback={<span style={{ width: 52 }} />}>

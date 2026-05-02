@@ -44,6 +44,9 @@ function localizedStatus(status: LegislatorProfile["status"], lang: Lang) {
     Fallecido: "Deceased",
     Histórico: "Historical",
     Suspendido: "Suspended",
+    Exsenador: "Former senator",
+    Exrepresentante: "Former representative",
+    "En revisión": "Under review",
   };
   return labels[status] ?? status;
 }
@@ -249,7 +252,20 @@ export function VotometroProfilePage({
               ) : null}
               <div className={styles.detailItem}>
                 <strong>{lang === "es" ? "Fuente primaria" : "Primary source"}</strong>
-                <span>{profile.sourcePrimary}</span>
+                <span>
+                  {profile.sourcePrimary}
+                  {profile.sourcePrimary && /seed|semilla/i.test(profile.sourcePrimary) ? (
+                    <span className={styles.seedBadge}>
+                      {lang === "es" ? "Dataset semilla" : "Seed dataset"}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+              <div className={styles.detailItem}>
+                <strong>{lang === "es" ? "Métricas" : "Metrics"}</strong>
+                <span className={styles.smallMuted}>
+                  {lang === "es" ? "Métrica en validación" : "Metric under validation"}
+                </span>
               </div>
             </div>
 

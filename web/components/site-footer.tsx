@@ -20,7 +20,7 @@ export function SiteFooter({ lang }: { lang: Lang }) {
     {
       href: `/sigue-el-dinero?lang=${lang}`,
       label: "SigueElDinero",
-      detail: lang === "es" ? "Redes de influencia" : "Influence networks",
+      detail: lang === "es" ? "Próximamente" : "Coming soon",
       icon: Waypoints,
     },
     {

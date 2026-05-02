@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase, formatCop } from "@/lib/supabase-server";
 import { deptDisplayLabel } from "@/lib/colombia-departments";
+import { displayEntityName } from "@/lib/format";
 import type { ContractsFreshnessPayload } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -98,7 +99,7 @@ export async function GET(req: NextRequest) {
         const value = Number(String(r.valor_del_contrato ?? "0").replace(/[^\d.-]/g, "") || 0);
         return {
           id: String(r.id_contrato ?? ""),
-          entity: readableText(r.nombre_entidad, lang === "es" ? "Entidad sin nombre disponible" : "Entity name unavailable"),
+          entity: displayEntityName(readableText(r.nombre_entidad, lang === "es" ? "Entidad sin nombre disponible" : "Entity name unavailable")),
           department: deptDisplayLabel(String(r.departamento ?? "")),
           date: r.fecha_de_firma ? String(r.fecha_de_firma).slice(0, 10) : (lang === "es" ? "Sin fecha" : "No date"),
           value,

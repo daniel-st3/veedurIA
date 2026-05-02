@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase, formatCop } from "@/lib/supabase-server";
 import { departmentFilterVariants, deptDisplayLabel } from "@/lib/colombia-departments";
+import { displayEntityName } from "@/lib/format";
 import type { TablePayload, TableRow } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -73,7 +74,7 @@ export async function GET(req: NextRequest) {
       id: String(r.id ?? ""),
       score: Math.round((r.risk_score as number) * 100),
       riskBand: ((r.risk_bucket as string) === "high" ? "high" : (r.risk_bucket as string) === "medium" ? "medium" : "low") as TableRow["riskBand"],
-      entity: readableText(r.entity, lang === "es" ? "Entidad sin nombre disponible" : "Entity name unavailable"),
+      entity: displayEntityName(readableText(r.entity, lang === "es" ? "Entidad sin nombre disponible" : "Entity name unavailable")),
       provider: readableText(r.provider, lang === "es" ? "Proveedor no disponible" : "Provider unavailable"),
       department: deptDisplayLabel(String(r.department ?? "")),
       modality: readableText(r.modality, lang === "es" ? "Modalidad no disponible" : "Modality unavailable"),

@@ -32,8 +32,8 @@ export function createServiceSupabase() {
 
 export { deptDisplayLabel, deptGeoName };
 
+import { formatCompactCop } from "@/lib/format";
+
 export function formatCop(value: number, lang: string): string {
-  if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(0)}M`;
-  return `$${(value / 1_000).toFixed(0)}K`;
+  return formatCompactCop(value, lang === "en" ? "en" : "es");
 }
