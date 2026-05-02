@@ -46,7 +46,7 @@ export function SiteNav({ lang, links }: SiteNavProps) {
           letterSpacing: ".02em",
         }}
       >
-        Build: b696fff
+        Build: b696fff VISIBLE_BUILD_CANARY_6790bea
       </span>
       <Link href={`/?lang=${lang}`} className="brand" aria-label="VeedurIA">
         <span className="brand-mark">
