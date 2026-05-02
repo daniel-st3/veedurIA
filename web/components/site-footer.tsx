@@ -82,6 +82,9 @@ export function SiteFooter({ lang }: { lang: Lang }) {
 
         <div className="site-footer__bottom">
           <span>{lang === "es" ? "Desarrollado por Daniel Steven Rodríguez Sandoval" : "Developed by Daniel Steven Rodríguez Sandoval"}</span>
+          <span data-build="b696fff" style={{ fontFamily: "monospace", fontSize: 11, opacity: 0.7 }}>
+            Build: b696fff
+          </span>
           <Link href={`/etica-y-privacidad?lang=${lang}`}>
             {lang === "es" ? "Legal, privacidad y seguridad" : "Legal, privacy, and security"}
           </Link>

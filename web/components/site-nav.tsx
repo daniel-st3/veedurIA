@@ -28,7 +28,26 @@ export function SiteNav({ lang, links }: SiteNavProps) {
   const navLinks = links ?? defaultLinks(lang);
 
   return (
-    <nav className="site-nav">
+    <nav className="site-nav" data-build="b696fff">
+      <span
+        className="build-marker"
+        data-build="b696fff"
+        style={{
+          position: "fixed",
+          top: 0,
+          right: 0,
+          zIndex: 9999,
+          padding: "2px 8px",
+          fontSize: 11,
+          fontFamily: "monospace",
+          color: "#fff",
+          background: "#0d5bd7",
+          borderBottomLeftRadius: 6,
+          letterSpacing: ".02em",
+        }}
+      >
+        Build: b696fff
+      </span>
       <Link href={`/?lang=${lang}`} className="brand" aria-label="VeedurIA">
         <span className="brand-mark">
           <span className="brand-word">Veedur</span>
