@@ -28,7 +28,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { fetchContractsFreshness, fetchContractsTable, fetchGeoJson, fetchOverview } from "@/lib/api";
 import { contractsCopy } from "@/lib/copy";
-import { displayEntityName, formatCompactCop, formatCopValue } from "@/lib/format";
+import { displayEntityName, formatCompactCop, formatCopValue, normalizeCurrencyPrefix } from "@/lib/format";
 import type { ContractsFreshnessPayload, Lang, LeadCase, OverviewPayload, TablePayload } from "@/lib/types";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -134,10 +134,46 @@ const MODEL_GROUPS = {
 };
 
 function ContractsLoading({ lang }: { lang: Lang }) {
+  const [phase, setPhase] = useState<"loading" | "stuck">("loading");
+  useEffect(() => {
+    const id = window.setTimeout(() => setPhase("stuck"), 12000);
+    return () => window.clearTimeout(id);
+  }, []);
+
   return (
     <main className="page cv-page">
       <section className="surface stripe-flag" style={{ marginTop: "1.2rem", padding: "1.2rem" }}>
         <LoadingStage lang={lang} context="contracts" compact />
+        <p className="cv-loading-note" role="status">
+          {lang === "es"
+            ? "ContratoLimpio está cargando la vista interactiva. Si esta pantalla no avanza, revisa la conexión o vuelve a intentarlo. La fuente oficial puede tardar en responder."
+            : "ContratoLimpio is loading the interactive view. If this screen does not progress, check your connection or try again. The official source may take time to respond."}
+        </p>
+        {phase === "stuck" ? (
+          <div className="cv-loading-stuck">
+            <strong>
+              {lang === "es"
+                ? "La carga está tardando más de lo normal."
+                : "Loading is taking longer than usual."}
+            </strong>
+            <p>
+              {lang === "es"
+                ? "Puedes recargar la página, volver al inicio o revisar la metodología y los límites legales mientras se restablece la fuente."
+                : "You can reload the page, go back home, or review the methodology and legal limits while the source recovers."}
+            </p>
+            <div className="cv-loading-stuck__actions">
+              <a className="btn-secondary" href={`/?lang=${lang}`}>
+                {lang === "es" ? "Volver al inicio" : "Back home"}
+              </a>
+              <a className="btn-secondary" href={`/metodologia?lang=${lang}`}>
+                {lang === "es" ? "Metodología" : "Methodology"}
+              </a>
+              <a className="btn-secondary" href={`/etica-y-privacidad?lang=${lang}`}>
+                {lang === "es" ? "Límites legales" : "Legal limits"}
+              </a>
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );
@@ -640,7 +676,12 @@ export function ContractsView({
   }, [filters, lang, page, tableInitialized]);
 
   const leadCases = useMemo(
-    () => (overview?.leadCases ?? []).map((row) => ({ ...row, entity: displayEntityName(row.entity) })),
+    () =>
+      (overview?.leadCases ?? []).map((row) => ({
+        ...row,
+        entity: displayEntityName(row.entity),
+        valueLabel: normalizeCurrencyPrefix(row.valueLabel),
+      })),
     [overview?.leadCases],
   );
   const summaryEntities = useMemo(
@@ -653,7 +694,12 @@ export function ContractsView({
   );
   const summaryModalities = overview?.summaries.modalities ?? [];
   const tableRows = useMemo(
-    () => (table?.rows ?? []).map((row) => ({ ...row, entity: displayEntityName(row.entity) })),
+    () =>
+      (table?.rows ?? []).map((row) => ({
+        ...row,
+        entity: displayEntityName(row.entity),
+        valueLabel: normalizeCurrencyPrefix(row.valueLabel),
+      })),
     [table?.rows],
   );
   const departmentLabelByGeoName = useMemo(

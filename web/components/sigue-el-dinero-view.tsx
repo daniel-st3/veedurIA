@@ -143,8 +143,12 @@ export function SigueElDineroView({ lang }: Props) {
         if (payload.nodes.length) {
           setCachedGraph(cacheKey2, payload, networkConfig.cache.ttlMs);
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error loading network");
+      } catch {
+        setError(
+          lang === "es"
+            ? "No pudimos cargar la red en este momento. Intenta de nuevo o revisa la metodología."
+            : "We could not load the network right now. Try again or review the methodology.",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -464,24 +468,35 @@ export function SigueElDineroView({ lang }: Props) {
 
           {/* Metric chips */}
           <div className="sed-hero-chips sed-hero__animate">
-            <div className="sed-hero-chip">
-              <span className="sed-hero-chip__val">{nodes.length.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</span>
-              <span className="sed-hero-chip__lbl">{lang === "es" ? "nodos" : "nodes"}</span>
-            </div>
-            <div className="sed-hero-chip">
-              <span className="sed-hero-chip__val">{highConfidenceEdges.toLocaleString(lang === "es" ? "es-CO" : "en-US")}</span>
-              <span className="sed-hero-chip__lbl">{lang === "es" ? "vínculos fuertes" : "strong links"}</span>
-            </div>
-            <div className="sed-hero-chip">
-              <span className="sed-hero-chip__val">
-                {Intl.NumberFormat(lang === "es" ? "es-CO" : "en-US", { notation: "compact", maximumFractionDigits: 1 }).format(visibleValue)}
-              </span>
-              <span className="sed-hero-chip__lbl">{lang === "es" ? "valor visible" : "visible value"}</span>
-            </div>
-            <div className="sed-hero-chip">
-              <span className="sed-hero-chip__val">{activeDepartmentCount}</span>
-              <span className="sed-hero-chip__lbl">{lang === "es" ? "departamentos" : "departments"}</span>
-            </div>
+            {(() => {
+              const dataReady = !isLoading && !error && nodes.length > 0;
+              const fallback = lang === "es" ? "Sin dato" : "No data";
+              const fmt = (n: number) => n.toLocaleString(lang === "es" ? "es-CO" : "en-US");
+              return (
+                <>
+                  <div className="sed-hero-chip">
+                    <span className="sed-hero-chip__val">{dataReady ? fmt(nodes.length) : fallback}</span>
+                    <span className="sed-hero-chip__lbl">{lang === "es" ? "nodos" : "nodes"}</span>
+                  </div>
+                  <div className="sed-hero-chip">
+                    <span className="sed-hero-chip__val">{dataReady ? fmt(highConfidenceEdges) : fallback}</span>
+                    <span className="sed-hero-chip__lbl">{lang === "es" ? "vínculos fuertes" : "strong links"}</span>
+                  </div>
+                  <div className="sed-hero-chip">
+                    <span className="sed-hero-chip__val">
+                      {dataReady && visibleValue > 0
+                        ? Intl.NumberFormat(lang === "es" ? "es-CO" : "en-US", { notation: "compact", maximumFractionDigits: 1 }).format(visibleValue)
+                        : fallback}
+                    </span>
+                    <span className="sed-hero-chip__lbl">{lang === "es" ? "valor visible" : "visible value"}</span>
+                  </div>
+                  <div className="sed-hero-chip">
+                    <span className="sed-hero-chip__val">{dataReady ? activeDepartmentCount : fallback}</span>
+                    <span className="sed-hero-chip__lbl">{lang === "es" ? "departamentos" : "departments"}</span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Ethical note */}

@@ -57,7 +57,7 @@ const FEATURE_TEXT = {
       title: "SigueElDinero",
       kicker: "RED RELACIONAL",
       body: "Conecta contratistas, financiadores y señales repetidas. Visualiza la red de intereses detrás de los contratos públicos.",
-      cta: "Próximamente",
+      cta: "Ver la red",
       href: "/sigue-el-dinero?lang=es",
       icon: Waypoints,
       tone: "red" as FeatureTone,
@@ -89,7 +89,7 @@ const FEATURE_TEXT = {
       title: "SigueElDinero",
       kicker: "RELATIONSHIP NETWORK",
       body: "Connect contractors, funders, and repeated signals. Visualize the network of interests behind public contracts.",
-      cta: "Coming soon",
+      cta: "See the network",
       href: "/sigue-el-dinero?lang=en",
       icon: Waypoints,
       tone: "red" as FeatureTone,
@@ -186,7 +186,7 @@ const SIGNAL_TEXT = {
     metrics: {
       contracts: "registros trazados",
       votes: "votos indexados",
-      money: "Capa relacional en construcción",
+      money: "Red de relaciones públicas",
     },
     cards: {
       contracts: {
@@ -214,7 +214,7 @@ const SIGNAL_TEXT = {
     metrics: {
       contracts: "records traced",
       votes: "votes indexed",
-      money: "Relationship layer in progress",
+      money: "Public relationship network",
     },
     cards: {
       contracts: {
@@ -1117,20 +1117,17 @@ export function LandingPage({
                 </div>
                 {features.map((feature) => {
                   const Icon = feature.icon;
-                  const isMoneyGated = feature.title === "SigueElDinero";
-                  const cardClass = `lp-module-card lp-module-card--${feature.tone}${isMoneyGated ? " lp-module-card--gated" : ""}`;
-                  const inner = (
-                    <>
+                  return (
+                    <Link
+                      key={feature.title}
+                      href={feature.href}
+                      className={`lp-module-card lp-module-card--${feature.tone}`}
+                    >
                       <div className="lp-module-card__top">
                         <span className={`lp-module-card__icon lp-module-card__icon--${feature.tone}`}>
                           <Icon size={16} />
                         </span>
                         <span className="lp-module-card__kicker">{feature.kicker}</span>
-                        {isMoneyGated ? (
-                          <span className="lp-module-card__pill" aria-label={lang === "es" ? "En construcción" : "In progress"}>
-                            {lang === "es" ? "En construcción" : "In progress"}
-                          </span>
-                        ) : null}
                       </div>
                       <strong className="lp-module-card__title">{feature.title}</strong>
                       <p className="lp-module-card__body">{feature.body}</p>
@@ -1143,27 +1140,10 @@ export function LandingPage({
                           ))}
                         </span>
                         <span className="lp-module-card__cta">
-                          {isMoneyGated ? (lang === "es" ? "Próximamente" : "Coming soon") : feature.cta}
-                          {isMoneyGated ? null : <ArrowRight size={13} aria-hidden={true} />}
+                          {feature.cta}
+                          <ArrowRight size={13} aria-hidden={true} />
                         </span>
                       </span>
-                    </>
-                  );
-                  if (isMoneyGated) {
-                    return (
-                      <div
-                        key={feature.title}
-                        className={cardClass}
-                        role="group"
-                        aria-disabled="true"
-                      >
-                        {inner}
-                      </div>
-                    );
-                  }
-                  return (
-                    <Link key={feature.title} href={feature.href} className={cardClass}>
-                      {inner}
                     </Link>
                   );
                 })}
@@ -1186,10 +1166,8 @@ export function LandingPage({
               <div className="lp-signal__grid">
                 {signalCards.map((card) => {
                   const CardIcon = card.icon;
-                  const isMoneyGated = card.kicker === "SigueElDinero";
-                  const cardClass = `lp-signal-card lp-signal-card--${card.tone}${isMoneyGated ? " lp-signal-card--gated" : ""}`;
-                  const inner = (
-                    <>
+                  return (
+                    <Link key={card.kicker} href={card.href} className={`lp-signal-card lp-signal-card--${card.tone}`}>
                       <div className="lp-signal-card__top">
                         <span className={`lp-signal-card__icon lp-signal-card__icon--${card.tone}`}>
                           <CardIcon size={18} />
@@ -1199,31 +1177,13 @@ export function LandingPage({
                       <strong className="lp-signal-card__title">{card.title}</strong>
                       <p className="lp-signal-card__body">{card.body}</p>
                       <div className="lp-signal-card__metric">
-                        {isMoneyGated ? (
-                          <strong>{lang === "es" ? "Próximamente" : "Coming soon"}</strong>
-                        ) : (
-                          <strong>{card.value}</strong>
-                        )}
+                        <strong>{card.value}</strong>
                         <span>{card.metric}</span>
                       </div>
                       <span className="lp-signal-card__cta">
-                        {isMoneyGated
-                          ? lang === "es" ? "Próximamente" : "Coming soon"
-                          : lang === "es" ? "Seguir capa" : "Follow layer"}
-                        {isMoneyGated ? null : <ArrowRight size={14} aria-hidden={true} />}
+                        {lang === "es" ? "Seguir capa" : "Follow layer"}
+                        <ArrowRight size={14} aria-hidden={true} />
                       </span>
-                    </>
-                  );
-                  if (isMoneyGated) {
-                    return (
-                      <div key={card.kicker} className={cardClass} role="group" aria-disabled="true">
-                        {inner}
-                      </div>
-                    );
-                  }
-                  return (
-                    <Link key={card.kicker} href={card.href} className={cardClass}>
-                      {inner}
                     </Link>
                   );
                 })}

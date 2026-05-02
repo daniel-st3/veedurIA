@@ -102,11 +102,23 @@ export function formatCopValue(value: number | null | undefined, lang: Lang): Co
   return { label, badge: "", badgeKind: "none" };
 }
 
-export function normalizeCurrencyLabel(label: string | null | undefined): string {
+/**
+ * Defensive: collapse any "$$" / "$$$" anywhere in the string to a single "$".
+ * Use this when serializing labels to RSC props or rendering legacy preformatted
+ * fields that might already have a "$" prefix, to ensure the public surface
+ * never shows "$$25.2 millones COP".
+ */
+export function normalizeCurrencyPrefix(label: string | null | undefined): string {
   if (!label) return "";
-  // Collapse any accidental leading $$$ → single $
-  return label.replace(/^\$+/, "$").replace(/\s+/g, " ").trim();
+  return label
+    .replace(/\${2,}/g, "$")
+    .replace(/COP\s*\$\s*\$/g, "COP $")
+    .replace(/\s+/g, " ")
+    .trim();
 }
+
+// Backwards-compatible alias.
+export const normalizeCurrencyLabel = normalizeCurrencyPrefix;
 
 /**
  * Normalize a public entity name for display, stripping accidental
