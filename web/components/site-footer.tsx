@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Github, ShieldCheck, Database, Waypoints } from "lucide-react";
+import { ArrowRight, Github, ShieldCheck, Database, Waypoints, FileText } from "lucide-react";
 
 import type { Lang } from "@/lib/types";
 
@@ -20,8 +20,14 @@ export function SiteFooter({ lang }: { lang: Lang }) {
     {
       href: `/sigue-el-dinero?lang=${lang}`,
       label: "SigueElDinero",
-      detail: lang === "es" ? "Redes de influencia" : "Influence networks",
+      detail: lang === "es" ? "Próximamente" : "Coming soon",
       icon: Waypoints,
+    },
+    {
+      href: `/metodologia?lang=${lang}`,
+      label: lang === "es" ? "Metodología" : "Methodology",
+      detail: lang === "es" ? "Modelo y límites" : "Model and limits",
+      icon: FileText,
     },
     {
       href: "https://github.com/daniel-st3/veedurIA",

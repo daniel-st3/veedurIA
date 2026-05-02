@@ -125,6 +125,13 @@ function buildQuery(params: Record<string, string | number | boolean | undefined
   return search.toString();
 }
 
+function appBaseUrl() {
+  if (typeof window !== "undefined") return "";
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3001";
+}
+
 function parseOfficialCurrency(raw: unknown) {
   if (typeof raw === "number") return raw;
   if (typeof raw !== "string") return 0;
@@ -197,7 +204,7 @@ export async function fetchOverview(filters: ContractsFilters): Promise<Overview
       date_from: filters.dateFrom,
       date_to: filters.dateTo,
     });
-    const base = typeof window === "undefined" ? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000") : "";
+    const base = appBaseUrl();
     const response = await fetch(`${base}/api/contracts/overview?${query}`, { cache: "no-store" });
     if (!response.ok) throw new Error("overview route not ok");
     const payload = await response.json();
@@ -242,7 +249,7 @@ export async function fetchContractsTable(
       offset: filters.offset ?? 0,
       limit: filters.limit ?? 24,
     });
-    const base = typeof window === "undefined" ? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000") : "";
+    const base = appBaseUrl();
     const response = await fetch(`${base}/api/contracts/table?${query}`, { cache: "no-store" });
     if (!response.ok) throw new Error("table route not ok");
     const payload = await response.json();
@@ -255,7 +262,7 @@ export async function fetchContractsTable(
 
 export async function fetchContractsFreshness(lang: Lang = "es"): Promise<ContractsFreshnessPayload> {
   try {
-    const base = typeof window === "undefined" ? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000") : "";
+    const base = appBaseUrl();
     const response = await fetch(`${base}/api/contracts/freshness?lang=${lang}`, { cache: "no-store" });
     if (!response.ok) throw new Error("freshness route not ok");
     const payload = await response.json();

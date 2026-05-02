@@ -1317,6 +1317,53 @@
   color: var(--blue-2, #2f7cff);
 }
 
+.statusBadge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: .28rem .55rem;
+  border-radius: 999px;
+  background: rgba(24,121,78,.1);
+  color: #18794e;
+  font-family: "JetBrains Mono", monospace;
+  font-size: .65rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.statusBadgeMuted {
+  background: rgba(12,19,34,.1);
+  color: rgba(12,19,34,.68);
+}
+
+.sourcePending {
+  display: inline-flex;
+  padding: .3rem .55rem;
+  border-radius: 999px;
+  background: rgba(198,40,57,.08);
+  color: #8f1d2a;
+  font-weight: 800;
+  font-size: .78rem;
+}
+
+.freshnessRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-top: 1rem;
+}
+
+.freshnessRow span {
+  padding: .42rem .65rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(12,19,34,.08);
+  color: rgba(12,19,34,.68);
+  font-size: .72rem;
+  font-weight: 800;
+}
+
 @media (max-width: 780px) {
   .profileHero {
     grid-template-columns: 1fr;

@@ -144,14 +144,22 @@ function buildRiskStops(values: number[]) {
   }
 
   const pick = (ratio: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * ratio)))];
-  const medium = pick(0.33);
-  const high = pick(0.66);
-  const peak = pick(0.84);
+  let medium = pick(0.34);
+  let high = pick(0.67);
+  let peak = pick(0.86);
+
+  if (high <= medium && sorted[0] !== sorted[sorted.length - 1]) {
+    const min = sorted[0];
+    const max = sorted[sorted.length - 1];
+    medium = min + (max - min) / 3;
+    high = min + ((max - min) * 2) / 3;
+    peak = min + ((max - min) * 5) / 6;
+  }
 
   return {
     medium,
-    high: Math.max(high, medium + 0.02),
-    peak: Math.max(peak, high + 0.02),
+    high,
+    peak: Math.max(peak, high),
   };
 }
 

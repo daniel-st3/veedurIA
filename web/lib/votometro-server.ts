@@ -154,6 +154,28 @@ function chamberLabel(chamber: string): string {
   return chamber === "camara" ? "Cámara de Representantes" : "Senado";
 }
 
+const LEGISLATOR_STATUSES = new Set(["Activo", "Retirado", "Fallecido", "Histórico", "Suspendido"]);
+
+function verifiedUrl(value: unknown) {
+  const url = toStringValue(value);
+  if (!url) return "";
+  if (/placeholder/i.test(url) || /@PlaceHolder/i.test(url)) return "";
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return "";
+    return url;
+  } catch {
+    return "";
+  }
+}
+
+function statusForRow(row: DirectoryRow, canonicalName: string) {
+  const raw = toStringValue(row.status);
+  if (LEGISLATOR_STATUSES.has(raw)) return raw as LegislatorListItem["status"];
+  if (normalizeForMatch(canonicalName).join(" ").includes("miguel uribe turbay")) return "Fallecido";
+  return "Activo";
+}
+
 // Party-colored avatar palette (background, foreground always white).
 // Used as a server-side fallback when a legislator has no public photograph.
 const PARTY_AVATAR_COLORS: Record<string, string> = {
@@ -256,6 +278,7 @@ function itemFromDirectoryRow(row: DirectoryRow): LegislatorListItem {
     party: toStringValue(row.party) || "Sin partido visible",
     partyKey,
     roleLabel: toStringValue(row.role_label) || (chamber === "camara" ? "Representante" : "Senador"),
+    status: statusForRow(row, canonicalName),
     commission: toStringValue(row.commission),
     circunscription: toStringValue(row.circunscription),
     email: toStringValue(row.email),
@@ -264,7 +287,7 @@ function itemFromDirectoryRow(row: DirectoryRow): LegislatorListItem {
     imageUrl: matchedPhoto,
     bio: toStringValue(row.bio),
     sourcePrimary: toStringValue(row.source_primary),
-    sourceRef: toStringValue(row.source_ref),
+    sourceRef: verifiedUrl(row.source_ref),
     sourceUpdatedAt: toStringValue(row.source_updated_at) || null,
     votesIndexed,
     attendanceSessions,
@@ -275,7 +298,7 @@ function itemFromDirectoryRow(row: DirectoryRow): LegislatorListItem {
     inconsistentVotes: toNumber(row.inconsistent_votes) ?? 0,
     absentVotes: toNumber(row.absent_votes) ?? 0,
     coherenceScore,
-    topTopics: parseTopTopics(row.top_topics).length ? parseTopTopics(row.top_topics) : ["Economía", "Paz", "Medio Ambiente"],
+    topTopics: parseTopTopics(row.top_topics),
     topicScores: parseTopicScores(row.topic_scores),
     updatedAt: toStringValue(row.updated_at) || null,
   };
@@ -505,7 +528,7 @@ export async function getVotometroProfileResult(slug: string): Promise<Votometro
       ? (promises as Record<string, unknown>[]).map((promise) => ({
           id: toStringValue(promise.id),
           claimText: toStringValue(promise.claim_text),
-          sourceUrl: toStringValue(promise.source_url),
+          sourceUrl: verifiedUrl(promise.source_url),
           sourceLabel: toStringValue(promise.source_label),
           sourceDate: toStringValue(promise.source_date) || null,
           topicKey: toStringValue(promise.topic_key) || null,
@@ -515,108 +538,14 @@ export async function getVotometroProfileResult(slug: string): Promise<Votometro
           reviewNote: toStringValue(promise.review_note),
           reviewedAt: toStringValue(promise.reviewed_at) || null,
         }))
+        .filter((promise) => Boolean(promise.claimText))
       : [];
 
     let finalPromises = promiseItems;
-    if (finalPromises.length === 0) {
-      finalPromises = [
-        {
-          id: `mock-p1-${item.id}`,
-          claimText: "Protegeré los páramos y fuentes hídricas frente a la explotación minera.",
-          sourceUrl: "https://twitter.com/placeholder",
-          sourceLabel: "Twitter",
-          sourceDate: "2023-05-12",
-          topicKey: "medio_ambiente",
-          topicLabel: "Medio Ambiente",
-          stance: "A favor",
-          extractionConfidence: 0.95,
-          reviewNote: "Confirmado por equipo editorial",
-          reviewedAt: "2023-05-15T00:00:00Z"
-        },
-        {
-          id: `mock-p2-${item.id}`,
-          claimText: "Reduciré los impuestos a la canasta familiar.",
-          sourceUrl: "https://youtube.com/placeholder",
-          sourceLabel: "Debate Presidencial",
-          sourceDate: "2023-04-20",
-          topicKey: "economia",
-          topicLabel: "Economía",
-          stance: "A favor",
-          extractionConfidence: 0.88,
-          reviewNote: "Aprobado",
-          reviewedAt: "2023-04-22T00:00:00Z"
-        }
-      ];
-    }
 
     let finalVotes = votes.items;
-    if (finalVotes.length === 0) {
-      finalVotes = [
-        {
-          id: `mock-v1-${item.id}`,
-          voteEventId: `evt-mock-1-${item.id}`,
-          projectId: "PL-045-2024",
-          voteDate: "2024-02-15",
-          title: "Proyecto de Ley sobre Protección de Páramos",
-          description: "Establece medidas para la protección y conservación de ecosistemas de páramo.",
-          topicKey: "medio_ambiente",
-          topicLabel: "Medio Ambiente",
-          voteValue: "Sí",
-          resultText: "Aprobado",
-          promiseAlignment: "coherente",
-          sourceUrl: "https://camara.gov.co/placeholder",
-          projectSourceUrl: "https://camara.gov.co/proyectos/placeholder",
-          sessionLabel: "Plenaria Extraordinaria",
-          isAbsent: false,
-          deviatesFromParty: false
-        },
-        {
-          id: `mock-v2-${item.id}`,
-          voteEventId: `evt-mock-2-${item.id}`,
-          projectId: "PL-012-2024",
-          voteDate: "2024-01-28",
-          title: "Reforma Tributaria: Exclusión de IVA a la canasta básica",
-          description: "Modifica el estatuto tributario para excluir productos básicos.",
-          topicKey: "economia",
-          topicLabel: "Economía",
-          voteValue: "Sí",
-          resultText: "Aprobado",
-          promiseAlignment: "coherente",
-          sourceUrl: "https://camara.gov.co/placeholder",
-          projectSourceUrl: "https://camara.gov.co/proyectos/placeholder",
-          sessionLabel: "Plenaria Ordinaria",
-          isAbsent: false,
-          deviatesFromParty: false
-        },
-        {
-          id: `mock-v3-${item.id}`,
-          voteEventId: `evt-mock-3-${item.id}`,
-          projectId: "PL-203-2023",
-          voteDate: "2023-11-10",
-          title: "Ley de Paz Total: Sometimiento a la justicia",
-          description: "Marco legal para el sometimiento de grupos armados.",
-          topicKey: "paz",
-          topicLabel: "Paz",
-          voteValue: "No",
-          resultText: "Archivado",
-          promiseAlignment: "inconsistente",
-          sourceUrl: "https://camara.gov.co/placeholder",
-          projectSourceUrl: "https://camara.gov.co/proyectos/placeholder",
-          sessionLabel: "Comisión Primera",
-          isAbsent: false,
-          deviatesFromParty: true
-        }
-      ];
-    }
 
     let finalTopicScores = item.topicScores;
-    if (!finalTopicScores || finalTopicScores.length === 0) {
-      finalTopicScores = [
-        { key: "medio_ambiente", label: "Medio Ambiente", score: 100, votes: 45 },
-        { key: "economia", label: "Economía", score: 85, votes: 120 },
-        { key: "paz", label: "Paz", score: 60, votes: 34 }
-      ];
-    }
 
     return {
       profile: {
@@ -627,8 +556,8 @@ export async function getVotometroProfileResult(slug: string): Promise<Votometro
           ? (socials as Record<string, unknown>[]).map((social) => ({
               network: toStringValue(social.network),
               handle: toStringValue(social.handle),
-              url: toStringValue(social.url),
-            }))
+              url: verifiedUrl(social.url),
+            })).filter((social) => Boolean(social.url))
           : [],
         promises: finalPromises,
         recentVotes: finalVotes,

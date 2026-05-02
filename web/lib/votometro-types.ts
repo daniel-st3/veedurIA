@@ -1,6 +1,7 @@
 import type { VotometroTopicKey } from "@/lib/votometro-topics";
 
 export type VotometroChamber = "senado" | "camara";
+export type LegislatorStatus = "Activo" | "Retirado" | "Fallecido" | "Histórico" | "Suspendido";
 export type PromiseAlignment = "coherente" | "inconsistente" | "ausente" | "sin-promesa";
 export type VotometroIssueCode = "missing_env" | "missing_schema" | "query_error";
 
@@ -69,6 +70,7 @@ export type LegislatorListItem = {
   party: string;
   partyKey: string;
   roleLabel: string;
+  status: LegislatorStatus;
   commission: string;
   circunscription: string;
   email: string;

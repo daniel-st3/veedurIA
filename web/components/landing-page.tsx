@@ -239,7 +239,7 @@ function hasNumber(value: unknown): value is number {
 
 function formatLandingNumber(value: number | null | undefined, lang: Lang) {
   if (!hasNumber(value)) {
-    return lang === "es" ? "Sin dato" : "No data";
+    return lang === "es" ? "próximamente" : "coming soon";
   }
 
   return value.toLocaleString(lang === "es" ? "es-CO" : "en-US");
@@ -287,6 +287,28 @@ function scheduleLandingDataLoad(callback: () => void, timeout = 1400) {
     if (idleId !== null && idleWindow.cancelIdleCallback) idleWindow.cancelIdleCallback(idleId);
     if (timeoutId !== null) globalThis.clearTimeout(timeoutId);
   };
+}
+
+function landingRiskStops(departments: OverviewPayload["map"]["departments"]) {
+  const sorted = departments
+    .map((department) => department.avgRisk)
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((left, right) => left - right);
+
+  if (!sorted.length) return { medium: 0.4, high: 0.7 };
+
+  const pick = (ratio: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * ratio)))];
+  return {
+    medium: pick(0.34),
+    high: pick(0.67),
+  };
+}
+
+function landingRiskTone(value: number, stops: { medium: number; high: number }) {
+  if (value <= 0) return "low";
+  if (value >= stops.high) return "high";
+  if (value >= stops.medium) return "mid";
+  return "low";
 }
 
 export function LandingPage({
@@ -734,16 +756,12 @@ export function LandingPage({
     (focusedDepartment
       ? { geoName: focusedDepartment, label: deptDisplayLabel(focusedDepartment), avgRisk: 0, contractCount: 0 }
       : currentDepartmentData);
+  const mapRiskStops = landingRiskStops(overview.map.departments);
   const featureSet = FEATURE_TEXT[lang];
   const features = [featureSet.contract, featureSet.promises, featureSet.money];
   const contratoHref = `/contrato-limpio?lang=${lang}`;
 
-  const focusTone =
-    (focusedDepartmentData?.avgRisk ?? 0) >= 0.7
-      ? "high"
-      : (focusedDepartmentData?.avgRisk ?? 0) >= 0.4
-        ? "mid"
-        : "low";
+  const focusTone = landingRiskTone(focusedDepartmentData?.avgRisk ?? 0, mapRiskStops);
 
   const handleDeptSelect = (geoName: string) => {
     setActiveDepartment((prev) => prev === geoName ? prev : geoName);
@@ -875,7 +893,6 @@ export function LandingPage({
         links={[
           { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
           { href: `/votometro?lang=${lang}`, label: "Votómetro" },
-          { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
         ]}
       />
 
@@ -1061,7 +1078,7 @@ export function LandingPage({
                   </div>
                   <div className="lp-map-info__legend">
                     <span className="lp-map-legend__item"><i className="is-high" />{lang === "es" ? "Alto" : "High"}</span>
-                    <span className="lp-map-legend__item"><i className="is-mid" />{lang === "es" ? "Medio" : "Med"}</span>
+                    <span className="lp-map-legend__item"><i className="is-mid" />{lang === "es" ? "Ámbar" : "Amber"}</span>
                     <span className="lp-map-legend__item"><i className="is-low" />{lang === "es" ? "Bajo" : "Low"}</span>
                   </div>
                   <Link href={contratoHref} className="lp-map-info__cta">
@@ -1073,9 +1090,13 @@ export function LandingPage({
 
               {/* Right: Module cards */}
               <div className="lp-map-grid__modules">
-                <p className="eyebrow lp-map-grid__modules-eyebrow">
-                  {lang === "es" ? "Herramientas de análisis" : "Analysis tools"}
-                </p>
+                <div className="lp-map-grid__modules-head">
+                  <p className="eyebrow lp-map-grid__modules-eyebrow">
+                    {lang === "es" ? "Herramientas de análisis" : "Analysis tools"}
+                  </p>
+                  <strong>{lang === "es" ? "Tres capas conectadas" : "Three connected layers"}</strong>
+                  <span>{lang === "es" ? "Abre cada módulo desde una acción clara." : "Open each module from a clear action."}</span>
+                </div>
                 {features.map((feature) => {
                   const Icon = feature.icon;
                   return (

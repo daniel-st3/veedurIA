@@ -364,6 +364,13 @@ function monthBounds(month: string) {
   return { start, end };
 }
 
+function contractValueFlag(value: number, lang: Lang) {
+  if (value === 1) return lang === "es" ? "Valor reportado en fuente oficial" : "Value reported by official source";
+  if (value <= 0) return lang === "es" ? "Valor no disponible en campo importado" : "Value unavailable in imported field";
+  if (value >= 1_000_000_000_000) return lang === "es" ? "Valor extremo — revisa documentos del proceso" : "Extreme value — review process documents";
+  return null;
+}
+
 export function ContractsView({
   lang,
   initialOverview,
@@ -889,7 +896,6 @@ export function ContractsView({
           links={[
             { href: `/contrato-limpio?lang=${lang}`, label: copy.navPhase1 },
             { href: `/votometro?lang=${lang}`, label: copy.navPhase2 },
-            { href: `/sigue-el-dinero?lang=${lang}`, label: copy.navPhase3 },
           ]}
         />
         <ContractsLoading lang={lang} />
@@ -904,12 +910,16 @@ export function ContractsView({
         links={[
           { href: `/contrato-limpio?lang=${lang}`, label: copy.navPhase1 },
           { href: `/votometro?lang=${lang}`, label: copy.navPhase2 },
-          { href: `/sigue-el-dinero?lang=${lang}`, label: copy.navPhase3 },
         ]}
       />
       <NoticeStack notices={notices} onDismiss={(id) => setNotices((current) => current.filter((item) => item.id !== id))} />
 
       <main className={`page cv-page${actionPending ? " cv-page--loading" : ""}`}>
+        <Link href={`/etica-y-privacidad?lang=${lang}`} className="module-disclaimer">
+          {lang === "es"
+            ? "Señal analítica, no acusación. Verifica la fuente oficial antes de concluir o publicar."
+            : "Analytical signal, not an accusation. Verify the official source before concluding or publishing."}
+        </Link>
         <section className="cv-hero-panel surface stripe-flag">
           <div className="cv-hero-panel__top">
             <div>
@@ -1712,6 +1722,9 @@ export function ContractsView({
                     <div>
                       <div className="label" style={{ marginBottom: "0.3rem" }}>{copy.tableValue}</div>
                       <strong>{formatCompactCop(row.value, lang)}</strong>
+                      {contractValueFlag(row.value, lang) ? (
+                        <small className="value-flag">{contractValueFlag(row.value, lang)}</small>
+                      ) : null}
                       <div className="table-value__track" style={{ marginTop: 6 }}>
                         <span
                           className="table-value__fill"
@@ -1743,8 +1756,8 @@ export function ContractsView({
           ) : (
             <div className="cv-empty-state surface-soft">
               {lang === "es"
-                ? "Sin contratos visibles con este corte. Prueba ampliar la búsqueda, cambiar de departamento o quitar algún filtro."
-                : "No contracts visible for this slice. Try widening the search, changing department, or removing a filter."}
+                ? `Muestra de tabla cargada: 0 filas. Contratos en el slice activo: ${visibleContracts.toLocaleString("es-CO")}. Prueba cargar otra página, ampliar la búsqueda o quitar algún filtro.`
+                : `Loaded table sample: 0 rows. Active slice contracts: ${visibleContracts.toLocaleString("en-US")}. Try another page, widening the search, or removing a filter.`}
             </div>
           )}
 

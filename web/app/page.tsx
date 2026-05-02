@@ -1,6 +1,8 @@
 import { LandingPage } from "@/components/landing-page";
 import { resolveLang } from "@/lib/copy";
+import { fetchOverview } from "@/lib/api";
 import { buildPageMetadata } from "@/lib/metadata";
+import { getVotometroDirectory } from "@/lib/votometro-server";
 import type { Lang, OverviewPayload } from "@/lib/types";
 import type { VotometroLandingStats } from "@/lib/votometro-types";
 
@@ -60,12 +62,32 @@ export default async function Home({
 }) {
   const params = await searchParams;
   const lang = resolveLang(params.lang);
+  let initialOverview = emptyOverview(lang);
+  let initialVotometroStats = emptyVotometroStats();
+
+  try {
+    initialOverview = await fetchOverview({ lang, risk: "all" });
+  } catch (error) {
+    console.error("[home] Failed to load initialOverview", error);
+  }
+
+  try {
+    const directory = await getVotometroDirectory({ lang, page: "1", page_size: "1" });
+    initialVotometroStats = {
+      activeLegislators: directory.meta.activeLegislators,
+      indexedVotes: directory.meta.indexedVotes,
+      averageCoherence: directory.meta.averageCoherence,
+      available: directory.issue == null && directory.meta.total > 0,
+    };
+  } catch (error) {
+    console.error("[home] Failed to load initialVotometroStats", error);
+  }
 
   return (
     <LandingPage
       lang={lang}
-      initialOverview={emptyOverview(lang)}
-      initialVotometroStats={emptyVotometroStats()}
+      initialOverview={initialOverview}
+      initialVotometroStats={initialVotometroStats}
     />
   );
 }

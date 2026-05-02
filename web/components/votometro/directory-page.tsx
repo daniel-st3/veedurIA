@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -209,6 +209,9 @@ function Card({ p, lang }: { p: LegislatorListItem; lang: Lang }) {
         <Avatar p={p} />
         <div>
           <h3 className={styles.cardTitle}>{p.canonicalName}</h3>
+          <span className={`${styles.statusBadge} ${p.status === "Fallecido" ? styles.statusBadgeMuted : ""}`}>
+            {lang === "es" ? p.status : p.status === "Fallecido" ? "Deceased" : p.status === "Activo" ? "Active" : p.status}
+          </span>
           <p className={styles.cardMeta}>
             {p.roleLabel} · {p.party}
             {p.circunscription ? ` · ${p.circunscription}` : ""}
@@ -436,9 +439,9 @@ export function VotometroDirectoryPage({
   const visiblePeopleFocus = interestPeople.length ? interestPeople : topPeople;
   const comparePeople = visiblePeopleFocus.slice(0, 3);
   const maxPersonVotes = Math.max(1, ...topPeople.map((p) => p.votesIndexed));
-  const compareVotesMin = payload.filters.votesMin ?? Math.round(maxPersonVotes * 0.35);
-  const compareCoherenceMin = payload.filters.coherenceMin ?? 60;
-  const compareAttendanceMin = payload.filters.attendanceMin ?? 70;
+  const [compareVotesMin, setCompareVotesMin] = useState(payload.filters.votesMin ?? Math.round(maxPersonVotes * 0.35));
+  const [compareCoherenceMin, setCompareCoherenceMin] = useState(payload.filters.coherenceMin ?? 60);
+  const [compareAttendanceMin, setCompareAttendanceMin] = useState(payload.filters.attendanceMin ?? 70);
   const comparePool = payload.items.filter(
     (person) =>
       person.votesIndexed >= compareVotesMin &&
@@ -705,9 +708,25 @@ export function VotometroDirectoryPage({
             ))}
           </div>
         ) : null}
+        <div className={styles.freshnessRow}>
+          <span>{es ? "Fuente: Senado abierto" : "Source: Open Senate"}</span>
+          <span>
+            {es ? "Última sincronización" : "Last sync"}:{" "}
+            {payload.meta.generatedAt ? fmtDate(payload.meta.generatedAt) : es ? "Fecha de actualización no disponible" : "Update date unavailable"}
+          </span>
+          <span>{es ? "Scoring" : "Scoring"}: {payload.meta.generatedAt ? fmtDate(payload.meta.generatedAt) : es ? "Fecha de actualización no disponible" : "Update date unavailable"}</span>
+        </div>
       </section>
 
       <main className={styles.main}>
+        <Link href={`/etica-y-privacidad?lang=${lang}`} className="module-disclaimer">
+          {es
+            ? "Señal analítica, no acusación. Verifica la fuente oficial antes de concluir o publicar."
+            : "Analytical signal, not an accusation. Verify the official source before concluding or publishing."}
+        </Link>
+        {lang === "en" ? (
+          <div className={styles.alertCard}>This module is primarily available in Spanish.</div>
+        ) : null}
 
         {/* ── Issue ──────────────────────────────── */}
         {payload.issue ? (
@@ -1020,15 +1039,15 @@ export function VotometroDirectoryPage({
                 {payload.filters.topic ? <input type="hidden" name="topic" value={payload.filters.topic} /> : null}
                 <label>
                   <span>{es ? `Votos mínimos: ${num(compareVotesMin)}` : `Minimum votes: ${num(compareVotesMin)}`}</span>
-                  <input name="min_votes" type="range" min="0" max={Math.max(1, maxPersonVotes)} defaultValue={compareVotesMin} />
+                  <input name="min_votes" type="range" min="0" max={Math.max(1, maxPersonVotes)} value={compareVotesMin} onChange={(event) => setCompareVotesMin(Number(event.currentTarget.value))} />
                 </label>
                 <label>
                   <span>{es ? `Coherencia mínima: ${compareCoherenceMin}%` : `Minimum coherence: ${compareCoherenceMin}%`}</span>
-                  <input name="coherence_min" type="range" min="0" max="100" defaultValue={compareCoherenceMin} />
+                  <input name="coherence_min" type="range" min="0" max="100" value={compareCoherenceMin} onChange={(event) => setCompareCoherenceMin(Number(event.currentTarget.value))} />
                 </label>
                 <label>
                   <span>{es ? `Asistencia mínima: ${compareAttendanceMin}%` : `Minimum attendance: ${compareAttendanceMin}%`}</span>
-                  <input name="attendance_min" type="range" min="0" max="100" defaultValue={compareAttendanceMin} />
+                  <input name="attendance_min" type="range" min="0" max="100" value={compareAttendanceMin} onChange={(event) => setCompareAttendanceMin(Number(event.currentTarget.value))} />
                 </label>
                 <button type="submit" className={styles.button}>
                   {es ? "Aplicar lectura" : "Apply reading"}

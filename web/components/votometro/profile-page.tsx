@@ -36,6 +36,18 @@ function localizedRoleLabel(profile: LegislatorProfile, lang: Lang) {
   return profile.chamber === "camara" ? "Representative" : "Senator";
 }
 
+function localizedStatus(status: LegislatorProfile["status"], lang: Lang) {
+  if (lang === "es") return status;
+  const labels: Record<LegislatorProfile["status"], string> = {
+    Activo: "Active",
+    Retirado: "Retired",
+    Fallecido: "Deceased",
+    Histórico: "Historical",
+    Suspendido: "Suspended",
+  };
+  return labels[status] ?? status;
+}
+
 const PROFILE_PARTY_GRADIENTS: Record<string, [string, string]> = {
   "alianza-verde":       ["#0a7a4e", "#0d9968"],
   "cambio-radical":      ["#c62839", "#e64457"],
@@ -158,6 +170,9 @@ export function VotometroProfilePage({
           <div>
             <div className={styles.profileTop}>
               <h1 className={styles.profileName}>{profile.canonicalName}</h1>
+              <span className={`${styles.statusBadge} ${profile.status === "Fallecido" ? styles.statusBadgeMuted : ""}`}>
+                {localizedStatus(profile.status, lang)}
+              </span>
               <span className={styles.chip}>{localizedChamberLabel(profile.chamber, lang)}</span>
               <span className={`${styles.chip} ${styles.chipGood}`}>{profile.party}</span>
             </div>
@@ -166,7 +181,7 @@ export function VotometroProfilePage({
               {profile.circunscription ? ` · ${profile.circunscription}` : ""}
               {profile.commission ? ` · ${profile.commission}` : ""}
             </p>
-            {profile.bio ? <p className={styles.body}>{profile.bio}</p> : null}
+            {profile.bio ? <p className={styles.body}>{profile.bio.replace(/hijo del ex presidente Ernesto Samper\.?/gi, "").trim()}</p> : null}
 
             <div className={styles.metricRow}>
               <div className={styles.metricTile}>
@@ -187,6 +202,11 @@ export function VotometroProfilePage({
       </section>
 
       <main className={styles.main}>
+        <Link href={`/etica-y-privacidad?lang=${lang}`} className="module-disclaimer">
+          {lang === "es"
+            ? "Señal analítica, no acusación. Verifica la fuente oficial antes de concluir o publicar."
+            : "Analytical signal, not an accusation. Verify the official source before concluding or publishing."}
+        </Link>
         <div className={styles.splitGrid}>
           <section className={styles.surface}>
             <h2 className={styles.surfaceTitle}>
@@ -312,7 +332,9 @@ export function VotometroProfilePage({
                           {promise.sourceLabel || promise.sourceDate || (lang === "es" ? "Fuente" : "Source")}
                         </a>
                       ) : (
-                        promise.sourceLabel || promise.sourceDate || (lang === "es" ? "Fuente" : "Source")
+                        <span className={styles.sourcePending}>
+                          {lang === "es" ? "Sin fuente verificada" : "No verified source"}
+                        </span>
                       )}
                     </td>
                   </tr>
