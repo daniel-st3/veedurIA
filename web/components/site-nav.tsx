@@ -19,6 +19,7 @@ function defaultLinks(lang: Lang) {
   return [
     { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
     { href: `/votometro?lang=${lang}`, label: "Votómetro" },
+    { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
   ];
 }
 
