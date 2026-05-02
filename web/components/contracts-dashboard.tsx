@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 
+import { displayEntityName } from "@/lib/format";
 import type { DepartmentDatum, Lang, OverviewPayload, TableRow } from "@/lib/types";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -96,7 +97,7 @@ function groupByLabel(rows: TableRow[], key: "modality" | "entity") {
   const displayLabel = new Map<string, string>();
   const buckets = new Map<string, { count: number; totalValue: number; peakScore: number }>();
   rows.forEach((row) => {
-    const raw = key === "modality" ? row.modality : row.entity;
+    const raw = key === "modality" ? row.modality : displayEntityName(row.entity);
     const norm = normalizeLabel(raw ?? "Sin dato");
     if (!displayLabel.has(norm)) displayLabel.set(norm, raw ?? "Sin dato");
     const current = buckets.get(norm) ?? { count: 0, totalValue: 0, peakScore: 0 };
@@ -467,7 +468,7 @@ export function ContractsDashboard({
       return {
         x: group.map((row) => Math.max(row.value, 1)),
         y: group.map((row) => row.score),
-        text: group.map((row) => row.entity),
+        text: group.map((row) => displayEntityName(row.entity)),
         customdata: group.map((row) => [row.modality, row.department]),
         name,
         type: "scatter",
@@ -491,7 +492,7 @@ export function ContractsDashboard({
     const grouped: Record<string, Record<string, number>> = {};
     rows.forEach((row) => {
       const mod = row.modality || (lang === "es" ? "Sin modalidad" : "No modality");
-      const ent = row.entity.slice(0, 36) || (lang === "es" ? "Sin entidad" : "No entity");
+      const ent = displayEntityName(row.entity).slice(0, 36) || (lang === "es" ? "Sin entidad" : "No entity");
       if (!grouped[mod]) grouped[mod] = {};
       grouped[mod][ent] = (grouped[mod][ent] ?? 0) + 1;
     });

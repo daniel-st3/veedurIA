@@ -4,6 +4,9 @@ import { fetchContractsTable, fetchGeoJson, fetchOverview } from "@/lib/api";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // If the API takes longer than this, render with null and let the client refetch.
 const SERVER_FETCH_TIMEOUT_MS = 1500;
 

@@ -6,6 +6,9 @@ import { getVotometroDirectory } from "@/lib/votometro-server";
 import type { Lang, OverviewPayload } from "@/lib/types";
 import type { VotometroLandingStats } from "@/lib/votometro-types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function emptyOverview(lang: Lang): OverviewPayload {
   return {
     meta: { lang, fullDataset: false, totalRows: 0, shownRows: 0, previewRows: 0,

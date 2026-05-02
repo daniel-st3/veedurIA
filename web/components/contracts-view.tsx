@@ -28,7 +28,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { fetchContractsFreshness, fetchContractsTable, fetchGeoJson, fetchOverview } from "@/lib/api";
 import { contractsCopy } from "@/lib/copy";
-import { formatCompactCop, formatCopValue } from "@/lib/format";
+import { displayEntityName, formatCompactCop, formatCopValue } from "@/lib/format";
 import type { ContractsFreshnessPayload, Lang, LeadCase, OverviewPayload, TablePayload } from "@/lib/types";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -639,10 +639,23 @@ export function ContractsView({
     };
   }, [filters, lang, page, tableInitialized]);
 
-  const leadCases = overview?.leadCases ?? [];
-  const summaryEntities = overview?.summaries.entities ?? [];
+  const leadCases = useMemo(
+    () => (overview?.leadCases ?? []).map((row) => ({ ...row, entity: displayEntityName(row.entity) })),
+    [overview?.leadCases],
+  );
+  const summaryEntities = useMemo(
+    () =>
+      (overview?.summaries.entities ?? []).map((row) => ({
+        ...row,
+        nombre_entidad: displayEntityName(row.nombre_entidad),
+      })),
+    [overview?.summaries.entities],
+  );
   const summaryModalities = overview?.summaries.modalities ?? [];
-  const tableRows = table?.rows ?? [];
+  const tableRows = useMemo(
+    () => (table?.rows ?? []).map((row) => ({ ...row, entity: displayEntityName(row.entity) })),
+    [table?.rows],
+  );
   const departmentLabelByGeoName = useMemo(
     () => new Map((overview?.map.departments ?? []).map((item) => [item.geoName, item.label])),
     [overview?.map.departments],
@@ -650,7 +663,10 @@ export function ContractsView({
   const activeDepartmentLabel = filters.department
     ? departmentLabelByGeoName.get(filters.department) ?? filters.department
     : null;
-  const liveContracts = freshness?.liveFeed.contracts?.length ? freshness.liveFeed.contracts : overview?.liveFeed.contracts ?? [];
+  const liveContracts = useMemo(() => {
+    const raw = freshness?.liveFeed.contracts?.length ? freshness.liveFeed.contracts : overview?.liveFeed.contracts ?? [];
+    return raw.map((row) => ({ ...row, entity: displayEntityName(row.entity) }));
+  }, [freshness?.liveFeed.contracts, overview?.liveFeed.contracts]);
   const totalPages = table ? Math.max(1, Math.ceil(table.total / 24)) : 1;
   const isBooting = loading && !overview;
   const leadCaseMax = Math.max(...leadCases.map((item) => item.score), 100);
@@ -1407,7 +1423,7 @@ export function ContractsView({
               <div className="cv-focus-head">
                 <div>
                   <span className={`cv-focus-head__kicker cv-focus-head__kicker--${selectedTone}`}>{selectedCase.pickReason}</span>
-                  <h3>{selectedCase.entity}</h3>
+                  <h3>{displayEntityName(selectedCase.entity)}</h3>
                   <p>{selectedCase.signal}</p>
                 </div>
                 <div className={`cv-score-badge cv-score-badge--${selectedTone}`}>
