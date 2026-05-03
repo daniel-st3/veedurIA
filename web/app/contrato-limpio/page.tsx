@@ -13,6 +13,15 @@ export const revalidate = 0;
 
 // If the API takes longer than this, render with null and let the client refetch.
 // 4 s gives Supabase cold-starts room while keeping TTFB acceptable.
+//
+// Architecture note (see docs/deployment.md "Server-side rendering and the
+// ContratoLimpio loading shell"): when this race times out we ship null
+// initial props and ContractsView mounts its loading shell, which exposes
+// the bilingual fallback paragraph plus a 12 s escape panel. The client
+// then hydrates the real data via /api/contracts/* in the background, so
+// the route always returns 200 even on Supabase cold start. Future work:
+// streaming Suspense boundaries or unstable_cache on the overview fetch —
+// kept out of scope here to preserve dashboard behavior and value badges.
 const SERVER_FETCH_TIMEOUT_MS = 4000;
 
 function raceTimeout<T>(promise: Promise<T>): Promise<T | null> {
