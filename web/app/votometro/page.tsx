@@ -90,21 +90,26 @@ export async function generateMetadata({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = await searchParams;
-  const lang = resolveLang(
-    Array.isArray(params.lang) ? params.lang[0] : params.lang,
-  );
+  try {
+    const params = await searchParams;
+    const lang = resolveLang(
+      Array.isArray(params.lang) ? params.lang[0] : params.lang,
+    );
 
-  return buildPageMetadata({
-    lang,
-    path: `/votometro?lang=${lang}`,
-    title: lang === "es" ? "Votómetro — VeedurIA" : "Votometer — VeedurIA",
-    description:
-      lang === "es"
-        ? "Directorio vivo de legisladores colombianos con votos, asistencia y coherencia — datos actualizados diariamente desde fuentes oficiales."
-        : "Live directory of Colombian legislators with votes, attendance, and coherence — updated daily from official sources.",
-    imagePath: "/votometro/opengraph-image",
-  });
+    return buildPageMetadata({
+      lang,
+      path: `/votometro?lang=${lang}`,
+      title: lang === "es" ? "Votómetro — VeedurIA" : "Votometer — VeedurIA",
+      description:
+        lang === "es"
+          ? "Directorio vivo de legisladores colombianos con votos, asistencia y coherencia — datos actualizados diariamente desde fuentes oficiales."
+          : "Live directory of Colombian legislators with votes, attendance, and coherence — updated daily from official sources.",
+      imagePath: "/votometro/opengraph-image",
+    });
+  } catch (err) {
+    console.error("[votometro] generateMetadata failed", err);
+    return { title: "Votómetro — VeedurIA" };
+  }
 }
 
 export default async function VotometroPage({

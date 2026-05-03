@@ -99,19 +99,24 @@ export async function generateMetadata({
 }: {
   searchParams: Promise<{ lang?: string }>;
 }) {
-  const params = await searchParams;
-  const lang = resolveLang(params.lang);
+  try {
+    const params = await searchParams;
+    const lang = resolveLang(params.lang);
 
-  return buildPageMetadata({
-    lang,
-    path: `/etica-y-privacidad?lang=${lang}`,
-    title: lang === "es" ? "Legal, privacidad y seguridad — VeedurIA" : "Legal, privacy, and security — VeedurIA",
-    description:
-      lang === "es"
-        ? "Límites legales, protección de datos, seguridad y uso responsable de VeedurIA."
-        : "Legal limits, data protection, security, and responsible use of VeedurIA.",
-    imagePath: "/opengraph-image",
-  });
+    return buildPageMetadata({
+      lang,
+      path: `/etica-y-privacidad?lang=${lang}`,
+      title: lang === "es" ? "Legal, privacidad y seguridad — VeedurIA" : "Legal, privacy, and security — VeedurIA",
+      description:
+        lang === "es"
+          ? "Límites legales, protección de datos, seguridad y uso responsable de VeedurIA."
+          : "Legal limits, data protection, security, and responsible use of VeedurIA.",
+      imagePath: "/opengraph-image",
+    });
+  } catch (err) {
+    console.error("[etica-y-privacidad] generateMetadata failed", err);
+    return { title: "Legal, privacidad y seguridad — VeedurIA" };
+  }
 }
 
 export default async function EthicsPrivacyPage({

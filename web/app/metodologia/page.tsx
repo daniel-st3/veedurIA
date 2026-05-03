@@ -5,15 +5,20 @@ import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ lang?: string }> }) {
-  const params = await searchParams;
-  const lang = resolveLang(params.lang);
-  return buildPageMetadata({
-    lang,
-    path: `/metodologia?lang=${lang}`,
-    title: lang === "es" ? "Metodología — VeedurIA" : "Methodology — VeedurIA",
-    description: lang === "es" ? "Cómo se calculan las señales analíticas de VeedurIA." : "How VeedurIA analytical signals are computed.",
-    imagePath: "/opengraph-image",
-  });
+  try {
+    const params = await searchParams;
+    const lang = resolveLang(params.lang);
+    return buildPageMetadata({
+      lang,
+      path: `/metodologia?lang=${lang}`,
+      title: lang === "es" ? "Metodología — VeedurIA" : "Methodology — VeedurIA",
+      description: lang === "es" ? "Cómo se calculan las señales analíticas de VeedurIA." : "How VeedurIA analytical signals are computed.",
+      imagePath: "/opengraph-image",
+    });
+  } catch (err) {
+    console.error("[metodologia] generateMetadata failed", err);
+    return { title: "Metodología — VeedurIA" };
+  }
 }
 
 export default async function MethodologyPage({ searchParams }: { searchParams: Promise<{ lang?: string }> }) {
