@@ -146,8 +146,8 @@ function ContractsLoading({ lang }: { lang: Lang }) {
         <LoadingStage lang={lang} context="contracts" compact />
         <p className="cv-loading-note" role="status">
           {lang === "es"
-            ? "ContratoLimpio está cargando la vista interactiva. Si esta pantalla no avanza, revisa la conexión o vuelve a intentarlo. La fuente oficial puede tardar en responder."
-            : "ContratoLimpio is loading the interactive view. If this screen does not progress, check your connection or try again. The official source may take time to respond."}
+            ? "Estamos preparando la vista interactiva de ContratoLimpio. La fuente oficial puede tardar unos segundos."
+            : "We are preparing the interactive ContratoLimpio view. The official source may take a few seconds."}
         </p>
         {phase === "stuck" ? (
           <div className="cv-loading-stuck">

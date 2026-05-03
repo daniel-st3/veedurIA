@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // If the API takes longer than this, render with null and let the client refetch.
-const SERVER_FETCH_TIMEOUT_MS = 1500;
+// 4 s gives Supabase cold-starts room while keeping TTFB acceptable.
+const SERVER_FETCH_TIMEOUT_MS = 4000;
 
 function raceTimeout<T>(promise: Promise<T>): Promise<T | null> {
   return Promise.race<T | null>([
@@ -26,18 +27,23 @@ export async function generateMetadata({
 }: {
   searchParams: Promise<{ lang?: string }>;
 }) {
-  const params = await searchParams;
-  const lang = resolveLang(params.lang);
-  return buildPageMetadata({
-    lang,
-    path: `/contrato-limpio?lang=${lang}`,
-    title: lang === "es" ? "ContratoLimpio — VeedurIA" : "ContratoLimpio — VeedurIA",
-    description:
-      lang === "es"
-        ? "Filtra contratos públicos, revisa señales de riesgo y abre evidencia oficial en SECOP II."
-        : "Filter public contracts, review risk signals, and open official evidence in SECOP II.",
-    imagePath: "/contrato-limpio/opengraph-image",
-  });
+  try {
+    const params = await searchParams;
+    const lang = resolveLang(params.lang);
+    return buildPageMetadata({
+      lang,
+      path: `/contrato-limpio?lang=${lang}`,
+      title: lang === "es" ? "ContratoLimpio — VeedurIA" : "ContratoLimpio — VeedurIA",
+      description:
+        lang === "es"
+          ? "Filtra contratos públicos, revisa señales de riesgo y abre evidencia oficial en SECOP II."
+          : "Filter public contracts, review risk signals, and open official evidence in SECOP II.",
+      imagePath: "/contrato-limpio/opengraph-image",
+    });
+  } catch (err) {
+    console.error("[contrato-limpio] generateMetadata failed", err);
+    return { title: "ContratoLimpio — VeedurIA" };
+  }
 }
 
 export default async function ContratoLimpioPage({

@@ -5989,150 +5989,8 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   height: 1.25rem;
 }
 
-/* ═══════════════════════════════════════════════════════
-   LANDING NETWORK PREVIEW (sid- classes from landing-page)
-   ═══════════════════════════════════════════════════════ */
 
-.sid-hero {
-  padding-block: clamp(2rem, 4vw, 3.5rem);
-}
 
-.sid-actions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-top: 1.2rem;
-}
-
-.sid-panel {
-  padding: 1.4rem;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--sh-sm);
-}
-
-.sid-panel--stats { background: var(--ink); color: #f0eada; }
-
-.sid-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 0.75rem;
-}
-
-.sid-stat-card {
-  padding: 1rem;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: var(--r-sm);
-}
-
-.sid-progress-card {
-  display: grid;
-  gap: 0.45rem;
-  padding: 0.9rem 1rem;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-}
-
-.sid-progress-card__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.sid-progress-bar {
-  height: 5px;
-  background: var(--cream-3);
-  border-radius: var(--r-pill);
-  overflow: hidden;
-}
-
-.sid-progress-bar > span {
-  display: block;
-  height: 100%;
-  background: var(--blue);
-  border-radius: var(--r-pill);
-}
-
-.sid-roadmap {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.sid-roadmap__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--r-pill);
-  background: var(--border-2);
-  flex-shrink: 0;
-}
-
-.sid-placeholder {
-  display: grid;
-  place-items: center;
-  min-height: 200px;
-  background: var(--cream);
-  border: 1px dashed var(--border-2);
-  border-radius: var(--r-lg);
-  color: var(--text-m);
-  font-size: 0.88rem;
-}
-
-.sid-bottom-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.sid-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.75rem;
-}
-
-.sid-note {
-  font-size: 0.8rem;
-  color: var(--text-m);
-  line-height: 1.55;
-}
-
-.sid-notify-form {
-  display: flex;
-  gap: 0.55rem;
-}
-
-/* Network preview SVG nodes */
-.sid-network-preview {
-  position: relative;
-  height: 180px;
-  width: 100%;
-}
-
-.sid-network-preview__node {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-pill);
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.sid-network-preview__node--a { width: 44px; height: 44px; top: 30%; left: 10%; background: var(--red); color: var(--white); }
-.sid-network-preview__node--b { width: 36px; height: 36px; top: 60%; left: 35%; background: var(--yellow); color: var(--ink); }
-.sid-network-preview__node--c { width: 40px; height: 40px; top: 15%; left: 55%; background: var(--blue); color: var(--white); }
-.sid-network-preview__node--d { width: 32px; height: 32px; top: 65%; left: 70%; background: var(--green); color: var(--white); }
-
-.sid-network-preview__line {
-  position: absolute;
-  height: 2px;
-  background: var(--border-2);
-  transform-origin: left center;
-}
 
 /* ═══════════════════════════════════════════════════════
    VOTOMETRO
@@ -7161,7 +7019,6 @@ h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.15; letter-spacing: -0.03em
   .sed-node-dock__head,
   .sed-node-dock__grid { grid-template-columns: 1fr; }
   .sed-hero__search-row { flex-direction: column; }
-  .sid-bottom-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
