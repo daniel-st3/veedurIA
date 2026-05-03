@@ -2,6 +2,7 @@ import { LandingPage } from "@/components/landing-page";
 import { resolveLang } from "@/lib/copy";
 import { fetchOverview } from "@/lib/api";
 import { buildPageMetadata } from "@/lib/metadata";
+import { sanitizeContractOverviewForPublic } from "@/lib/sanitize-public";
 import { getVotometroDirectory } from "@/lib/votometro-server";
 import type { Lang, OverviewPayload } from "@/lib/types";
 import type { VotometroLandingStats } from "@/lib/votometro-types";
@@ -69,7 +70,8 @@ export default async function Home({
   let initialVotometroStats = emptyVotometroStats();
 
   try {
-    initialOverview = await fetchOverview({ lang, risk: "all" });
+    const fetched = await fetchOverview({ lang, risk: "all" });
+    initialOverview = sanitizeContractOverviewForPublic(fetched);
   } catch (error) {
     console.error("[home] Failed to load initialOverview", error);
   }

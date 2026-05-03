@@ -3,6 +3,10 @@ import { deptGeoName } from "@/lib/colombia-departments";
 import { fetchContractsTable, fetchGeoJson, fetchOverview } from "@/lib/api";
 import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
+import {
+  sanitizeContractOverviewForPublic,
+  sanitizeContractsTableForPublic,
+} from "@/lib/sanitize-public";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -71,8 +75,8 @@ export default async function ContratoLimpioPage({
   return (
     <ContractsView
       lang={lang}
-      initialOverview={overview}
-      initialTable={table}
+      initialOverview={overview ? sanitizeContractOverviewForPublic(overview) : null}
+      initialTable={table ? sanitizeContractsTableForPublic(table) : null}
       initialGeojson={geojson}
       initialFilters={{ ...initialFilters }}
     />
