@@ -145,19 +145,30 @@ export default async function VotometroPage({
     items: [] as PartySummary[],
   };
 
+  const emptyVotesPayload = {
+    meta: { total: 0, page: 1, pageSize: 50, generatedAt: new Date().toISOString() },
+    issue: null,
+    items: [] as Awaited<ReturnType<typeof getVotometroVotes>>["items"],
+  };
+
   const [payload, partyPayload, votesPayload] = await Promise.all([
-    raceTimeout(getVotometroDirectory(directoryParams), emptyPayload),
+    raceTimeout(
+      getVotometroDirectory(directoryParams).catch((err) => {
+        console.error("[votometro] directory fetch failed", err);
+        return emptyPayload;
+      }),
+      emptyPayload,
+    ),
     raceTimeout(
       getPartySummariesPayload().catch(() => emptyPartyPayload),
       emptyPartyPayload,
     ),
     raceTimeout(
-      getVotometroVotes({ page: 1, pageSize: 50 }),
-      {
-        meta: { total: 0, page: 1, pageSize: 50, generatedAt: new Date().toISOString() },
-        issue: null,
-        items: [],
-      },
+      getVotometroVotes({ page: 1, pageSize: 50 }).catch((err) => {
+        console.error("[votometro] votes fetch failed", err);
+        return emptyVotesPayload;
+      }),
+      emptyVotesPayload,
     ),
   ]);
 
