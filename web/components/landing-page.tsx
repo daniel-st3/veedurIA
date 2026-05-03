@@ -911,8 +911,12 @@ export function LandingPage({
         links={[
           { href: `/contrato-limpio?lang=${lang}`, label: "ContratoLimpio" },
           { href: `/votometro?lang=${lang}`, label: "Votómetro" },
+          { href: `/sigue-el-dinero?lang=${lang}`, label: "SigueElDinero" },
         ]}
       />
+      <div data-canary="EDGE_CANARY_HOME_403481A_VISIBLE" style={{ position: "fixed", bottom: 8, left: 8, zIndex: 9999, padding: "4px 8px", fontSize: 11, fontFamily: "monospace", color: "#fff", background: "#c62839", borderRadius: 4 }}>
+        EDGE_CANARY_HOME_403481A_VISIBLE
+      </div>
 
       <main className="page lp-page">
 
