@@ -24,11 +24,10 @@ export function formatCompactCop(value: number | null | undefined, lang: Lang): 
     return lang === "es" ? "Sin dato" : "No data";
   }
   const v = value as number;
-  if (v === 0) {
-    return lang === "es" ? "$ 0" : "COP $0";
-  }
-  if (v === 1) {
-    return lang === "es" ? "$ 1" : "COP $1";
+  // 0 and 1 are SECOP sentinel/missing values, not meaningful contract amounts.
+  // Surface them as "no value on record" rather than misleading "$0" / "$1".
+  if (v === 0 || v === 1) {
+    return lang === "es" ? "Sin valor registrado" : "No value on record";
   }
   if (v < 0) {
     return lang === "es" ? "Sin dato" : "No data";

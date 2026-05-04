@@ -9,6 +9,7 @@ import { useRef } from "react";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
+import { LegislatorStatBlock } from "@/components/votometro/legislator-stat-block";
 import type { Lang } from "@/lib/types";
 import type { LegislatorProfile, VotometroDataIssue } from "@/lib/votometro-types";
 
@@ -184,7 +185,15 @@ export function VotometroProfilePage({
               {profile.circunscription ? ` · ${profile.circunscription}` : ""}
               {profile.commission ? ` · ${profile.commission}` : ""}
             </p>
-            {profile.bio ? <p className={styles.body}>{profile.bio.replace(/hijo del ex presidente Ernesto Samper\.?/gi, "").trim()}</p> : null}
+            {profile.bio ? (
+              <p className={styles.body}>{profile.bio.replace(/hijo del ex presidente Ernesto Samper\.?/gi, "").trim()}</p>
+            ) : (
+              <p className={`${styles.body} ${styles.smallMuted}`}>
+                {lang === "es"
+                  ? "Sin biografía pública verificada para este perfil."
+                  : "No verified public bio available for this profile."}
+              </p>
+            )}
 
             <div className={styles.metricRow}>
               <div className={styles.metricTile}>
@@ -323,6 +332,8 @@ export function VotometroProfilePage({
             </div>
           </section>
         </div>
+
+        <LegislatorStatBlock profile={profile} lang={lang} />
 
         <section className={styles.tableSurface}>
           <h2 className={styles.surfaceTitle}>

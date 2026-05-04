@@ -1252,6 +1252,106 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,.78), 0 8px 24px rgba(12,19,34,.05);
 }
 
+.statBlock {
+  margin-top: 1.2rem;
+  padding: 1.5rem;
+  border-radius: 18px;
+  background: var(--cream, #f5f0e4);
+  border: 1px solid rgba(12, 19, 34, 0.06);
+}
+
+.statBlockHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+}
+
+.statBlockHeader .surfaceTitle {
+  margin: 0;
+}
+
+.statBlockBody {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) 1fr;
+  gap: 1.4rem;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .statBlockBody {
+    grid-template-columns: 1fr;
+  }
+}
+
+.coherenceRing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.coherenceRing svg {
+  width: 100%;
+  max-width: 180px;
+  height: auto;
+}
+
+.coherenceRingValue {
+  font-family: "Sora", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  fill: var(--ink, #0c1322);
+}
+
+.coherenceRingCaption {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3, #364b65);
+}
+
+.statBlockGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.9rem 1.2rem;
+  margin: 0;
+}
+
+.statBlockGrid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.statBlockGrid dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3, #364b65);
+}
+
+.statBlockGrid dd {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink, #0c1322);
+}
+
+.statBlockGrid dd strong {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-weight: 700;
+}
+
+.statBlockGrid dd .smallMuted {
+  font-size: 0.78rem;
+  color: var(--ink-3, #364b65);
+}
+
 .tableSurface {
   margin-top: 1.2rem;
   padding: 0;
