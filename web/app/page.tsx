@@ -71,7 +71,7 @@ export default async function Home({
 
   try {
     const fetched = await fetchOverview({ lang, risk: "all" });
-    initialOverview = sanitizeContractOverviewForPublic(fetched);
+    initialOverview = sanitizeContractOverviewForPublic(fetched, lang);
   } catch (error) {
     console.error("[home] Failed to load initialOverview", error);
   }

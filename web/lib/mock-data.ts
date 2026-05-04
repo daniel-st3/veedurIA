@@ -11,7 +11,7 @@ import type {
 } from "./types";
 import type { NetworkNodeDetail, NetworkPayload, NetworkVersion } from "./network/types";
 import type { ContractsFilters, PromiseFilters } from "./api";
-import { formatCompactCop } from "./format";
+import { formatCompactCop, normalizeCurrencyPrefix } from "./format";
 
 const MOCK_DEPARTMENT_ALIASES: Record<string, string> = {
   BOGOTA: "SANTAFE DE BOGOTA D.C",
@@ -50,8 +50,19 @@ function formatMockDepartmentLabel(value: string) {
   return MOCK_DEPARTMENTS.find((department) => department.value === normalized)?.label ?? value;
 }
 
-function formatMockCurrency(value: number, lang: "es" | "en" = "es") {
-  return formatCompactCop(value, lang);
+/**
+ * Defensive: never prepend "$" to a string that already starts with one,
+ * always route numbers through the central formatter, and collapse any
+ * accidental "$$"/"$$$" leftovers via normalizeCurrencyPrefix.
+ */
+function formatMockCurrency(value: number | string, lang: "es" | "en" = "es"): string {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return formatCompactCop(value, lang);
+  }
+  if (typeof value === "string") {
+    return normalizeCurrencyPrefix(value);
+  }
+  return formatCompactCop(0, lang);
 }
 
 // ─── DEPARTMENTS ─────────────────────────────────────────────────────────────

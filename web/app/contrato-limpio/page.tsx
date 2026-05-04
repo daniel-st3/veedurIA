@@ -90,8 +90,8 @@ export default async function ContratoLimpioPage({
   return (
     <ContractsView
       lang={lang}
-      initialOverview={overview ? sanitizeContractOverviewForPublic(overview) : null}
-      initialTable={table ? sanitizeContractsTableForPublic(table) : null}
+      initialOverview={overview ? sanitizeContractOverviewForPublic(overview, lang) : null}
+      initialTable={table ? sanitizeContractsTableForPublic(table, lang) : null}
       initialGeojson={geojson}
       initialFilters={{ ...initialFilters }}
     />

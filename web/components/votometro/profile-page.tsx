@@ -360,8 +360,8 @@ export function VotometroProfilePage({
           ) : (
             <div className={styles.emptyState}>
               {lang === "es"
-                ? "Sin promesas revisadas todavía. La coherencia pública solo aparece cuando el backoffice aprueba la relación promesa → voto."
-                : "No reviewed promises yet. Public coherence only appears once the backoffice approves the promise-to-vote link."}
+                ? "Aún no hay promesas revisadas para este perfil. La coherencia pública aparecerá cuando exista una relación promesa-voto aprobada."
+                : "No reviewed promises yet. Public coherence appears once a promise-to-vote link is approved."}
             </div>
           )}
         </section>
@@ -408,9 +408,13 @@ export function VotometroProfilePage({
             </table>
           ) : (
             <div className={styles.emptyState}>
-              {lang === "es"
-                ? "Sin votaciones indexadas todavía para este perfil."
-                : "No indexed votes for this profile yet."}
+              {profile.votesIndexed > 0
+                ? lang === "es"
+                  ? `Las votaciones de este perfil aún se están validando contra fuente. Total reportado: ${statNumber(profile.votesIndexed)} votos.`
+                  : `Votes for this profile are still in source validation. Reported total: ${statNumber(profile.votesIndexed)} votes.`
+                : lang === "es"
+                  ? "Aún no hay votaciones indexadas para este perfil."
+                  : "No indexed votes for this profile yet."}
             </div>
           )}
         </section>

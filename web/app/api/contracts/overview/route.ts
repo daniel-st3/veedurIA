@@ -535,6 +535,21 @@ export async function GET(req: NextRequest) {
     const scoredSnapshotDate = (g.latestDate as string | null) ?? null;
     const sourceFreshnessGapDays = daysBetween(sourceData.latestDate, scoredSnapshotDate);
 
+    // ── 4b. Re-derive valueLabel for every leadCase from numeric value ───────
+    // The cached `g.leadCases` blob in `contracts_stats.global` was written by
+    // an earlier import-script run that used the legacy `$X.XB` formatter.
+    // Authoritatively re-format here so the wire output never disagrees with
+    // the current `formatCompactCop` (also strips any "$$" / dirty entity).
+    filteredLeadCases = (filteredLeadCases ?? []).map((row) => ({
+      ...row,
+      entity: displayEntityName(String(row.entity ?? "")),
+      provider: displayEntityName(String(row.provider ?? "")),
+      valueLabel:
+        typeof row.value === "number" && Number.isFinite(row.value)
+          ? formatCop(row.value, lang)
+          : row.valueLabel,
+    }));
+
     // ── 5. Compose OverviewPayload ───────────────────────────────────────────
     const payload: OverviewPayload = {
       meta: {
