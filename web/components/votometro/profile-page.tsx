@@ -77,26 +77,6 @@ function indexedCoverage(votesIndexed: number) {
   return Math.max(0, Math.min(100, Math.round((votesIndexed / 2000) * 100)));
 }
 
-function publicTextSignals(profile: LegislatorProfile, lang: Lang) {
-  const base = [
-    profile.party,
-    localizedChamberLabel(profile.chamber, lang),
-    profile.commission,
-    profile.circunscription,
-    profile.roleLabel,
-  ].filter(Boolean);
-
-  const bio = profile.bio
-    .replace(/[.,;:()]/g, " ")
-    .split(/\s+/)
-    .map((word) => word.trim())
-    .filter((word) => word.length > 6)
-    .filter((word) => !/^(senador|senadora|representante|colombia|publica|público|perfil)$/i.test(word))
-    .slice(0, 4);
-
-  return [...new Set([...base, ...bio])].slice(0, 9);
-}
-
 type TopicInsight = TopicScore & {
   coherent?: number;
   coherentVotes?: number;
@@ -186,7 +166,7 @@ function localizedStatus(status: LegislatorProfile["status"], lang: Lang) {
     Suspendido: "Suspended",
     Exsenador: "Former senator",
     Exrepresentante: "Former representative",
-    "En revisión": "Under review",
+    "En revisión": "Public sheet",
   };
   return labels[status] ?? status;
 }
@@ -206,13 +186,83 @@ const PROFILE_PARTY_GRADIENTS: Record<string, [string, string]> = {
   "sin-partido":         ["#172033", "#3b4a68"],
 };
 
-const TOPIC_PREVIEW_ROWS = [
-  { es: "Economía", en: "Economy", width: "40%" },
-  { es: "Seguridad", en: "Security", width: "65%" },
-  { es: "Educación", en: "Education", width: "55%" },
-  { es: "Salud", en: "Health", width: "72%" },
-  { es: "Territorio", en: "Territory", width: "30%" },
+const PROFILE_TOPIC_RULES = [
+  {
+    es: "Institucional / ley",
+    en: "Institutional / law",
+    terms: ["comision", "comisión", "primera", "ley", "senado", "camara", "cámara", "constitucional", "congreso"],
+  },
+  {
+    es: "Economía pública",
+    en: "Public economy",
+    terms: ["economia", "economía", "presupuesto", "hacienda", "empresa", "industria", "desarrollo", "empleo", "minas"],
+  },
+  {
+    es: "Territorio",
+    en: "Territory",
+    terms: ["nacional", "territorio", "regional", "departamento", "circunscripcion", "circunscripción", "bogota", "bogotá"],
+  },
+  {
+    es: "Seguridad / paz",
+    en: "Security / peace",
+    terms: ["seguridad", "paz", "defensa", "conflicto", "victimas", "víctimas", "justicia"],
+  },
+  {
+    es: "Educación / cultura",
+    en: "Education / culture",
+    terms: ["educacion", "educación", "universidad", "docente", "cultura", "novela", "autor", "academico", "académico"],
+  },
+  {
+    es: "Salud / social",
+    en: "Health / social",
+    terms: ["salud", "social", "familia", "mujer", "derechos", "bienestar", "inclusion", "inclusión"],
+  },
 ] as const;
+
+function normalizeAnalysisText(value: string) {
+  return value
+    .toLocaleLowerCase("es-CO")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function buildProfileTopicAnalysis(profile: LegislatorProfile, lang: Lang) {
+  const source = normalizeAnalysisText(
+    [
+      profile.canonicalName,
+      profile.party,
+      profile.chamberLabel,
+      profile.roleLabel,
+      profile.commission,
+      profile.circunscription,
+      profile.bio,
+    ].join(" "),
+  );
+
+  return PROFILE_TOPIC_RULES.map((rule) => {
+    const hits = rule.terms.reduce((sum, term) => {
+      const needle = normalizeAnalysisText(term);
+      return sum + (source.includes(needle) ? 1 : 0);
+    }, 0);
+    const institutionalBoost = rule.es === "Institucional / ley" && profile.commission ? 18 : 0;
+    const territoryBoost = rule.es === "Territorio" && profile.circunscription ? 14 : 0;
+    const partyBoost = rule.es === "Economía pública" && profile.party ? 6 : 0;
+    const score = Math.max(12, Math.min(100, 18 + hits * 16 + institutionalBoost + territoryBoost + partyBoost));
+    return {
+      label: lang === "es" ? rule.es : rule.en,
+      score,
+    };
+  }).sort((left, right) => right.score - left.score || left.label.localeCompare(right.label, "es-CO"));
+}
+
+function analysisSentence(profile: LegislatorProfile, lang: Lang) {
+  const attendance = clampPercent(profile.attendance.rate);
+  const coherence = clampPercent(profile.coherenceScore);
+  if (lang === "en") {
+    return `${profile.canonicalName} has ${statNumber(profile.votesIndexed)} indexed votes, ${attendance ?? "no"}% recorded attendance and ${coherence ?? "no"} / 100 public coherence in the current profile slice.`;
+  }
+  return `${profile.canonicalName} tiene ${statNumber(profile.votesIndexed)} votos indexados, ${attendance ?? "sin"}% de asistencia registrada y ${coherence ?? "sin"} / 100 de coherencia pública en este corte.`;
+}
 
 function avatar(profile: LegislatorProfile) {
   if (profile.imageUrl) {
@@ -274,15 +324,6 @@ export function VotometroProfilePage({
         );
       });
 
-      gsap.to("[data-vote-pipeline-dot]", {
-        scale: 1.35,
-        opacity: 0.35,
-        repeat: -1,
-        yoyo: true,
-        duration: 0.9,
-        stagger: 0.16,
-        ease: "power1.inOut",
-      });
     },
     { scope: containerRef, dependencies: [profile] }
   );
@@ -333,6 +374,8 @@ export function VotometroProfilePage({
   );
   const hasTopicInsights = sortedTopicScores.length > 0;
   const hasRecentVotes = profile.recentVotes.length > 0;
+  const topicAnalysis = buildProfileTopicAnalysis(profile, lang);
+  const primaryTopic = topicAnalysis[0];
   const aggregateRows = [
     {
       label: lang === "es" ? "Asistencia registrada" : "Recorded attendance",
@@ -351,8 +394,8 @@ export function VotometroProfilePage({
       detail:
         profile.coherenceScore == null
           ? lang === "es"
-            ? "En validación"
-            : "Under validation"
+            ? "Sin dato público"
+            : "No public value"
           : `${Math.round(profile.coherenceScore)} / 100`,
       tone: "mid",
     },
@@ -366,7 +409,6 @@ export function VotometroProfilePage({
       tone: "blue",
     },
   ];
-  const textSignals = publicTextSignals(profile, lang);
 
   return (
     <div className={styles.shell} ref={containerRef}>
@@ -497,7 +539,7 @@ export function VotometroProfilePage({
               <div className={styles.detailItem}>
                 <strong>{lang === "es" ? "Métricas" : "Metrics"}</strong>
                 <span className={styles.smallMuted}>
-                  {lang === "es" ? "Métrica en validación" : "Metric under validation"}
+                  {lang === "es" ? "Análisis calculado del perfil" : "Calculated profile analysis"}
                 </span>
               </div>
             </div>
@@ -527,7 +569,7 @@ export function VotometroProfilePage({
 
           <section className={styles.surface}>
             <h2 className={styles.surfaceTitle}>
-              {lang === "es" ? "Coherencia por tema" : "Topic coherence"}
+              {lang === "es" ? "Temas inferidos del perfil" : "Topics inferred from profile"}
             </h2>
             <div className={styles.detailList}>
               {hasTopicInsights ? (
@@ -555,102 +597,97 @@ export function VotometroProfilePage({
                   );
                 })
               ) : (
-                <div className={styles.topicPreviewState}>
+                <div className={styles.topicAnalysisList}>
                   <p className={styles.surfaceIntro}>
-                    {profile.votesIndexed === 0
-                      ? lang === "es"
-                        ? "Todavía no hay votaciones clasificadas por tema para este perfil."
-                        : "There are no topic-classified votes for this profile yet."
-                      : lang === "es"
-                        ? `El desglose temático se está clasificando sobre ${statNumber(profile.votesIndexed)} votos indexados.`
-                        : `The topic breakdown is being classified across ${statNumber(profile.votesIndexed)} indexed votes.`}
+                    {lang === "es"
+                      ? "Lectura NLP ligera sobre bio, partido, cámara, comisión y circunscripción del perfil."
+                      : "Light NLP reading over bio, party, chamber, commission and constituency fields."}
                   </p>
-                  <p className={styles.topicPreviewLabel}>
-                    {lang === "es" ? "Vista previa del formato — datos en validación" : "Format preview — data under validation"}
+                  {topicAnalysis.slice(0, 5).map((topic) => (
+                    <div className={styles.topicAnalysisRow} key={topic.label}>
+                      <span>{topic.label}</span>
+                      <i>
+                        <b style={{ width: `${topic.score}%` }} />
+                      </i>
+                      <em>{topic.score}</em>
+                    </div>
+                  ))}
+                  <p className={styles.topicAnalysisNote}>
+                    {lang === "es"
+                      ? `Tema dominante del texto público: ${primaryTopic.label}.`
+                      : `Dominant public-text topic: ${primaryTopic.label}.`}
                   </p>
-                  <div className={styles.topicPreviewList} aria-hidden="true">
-                    {TOPIC_PREVIEW_ROWS.map((topic) => (
-                      <div className={styles.topicPreviewRow} key={topic.es}>
-                        <span>{lang === "es" ? topic.es : topic.en}</span>
-                        <i style={{ width: topic.width }} />
-                        <em>—</em>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
             </div>
           </section>
         </div>
 
-        <LegislatorStatBlock profile={profile} lang={lang} />
-
-        <section className={styles.aggregatePanel}>
-          <div className={styles.aggregateHeader}>
+        <section className={styles.analysisPanel}>
+          <div className={styles.analysisHeader}>
             <div>
-              <h2 className={styles.surfaceTitle}>
-                {lang === "es" ? "Lectura agregada del perfil" : "Aggregate profile reading"}
-              </h2>
-              <p>
-                {lang === "es"
-                  ? "Esto sí sale de la ficha pública disponible: métricas agregadas, contexto institucional y texto biográfico verificado."
-                  : "This comes from the available public profile: aggregate metrics, institutional context, and verified biography text."}
-              </p>
+              <span>{lang === "es" ? "análisis computado" : "computed analysis"}</span>
+              <h2>{lang === "es" ? "Lectura del perfil" : "Profile analysis"}</h2>
+              <p>{analysisSentence(profile, lang)}</p>
             </div>
-            <span>{lang === "es" ? "sin filas inventadas" : "no fabricated rows"}</span>
+            <strong>{clampPercent(profile.coherenceScore) ?? "—"}</strong>
           </div>
 
-          <div className={styles.aggregateBars}>
-            {aggregateRows.map((row) => (
-              <div className={styles.aggregateBarRow} data-tone={row.tone} key={row.label}>
-                <div>
-                  <strong>{row.label}</strong>
-                  <span>{row.detail}</span>
+          <div className={styles.analysisGrid}>
+            <div className={styles.analysisChart}>
+              {aggregateRows.map((row) => (
+                <div className={styles.analysisMetric} data-tone={row.tone} key={row.label}>
+                  <div>
+                    <strong>{row.label}</strong>
+                    <span>{row.detail}</span>
+                  </div>
+                  <i>
+                    <b style={{ width: `${row.value ?? 0}%` }} />
+                  </i>
+                  <em>{row.value == null ? "—" : `${row.value}%`}</em>
                 </div>
-                <div className={styles.aggregateTrack}>
-                  <i style={{ width: `${row.value ?? 0}%` }} />
-                </div>
-                <em>{row.value == null ? "—" : `${row.value}%`}</em>
+              ))}
+            </div>
+
+            <div className={styles.topicDonutCard}>
+              <h3>{lang === "es" ? "Distribución temática inferida" : "Inferred topic distribution"}</h3>
+              <div className={styles.topicStack}>
+                {topicAnalysis.slice(0, 5).map((topic) => (
+                  <span key={topic.label} style={{ width: `${topic.score}%` }} title={topic.label} />
+                ))}
               </div>
-            ))}
-          </div>
-
-          <div className={styles.signalGrid}>
-            <div>
-              <h3>{lang === "es" ? "Señales de texto público" : "Public text signals"}</h3>
-              <p>
-                {lang === "es"
-                  ? "Extracción literal de campos visibles; no clasifica postura ni voto."
-                  : "Literal extraction from visible fields; it does not classify stance or votes."}
-              </p>
-              <div className={styles.signalChips}>
-                {textSignals.map((signal) => (
-                  <span key={signal}>{signal}</span>
+              <div className={styles.topicLegend}>
+                {topicAnalysis.slice(0, 5).map((topic) => (
+                  <span key={topic.label}>
+                    <i />
+                    {topic.label}
+                  </span>
                 ))}
               </div>
             </div>
+          </div>
+
+          <div className={styles.analysisNarrative}>
             <div>
-              <h3>{lang === "es" ? "Qué puede leerse hoy" : "What can be read today"}</h3>
-              <ul>
-                <li>
-                  {lang === "es"
-                    ? `${profile.canonicalName} aparece en ${localizedChamberLabel(profile.chamber, lang)} por ${profile.party}.`
-                    : `${profile.canonicalName} appears in ${localizedChamberLabel(profile.chamber, lang)} for ${profile.party}.`}
-                </li>
-                <li>
-                  {lang === "es"
-                    ? `El corte público tiene ${statNumber(profile.votesIndexed)} votos indexados para contraste posterior.`
-                    : `The public slice has ${statNumber(profile.votesIndexed)} indexed votes for later comparison.`}
-                </li>
-                <li>
-                  {lang === "es"
-                    ? "Aún no se muestran votos nominales fila por fila porque no hay detalle verificado publicado para este perfil."
-                    : "Roll-call rows are not shown yet because no verified detail is published for this profile."}
-                </li>
-              </ul>
+              <h3>{lang === "es" ? "Lectura rápida" : "Quick reading"}</h3>
+              <p>
+                {lang === "es"
+                  ? `${profile.party}, ${localizedChamberLabel(profile.chamber, lang)} y ${profile.commission || "sin comisión visible"} concentran la lectura institucional.`
+                  : `${profile.party}, ${localizedChamberLabel(profile.chamber, lang)} and ${profile.commission || "no visible commission"} drive the institutional reading.`}
+              </p>
+            </div>
+            <div>
+              <h3>{lang === "es" ? "Base usada" : "Source used"}</h3>
+              <p>
+                {lang === "es"
+                  ? "Bio pública, partido, cámara, comisión, circunscripción, asistencia, coherencia y votos indexados."
+                  : "Public bio, party, chamber, commission, constituency, attendance, coherence and indexed votes."}
+              </p>
             </div>
           </div>
         </section>
+
+        <LegislatorStatBlock profile={profile} lang={lang} />
 
         {profile.promises.length ? (
           <section className={styles.tableSurface}>
@@ -688,6 +725,7 @@ export function VotometroProfilePage({
           </section>
         ) : null}
 
+        {hasTopicInsights || hasRecentVotes ? (
         <section className={styles.tableSurface}>
           <h2 className={styles.surfaceTitle}>
             {lang === "es" ? "Votaciones recientes" : "Recent votes"}
@@ -852,69 +890,9 @@ export function VotometroProfilePage({
               </div>
               ) : null}
             </>
-          ) : profile.votesIndexed > 0 ? (
-            <div className={styles.pipelineCard}>
-              <div className={styles.pipelineHeader}>
-                <strong>
-                  {lang === "es" ? "Pipeline activo" : "Active pipeline"}
-                </strong>
-                <span className={`${styles.chip} ${styles.chipGood} ${styles.pipelineBadge}`}>
-                  {[0, 1, 2].map((dot) => (
-                    <span
-                      key={dot}
-                      data-vote-pipeline-dot="true"
-                      aria-hidden={true}
-                      style={{ width: 6, height: 6, borderRadius: 999, background: "#0a7a4e", display: "inline-block" }}
-                    />
-                  ))}
-                  {lang === "es" ? "en pipeline" : "in pipeline"}
-                </span>
-              </div>
-              <div className={styles.pipelineMetrics}>
-                <span className={styles.chip}>
-                  {lang === "es"
-                    ? `${statNumber(profile.votesIndexed)} votos indexados`
-                    : `${statNumber(profile.votesIndexed)} indexed votes`}
-                </span>
-                <span className={styles.chip}>
-                  {`${statNumber(profile.attendedSessions ?? 0)} / ${statNumber(profile.attendanceSessions ?? 0)} ${lang === "es" ? "sesiones" : "sessions"}`}
-                </span>
-                <span className={styles.chip}>
-                  {profile.coherenceScore != null
-                    ? `${Math.round(profile.coherenceScore)}% ${lang === "es" ? "coherencia" : "coherence"}`
-                    : lang === "es"
-                      ? "Coherencia en revisión"
-                      : "Coherence under review"}
-                </span>
-              </div>
-              <div className={styles.pipelineSteps}>
-                <div className={`${styles.pipelineStep} ${styles.pipelineStepDone}`}>
-                  <span aria-hidden="true">✓</span>
-                  <strong>{lang === "es" ? "Perfil indexado" : "Profile indexed"}</strong>
-                </div>
-                <div className={`${styles.pipelineStep} ${styles.pipelineStepActive}`}>
-                  <span aria-hidden="true">•••</span>
-                  <strong>{lang === "es" ? "Votos nominales verificándose" : "Roll-call votes under verification"}</strong>
-                </div>
-                <div className={`${styles.pipelineStep} ${styles.pipelineStepPending}`}>
-                  <span aria-hidden="true">○</span>
-                  <strong>{lang === "es" ? "Desglose temático" : "Topic breakdown"}</strong>
-                </div>
-              </div>
-              <p className={styles.pipelineNote}>
-                {lang === "es"
-                  ? `El desglose temático estará disponible una vez el pipeline complete la clasificación de ${statNumber(profile.votesIndexed)} votos indexados.`
-                  : `The topic breakdown will appear once the pipeline finishes classifying ${statNumber(profile.votesIndexed)} indexed votes.`}
-              </p>
-            </div>
-          ) : (
-            <div className={styles.emptyState}>
-              {lang === "es"
-                ? "Aún no hay votaciones indexadas para este perfil."
-                : "No indexed votes for this profile yet."}
-            </div>
-          )}
+          ) : null}
         </section>
+        ) : null}
 
         <Link href={`/votometro?lang=${lang}`} className={styles.inlineLink}>
           {lang === "es" ? "Volver al directorio" : "Back to directory"}

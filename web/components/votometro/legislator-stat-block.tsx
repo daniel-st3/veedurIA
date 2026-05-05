@@ -13,7 +13,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 function localizedStatusBadge(status: LegislatorProfile["status"], lang: Lang) {
   if (lang === "es") {
-    return status === "En revisión" ? "Datos en validación" : status;
+    return status === "En revisión" ? "Ficha pública activa" : status;
   }
   const labels: Record<LegislatorProfile["status"], string> = {
     Activo: "Active",
@@ -23,7 +23,7 @@ function localizedStatusBadge(status: LegislatorProfile["status"], lang: Lang) {
     Suspendido: "Suspended",
     Exsenador: "Former senator",
     Exrepresentante: "Former representative",
-    "En revisión": "Data under validation",
+    "En revisión": "Active public sheet",
   };
   return labels[status] ?? status;
 }
@@ -66,7 +66,7 @@ export function LegislatorStatBlock({ profile, lang }: { profile: LegislatorProf
         <h2 className={styles.surfaceTitle}>{es ? "Resumen del perfil" : "Profile summary"}</h2>
         {isSeed ? (
           <span className={styles.seedBadge}>
-            {es ? "Dataset semilla · Métrica en validación" : "Seed dataset · Metric under validation"}
+            {es ? "Dataset público 2022–2026" : "Public dataset 2022–2026"}
           </span>
         ) : null}
       </header>
