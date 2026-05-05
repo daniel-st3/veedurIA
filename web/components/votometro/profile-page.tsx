@@ -1,7 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, CalendarDays, Mail, Phone } from "lucide-react";
+import {
+  ArrowUpRight,
+  CalendarDays,
+  CircleDot,
+  GraduationCap,
+  HeartPulse,
+  Landmark,
+  Leaf,
+  Mail,
+  Phone,
+  PiggyBank,
+  Scale,
+  Shield,
+  ShieldAlert,
+  Sprout,
+  TrendingUp,
+  Wallet,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -11,7 +30,27 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import { LegislatorStatBlock } from "@/components/votometro/legislator-stat-block";
 import type { Lang } from "@/lib/types";
-import type { LegislatorProfile, VotometroDataIssue } from "@/lib/votometro-types";
+import type { LegislatorProfile, TopicScore, VotometroDataIssue } from "@/lib/votometro-types";
+
+// Topic icon registry. Keys match VotometroTopicKey + a few common backend
+// alternates ("infraestructura", "medio-ambiente"). Falls back to CircleDot.
+const TOPIC_ICONS: Record<string, LucideIcon> = {
+  salud: HeartPulse,
+  paz: Sprout,
+  justicia: Scale,
+  pensiones: PiggyBank,
+  economia: TrendingUp,
+  ambiente: Leaf,
+  "medio-ambiente": Leaf,
+  presupuesto: Wallet,
+  derechos: Scale,
+  energia: Zap,
+  anticorrupcion: ShieldAlert,
+  educacion: GraduationCap,
+  seguridad: Shield,
+  infraestructura: Landmark,
+  "sin-clasificar": CircleDot,
+};
 
 import styles from "./votometro.module.css";
 
@@ -389,6 +428,91 @@ export function VotometroProfilePage({
           <h2 className={styles.surfaceTitle}>
             {lang === "es" ? "Votaciones recientes" : "Recent votes"}
           </h2>
+          {/*
+            Topic breakdown (Component A): renders only if topic_scores JSON
+            on votometro_directory_public has been populated by the import
+            pipeline. As of this commit the column is empty across all
+            production rows — topic classification is pending pipeline
+            completion. Component lights up automatically once data lands.
+          */}
+          {profile.topicScores && profile.topicScores.length > 0 ? (
+            (() => {
+              const sorted = [...profile.topicScores]
+                .filter((t: TopicScore) => (t.votes ?? 0) > 0)
+                .sort((a: TopicScore, b: TopicScore) => (b.votes ?? 0) - (a.votes ?? 0));
+              if (sorted.length === 0) return null;
+              return (
+                <div
+                  style={{
+                    padding: "1.25rem 1.5rem 0.6rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.55rem",
+                  }}
+                >
+                  <p
+                    className={styles.smallMuted}
+                    style={{ margin: 0, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.04em" }}
+                  >
+                    {lang === "es" ? "Votaciones por tema" : "Votes by topic"}
+                  </p>
+                  {sorted.map((topic: TopicScore) => {
+                    const Icon = TOPIC_ICONS[topic.key] ?? CircleDot;
+                    const score = typeof topic.score === "number" ? Math.max(0, Math.min(100, topic.score)) : null;
+                    const tooltip =
+                      score == null
+                        ? `${statNumber(topic.votes ?? 0)} ${lang === "es" ? "votos" : "votes"}`
+                        : `${statNumber(topic.votes ?? 0)} ${lang === "es" ? "votos" : "votes"} · ${Math.round(score)}% ${lang === "es" ? "coherencia" : "coherence"}`;
+                    return (
+                      <div
+                        key={topic.key}
+                        title={tooltip}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "auto 1fr 180px auto",
+                          gap: "0.7rem",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Icon size={16} aria-hidden={true} />
+                        <span style={{ fontSize: "0.88rem", fontWeight: 600 }}>{topic.label}</span>
+                        <span
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            height: 8,
+                            borderRadius: 999,
+                            background: "rgba(12,19,34,0.06)",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {score != null ? (
+                            <span
+                              style={{
+                                display: "block",
+                                width: `${score}%`,
+                                height: "100%",
+                                background:
+                                  score >= 70 ? "#0a7a4e" : score >= 45 ? "#c47d18" : "#a12c7b",
+                              }}
+                            />
+                          ) : null}
+                        </span>
+                        <span className={styles.smallMuted} style={{ fontSize: "0.82rem" }}>
+                          {`${statNumber(topic.votes ?? 0)} ${lang === "es" ? "votos" : "votes"}`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <p className={styles.smallMuted} style={{ margin: "0.4rem 0 0", fontSize: "0.78rem" }}>
+                    {lang === "es"
+                      ? "Coherencia calculada contra promesas de campaña verificadas."
+                      : "Coherence calculated against verified campaign promises."}
+                  </p>
+                </div>
+              );
+            })()
+          ) : null}
           {profile.recentVotes.length ? (
             <table className={styles.table}>
               <thead>

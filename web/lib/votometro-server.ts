@@ -649,6 +649,15 @@ export async function getVotometroVotes({
       resolvedLegislatorId = toStringValue((data as Record<string, unknown> | null)?.id);
     }
 
+    // Per-vote join pipeline status (verified 2026-05-05):
+    //   - votometro_vote_records_public has 0 rows in production.
+    //   - topic_scores JSON on votometro_directory_public is also empty for
+    //     every legislator, so the per-topic breakdown component lights up
+    //     only when the import script repopulates both.
+    //   - The aggregate columns (votesIndexed / coherentVotes / etc.) are
+    //     populated and drive the activity-bar fallback in the meantime.
+    //   - Queries below are correct; do not change without updating the
+    //     import script first.
     let query = supabase
       .from("votometro_vote_records_public")
       .select("*", { count: "exact" })
