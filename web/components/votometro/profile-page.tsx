@@ -3,11 +3,11 @@
 import Link from "next/link";
 import {
   ArrowUpRight,
+  Building2,
   CalendarDays,
   CircleDot,
   GraduationCap,
   HeartPulse,
-  Landmark,
   Leaf,
   Mail,
   Phone,
@@ -15,7 +15,6 @@ import {
   Scale,
   Shield,
   ShieldAlert,
-  Sprout,
   TrendingUp,
   Wallet,
   Zap,
@@ -24,7 +23,7 @@ import {
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
@@ -36,19 +35,24 @@ import type { LegislatorProfile, TopicScore, VotometroDataIssue } from "@/lib/vo
 // alternates ("infraestructura", "medio-ambiente"). Falls back to CircleDot.
 const TOPIC_ICONS: Record<string, LucideIcon> = {
   salud: HeartPulse,
-  paz: Sprout,
+  paz: Shield,
   justicia: Scale,
   pensiones: PiggyBank,
   economia: TrendingUp,
+  "economía": TrendingUp,
   ambiente: Leaf,
   "medio-ambiente": Leaf,
+  "medio ambiente": Leaf,
   presupuesto: Wallet,
   derechos: Scale,
   energia: Zap,
+  "energía": Zap,
   anticorrupcion: ShieldAlert,
   educacion: GraduationCap,
+  "educación": GraduationCap,
   seguridad: Shield,
-  infraestructura: Landmark,
+  infraestructura: Building2,
+  otros: CircleDot,
   "sin-clasificar": CircleDot,
 };
 
@@ -62,6 +66,73 @@ function percentLabel(value: number | null, lang: Lang) {
 
 function statNumber(value: number) {
   return new Intl.NumberFormat("es-CO").format(value);
+}
+
+type TopicInsight = TopicScore & {
+  coherent?: number;
+  coherentVotes?: number;
+  coherentes?: number;
+  inconsistent?: number;
+  inconsistentVotes?: number;
+  inconsistentes?: number;
+  absent?: number;
+  absentVotes?: number;
+  ausencias?: number;
+  ausente?: number;
+  total?: number;
+};
+
+function topicIconFor(topic: TopicInsight) {
+  const key = `${topic.key || topic.label || ""}`
+    .trim()
+    .toLocaleLowerCase("es-CO")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/_/g, "-");
+  return TOPIC_ICONS[key] ?? TOPIC_ICONS[topic.key] ?? TOPIC_ICONS[topic.label] ?? CircleDot;
+}
+
+function topicCounts(topic: TopicInsight) {
+  const total = Math.max(0, Math.round(topic.total ?? topic.votes ?? 0));
+  const coherent = Math.max(0, Math.round(topic.coherent ?? topic.coherentVotes ?? topic.coherentes ?? 0));
+  const inconsistent = Math.max(0, Math.round(topic.inconsistent ?? topic.inconsistentVotes ?? topic.inconsistentes ?? 0));
+  const absent = Math.max(0, Math.round(topic.absent ?? topic.absentVotes ?? topic.ausencias ?? topic.ausente ?? 0));
+
+  if (coherent + inconsistent + absent > 0) {
+    const countedTotal = coherent + inconsistent + absent;
+    return {
+      coherent,
+      inconsistent,
+      absent: total > countedTotal ? absent + (total - countedTotal) : absent,
+      total: Math.max(total, countedTotal),
+    };
+  }
+
+  const score = typeof topic.score === "number" ? Math.max(0, Math.min(100, topic.score)) : null;
+  if (score == null || total === 0) return { coherent: 0, inconsistent: 0, absent: total, total };
+  const inferredCoherent = Math.round((score / 100) * total);
+  return {
+    coherent: inferredCoherent,
+    inconsistent: Math.max(0, total - inferredCoherent),
+    absent: 0,
+    total,
+  };
+}
+
+function voteChipLabel(value: string, lang: Lang) {
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "SI" || normalized === "SÍ" || normalized === "YES") return lang === "es" ? "Sí" : "Yes";
+  if (normalized === "NO") return "No";
+  if (normalized === "AUSENTE" || normalized === "ABSENT") return lang === "es" ? "Ausente" : "Absent";
+  if (normalized === "IMPEDIDO" || normalized === "CONFLICT") return lang === "es" ? "Impedido" : "Conflict";
+  return value || (lang === "es" ? "Sin dato" : "No data");
+}
+
+function voteChipTone(value: string) {
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "SI" || normalized === "SÍ" || normalized === "YES") return "rgba(10,122,78,0.12)";
+  if (normalized === "NO") return "rgba(161,44,123,0.12)";
+  return "rgba(12,19,34,0.08)";
 }
 
 function localizedChamberLabel(chamber: LegislatorProfile["chamber"], lang: Lang) {
@@ -137,6 +208,8 @@ export function VotometroProfilePage({
   issue: VotometroDataIssue | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [showAllTopics, setShowAllTopics] = useState(false);
+  const [votePage, setVotePage] = useState(0);
 
   useGSAP(
     () => {
@@ -163,6 +236,16 @@ export function VotometroProfilePage({
             },
           }
         );
+      });
+
+      gsap.to("[data-vote-pipeline-dot]", {
+        scale: 1.35,
+        opacity: 0.35,
+        repeat: -1,
+        yoyo: true,
+        duration: 0.9,
+        stagger: 0.16,
+        ease: "power1.inOut",
       });
     },
     { scope: containerRef, dependencies: [profile] }
@@ -200,6 +283,20 @@ export function VotometroProfilePage({
       </div>
     );
   }
+
+  const sortedTopicScores = [...profile.topicScores]
+    .filter((topic) => (topic.votes ?? 0) > 0)
+    .sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)) as TopicInsight[];
+  const visibleTopicScores = showAllTopics ? sortedTopicScores : sortedTopicScores.slice(0, 5);
+  const votePageSize = 15;
+  const votePageCount = Math.max(1, Math.ceil(profile.recentVotes.length / votePageSize));
+  const safeVotePage = Math.min(votePage, votePageCount - 1);
+  const pagedRecentVotes = profile.recentVotes.slice(
+    safeVotePage * votePageSize,
+    safeVotePage * votePageSize + votePageSize,
+  );
+  const hasTopicInsights = sortedTopicScores.length > 0;
+  const hasRecentVotes = profile.recentVotes.length > 0;
 
   return (
     <div className={styles.shell} ref={containerRef}>
@@ -359,27 +456,39 @@ export function VotometroProfilePage({
               {lang === "es" ? "Coherencia por tema" : "Topic coherence"}
             </h2>
             <div className={styles.detailList}>
-              {profile.topicScores.length ? (
-                profile.topicScores.map((score) => (
-                  <div key={score.key} className={styles.partyBarRow}>
-                    <div className={styles.partyBarLabel}>{score.label}</div>
-                    <div className={styles.partyBarTrack}>
-                      <div 
-                        className={styles.partyBarFill} 
-                        style={{ 
-                          width: `${score.score ?? 0}%`,
-                          background: `linear-gradient(90deg, var(--blue, #0d5bd7), var(--green, #18794e))`
-                        }} 
-                      />
+              {hasTopicInsights ? (
+                sortedTopicScores.slice(0, 4).map((topic) => {
+                  const Icon = topicIconFor(topic);
+                  const counts = topicCounts(topic);
+                  const coherentPct = counts.total ? (counts.coherent / counts.total) * 100 : 0;
+                  return (
+                    <div key={topic.key} className={styles.partyBarRow}>
+                      <div className={styles.partyBarLabel} style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem" }}>
+                        <Icon size={15} aria-hidden={true} />
+                        {topic.label}
+                      </div>
+                      <div className={styles.partyBarTrack}>
+                        <div
+                          className={styles.partyBarFill}
+                          style={{
+                            width: `${coherentPct}%`,
+                            background: "#0a7a4e",
+                          }}
+                        />
+                      </div>
+                      <div className={styles.partyBarCount}>{statNumber(counts.total)}</div>
                     </div>
-                    <div className={styles.partyBarCount}>{percentLabel(score.score, lang)}</div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <p className={styles.surfaceIntro}>
-                  {lang === "es"
-                    ? "Todavía no hay votaciones clasificadas por tema para este perfil."
-                    : "There are no topic-classified votes for this profile yet."}
+                  {profile.votesIndexed === 0
+                    ? lang === "es"
+                      ? "Todavía no hay votaciones clasificadas por tema para este perfil."
+                      : "There are no topic-classified votes for this profile yet."
+                    : lang === "es"
+                      ? `El desglose temático se está clasificando sobre ${statNumber(profile.votesIndexed)} votos indexados.`
+                      : `The topic breakdown is being classified across ${statNumber(profile.votesIndexed)} indexed votes.`}
                 </p>
               )}
             </div>
@@ -428,284 +537,217 @@ export function VotometroProfilePage({
           <h2 className={styles.surfaceTitle}>
             {lang === "es" ? "Votaciones recientes" : "Recent votes"}
           </h2>
-          {/*
-            Topic breakdown (Component A): renders only if topic_scores JSON
-            on votometro_directory_public has been populated by the import
-            pipeline. As of this commit the column is empty across all
-            production rows — topic classification is pending pipeline
-            completion. Component lights up automatically once data lands.
-          */}
-          {profile.topicScores && profile.topicScores.length > 0 ? (
-            (() => {
-              const sorted = [...profile.topicScores]
-                .filter((t: TopicScore) => (t.votes ?? 0) > 0)
-                .sort((a: TopicScore, b: TopicScore) => (b.votes ?? 0) - (a.votes ?? 0));
-              if (sorted.length === 0) return null;
-              return (
-                <div
-                  style={{
-                    padding: "1.25rem 1.5rem 0.6rem",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.55rem",
-                  }}
-                >
-                  <p
-                    className={styles.smallMuted}
-                    style={{ margin: 0, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.04em" }}
+          {hasTopicInsights ? (
+            <div
+              style={{
+                padding: "1.25rem 1.5rem 0.9rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.65rem",
+              }}
+            >
+              <p
+                className={styles.smallMuted}
+                style={{ margin: 0, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.04em" }}
+              >
+                {lang === "es" ? "Coherencia por tema" : "Topic coherence"}
+              </p>
+              {visibleTopicScores.map((topic) => {
+                const Icon = topicIconFor(topic);
+                const counts = topicCounts(topic);
+                const coherentPct = counts.total ? (counts.coherent / counts.total) * 100 : 0;
+                const inconsistentPct = counts.total ? (counts.inconsistent / counts.total) * 100 : 0;
+                const absentPct = counts.total ? (counts.absent / counts.total) * 100 : 0;
+                const tooltip =
+                  lang === "es"
+                    ? `${statNumber(counts.coherent)} coherentes · ${statNumber(counts.inconsistent)} inconsistentes · ${statNumber(counts.absent)} ausencias`
+                    : `${statNumber(counts.coherent)} coherent · ${statNumber(counts.inconsistent)} inconsistent · ${statNumber(counts.absent)} absences`;
+                return (
+                  <div
+                    key={topic.key}
+                    title={tooltip}
+                    data-topic-row="true"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(170px, 1fr) minmax(160px, 240px) auto",
+                      gap: "0.75rem",
+                      alignItems: "center",
+                    }}
                   >
-                    {lang === "es" ? "Votaciones por tema" : "Votes by topic"}
-                  </p>
-                  {sorted.map((topic: TopicScore) => {
-                    const Icon = TOPIC_ICONS[topic.key] ?? CircleDot;
-                    const score = typeof topic.score === "number" ? Math.max(0, Math.min(100, topic.score)) : null;
-                    const tooltip =
-                      score == null
-                        ? `${statNumber(topic.votes ?? 0)} ${lang === "es" ? "votos" : "votes"}`
-                        : `${statNumber(topic.votes ?? 0)} ${lang === "es" ? "votos" : "votes"} · ${Math.round(score)}% ${lang === "es" ? "coherencia" : "coherence"}`;
-                    return (
-                      <div
-                        key={topic.key}
-                        title={tooltip}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "auto 1fr 180px auto",
-                          gap: "0.7rem",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Icon size={16} aria-hidden={true} />
-                        <span style={{ fontSize: "0.88rem", fontWeight: 600 }}>{topic.label}</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem", fontWeight: 700 }}>
+                      <Icon size={16} aria-hidden={true} />
+                      {topic.label}
+                    </span>
+                    <span
+                      role="img"
+                      aria-label={tooltip}
+                      style={{
+                        display: "flex",
+                        width: "100%",
+                        height: 8,
+                        borderRadius: 999,
+                        overflow: "hidden",
+                        background: "rgba(12,19,34,0.08)",
+                      }}
+                    >
+                      {coherentPct > 0 ? <span style={{ width: `${coherentPct}%`, background: "#0a7a4e" }} /> : null}
+                      {inconsistentPct > 0 ? <span style={{ width: `${inconsistentPct}%`, background: "#b81f1f" }} /> : null}
+                      {absentPct > 0 ? <span style={{ width: `${absentPct}%`, background: "rgba(12,19,34,0.28)" }} /> : null}
+                    </span>
+                    <span className={styles.smallMuted} style={{ fontSize: "0.82rem", whiteSpace: "nowrap" }}>
+                      {statNumber(counts.total)}
+                    </span>
+                  </div>
+                );
+              })}
+              {sortedTopicScores.length > 5 ? (
+                <button
+                  type="button"
+                  className={styles.inlineLink}
+                  onClick={() => setShowAllTopics((value) => !value)}
+                  style={{ alignSelf: "flex-start", border: 0, background: "transparent", padding: 0, cursor: "pointer" }}
+                >
+                  {showAllTopics
+                    ? lang === "es"
+                      ? "Ver menos"
+                      : "Show less"
+                    : lang === "es"
+                      ? "Ver todos →"
+                      : "Show all →"}
+                </button>
+              ) : null}
+              <p className={styles.smallMuted} style={{ margin: "0.25rem 0 0", fontSize: "0.78rem" }}>
+                {lang === "es"
+                  ? "Coherencia calculada contra promesas de campaña verificadas."
+                  : "Coherence calculated against verified campaign promises."}
+              </p>
+            </div>
+          ) : null}
+          {hasRecentVotes ? (
+            <>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>{lang === "es" ? "Fecha" : "Date"}</th>
+                    <th>{lang === "es" ? "Proyecto / Tema" : "Bill / Topic"}</th>
+                    <th>{lang === "es" ? "Voto" : "Vote"}</th>
+                    <th>{lang === "es" ? "Fuente" : "Source"}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedRecentVotes.map((vote) => (
+                    <tr key={vote.id}>
+                      <td>
+                        <span className={styles.smallMuted}>
+                          <CalendarDays size={14} /> {vote.voteDate}
+                        </span>
+                      </td>
+                      <td>
+                        {vote.title}
+                        <div className={styles.smallMuted}>{vote.topicLabel}</div>
+                      </td>
+                      <td>
                         <span
+                          className={styles.chip}
                           style={{
-                            display: "block",
-                            width: "100%",
-                            height: 8,
-                            borderRadius: 999,
-                            background: "rgba(12,19,34,0.06)",
-                            overflow: "hidden",
+                            background: voteChipTone(vote.voteValue),
+                            color: "rgba(12,19,34,0.86)",
+                            borderColor: "rgba(12,19,34,0.08)",
                           }}
                         >
-                          {score != null ? (
-                            <span
-                              style={{
-                                display: "block",
-                                width: `${score}%`,
-                                height: "100%",
-                                background:
-                                  score >= 70 ? "#0a7a4e" : score >= 45 ? "#c47d18" : "#a12c7b",
-                              }}
-                            />
-                          ) : null}
+                          {voteChipLabel(vote.voteValue, lang)}
                         </span>
-                        <span className={styles.smallMuted} style={{ fontSize: "0.82rem" }}>
-                          {`${statNumber(topic.votes ?? 0)} ${lang === "es" ? "votos" : "votes"}`}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  <p className={styles.smallMuted} style={{ margin: "0.4rem 0 0", fontSize: "0.78rem" }}>
-                    {lang === "es"
-                      ? "Coherencia calculada contra promesas de campaña verificadas."
-                      : "Coherence calculated against verified campaign promises."}
-                  </p>
-                </div>
-              );
-            })()
-          ) : null}
-          {profile.recentVotes.length ? (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>{lang === "es" ? "Fecha" : "Date"}</th>
-                  <th>{lang === "es" ? "Proyecto" : "Project"}</th>
-                  <th>{lang === "es" ? "Voto" : "Vote"}</th>
-                  <th>{lang === "es" ? "Coherencia" : "Coherence"}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {profile.recentVotes.map((vote) => (
-                  <tr key={vote.id}>
-                    <td>
-                      <span className={styles.smallMuted}>
-                        <CalendarDays size={14} /> {vote.voteDate}
-                      </span>
-                    </td>
-                    <td>
-                      {vote.title}
-                      <div className={styles.smallMuted}>{vote.topicLabel}</div>
-                    </td>
-                    <td>{vote.voteValue}</td>
-                    <td>
-                      <span className={`${styles.voteBadge} ${
-                        vote.promiseAlignment === "coherente" ? styles.isCoherent :
-                        vote.promiseAlignment === "inconsistente" ? styles.isInconsistent :
-                        styles.isNeutral
-                      }`}>
-                        {vote.promiseAlignment}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : profile.votesIndexed > 0 ? (
-            (() => {
-              const coh = Math.max(0, profile.coherentVotes ?? 0);
-              const inc = Math.max(0, profile.inconsistentVotes ?? 0);
-              const abs = Math.max(0, profile.absentVotes ?? 0);
-              const total = coh + inc + abs;
-              const hasBreakdown = total > 0;
-              const cohPct = hasBreakdown ? (coh / total) * 100 : 0;
-              const incPct = hasBreakdown ? (inc / total) * 100 : 0;
-              const absPct = hasBreakdown ? (abs / total) * 100 : 0;
-              const cohScore = profile.coherenceScore;
-              return (
-                <div
-                  style={{
-                    padding: "1.25rem 1.5rem 1.4rem",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.85rem",
-                  }}
+                      </td>
+                      <td>
+                        {vote.sourceUrl || vote.projectSourceUrl ? (
+                          <a href={vote.sourceUrl || vote.projectSourceUrl} target="_blank" rel="noreferrer" className={styles.inlineLink}>
+                            {lang === "es" ? "Fuente" : "Source"} <ArrowUpRight size={14} />
+                          </a>
+                        ) : (
+                          <span className={styles.smallMuted}>{lang === "es" ? "No visible" : "Not visible"}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {profile.recentVotes.length > votePageSize ? (
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", padding: "0.85rem 1.5rem 1.25rem" }}>
+                <button
+                  type="button"
+                  className={styles.chip}
+                  disabled={safeVotePage === 0}
+                  onClick={() => setVotePage((page) => Math.max(0, page - 1))}
+                  style={{ cursor: safeVotePage === 0 ? "default" : "pointer", opacity: safeVotePage === 0 ? 0.5 : 1 }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "baseline",
-                      justifyContent: "space-between",
-                      gap: "0.6rem",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <strong style={{ fontFamily: "Sora, sans-serif", fontSize: "0.95rem" }}>
-                      {lang === "es"
-                        ? `Total indexado: ${statNumber(profile.votesIndexed)} votos`
-                        : `Total indexed: ${statNumber(profile.votesIndexed)} votes`}
-                    </strong>
-                    <span className={styles.smallMuted}>
-                      {hasBreakdown
-                        ? lang === "es"
-                          ? "Distribución por alineación con promesas"
-                          : "Breakdown by alignment with promises"
-                        : lang === "es"
-                          ? "Desglose por votación disponible próximamente"
-                          : "Per-vote breakdown coming soon"}
-                    </span>
-                  </div>
-
-                  <div
-                    role="img"
-                    aria-label={
-                      hasBreakdown
-                        ? lang === "es"
-                          ? `Coherentes ${Math.round(cohPct)}%, inconsistentes ${Math.round(incPct)}%, ausencias ${Math.round(absPct)}%`
-                          : `Coherent ${Math.round(cohPct)}%, inconsistent ${Math.round(incPct)}%, absences ${Math.round(absPct)}%`
-                        : lang === "es"
-                          ? `${statNumber(profile.votesIndexed)} votos indexados`
-                          : `${statNumber(profile.votesIndexed)} indexed votes`
-                    }
-                    style={{
-                      display: "flex",
-                      width: "100%",
-                      height: 11,
-                      borderRadius: 999,
-                      overflow: "hidden",
-                      background: "rgba(12,19,34,0.06)",
-                    }}
-                  >
-                    {hasBreakdown ? (
-                      <>
-                        {cohPct > 0 ? (
-                          <span
-                            style={{
-                              width: `${cohPct}%`,
-                              background: "#0a7a4e",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#fff",
-                              fontSize: 10,
-                              fontWeight: 700,
-                              letterSpacing: ".02em",
-                            }}
-                          >
-                            {cohPct >= 12 ? `${Math.round(cohPct)}%` : ""}
-                          </span>
-                        ) : null}
-                        {incPct > 0 ? (
-                          <span
-                            style={{
-                              width: `${incPct}%`,
-                              background: "#a12c7b",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#fff",
-                              fontSize: 10,
-                              fontWeight: 700,
-                              letterSpacing: ".02em",
-                            }}
-                          >
-                            {incPct >= 12 ? `${Math.round(incPct)}%` : ""}
-                          </span>
-                        ) : null}
-                        {absPct > 0 ? (
-                          <span
-                            style={{
-                              width: `${absPct}%`,
-                              background: "rgba(12,19,34,0.32)",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#fff",
-                              fontSize: 10,
-                              fontWeight: 700,
-                              letterSpacing: ".02em",
-                            }}
-                          >
-                            {absPct >= 12 ? `${Math.round(absPct)}%` : ""}
-                          </span>
-                        ) : null}
-                      </>
-                    ) : (
-                      <span
-                        style={{
-                          width: "100%",
-                          background: "rgba(12,19,34,0.18)",
-                        }}
-                      />
-                    )}
-                  </div>
-
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem" }}>
-                    <span className={styles.chip}>
-                      {`${statNumber(profile.attendedSessions ?? 0)} / ${statNumber(profile.attendanceSessions ?? 0)} ${lang === "es" ? "sesiones" : "sessions"}`}
-                    </span>
-                    <span className={`${styles.chip} ${styles.chipGood}`}>
-                      {cohScore != null
-                        ? `${Math.round(cohScore)}% ${lang === "es" ? "coherencia" : "coherence"}`
-                        : lang === "es"
-                          ? "Coherencia sin revisar"
-                          : "Coherence not reviewed"}
-                    </span>
-                    {hasBreakdown ? null : (
-                      <span className={styles.chip}>
-                        {lang === "es"
-                          ? `${statNumber(profile.votesIndexed)} votos indexados`
-                          : `${statNumber(profile.votesIndexed)} indexed votes`}
-                      </span>
-                    )}
-                  </div>
-
-                  <p className={styles.smallMuted} style={{ margin: 0, fontSize: "0.78rem" }}>
-                    {lang === "es"
-                      ? "Desglose por votación disponible cuando el pipeline de datos esté completo."
-                      : "Per-vote breakdown available when the data pipeline is complete."}
-                  </p>
-                </div>
-              );
-            })()
+                  {lang === "es" ? "Anterior" : "Previous"}
+                </button>
+                <span className={styles.smallMuted}>
+                  {safeVotePage + 1} / {votePageCount}
+                </span>
+                <button
+                  type="button"
+                  className={styles.chip}
+                  disabled={safeVotePage >= votePageCount - 1}
+                  onClick={() => setVotePage((page) => Math.min(votePageCount - 1, page + 1))}
+                  style={{ cursor: safeVotePage >= votePageCount - 1 ? "default" : "pointer", opacity: safeVotePage >= votePageCount - 1 ? 0.5 : 1 }}
+                >
+                  {lang === "es" ? "Siguiente" : "Next"}
+                </button>
+              </div>
+              ) : null}
+            </>
+          ) : profile.votesIndexed > 0 ? (
+            <div
+              style={{
+                margin: "1.1rem 1.5rem 1.4rem",
+                padding: "1.15rem",
+                border: "1px solid rgba(12,19,34,0.09)",
+                borderRadius: 8,
+                background: "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,248,252,0.9))",
+                display: "grid",
+                gap: "0.95rem",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                <strong style={{ fontFamily: "Sora, sans-serif", fontSize: "1rem" }}>
+                  {lang === "es" ? "Pipeline activo" : "Active pipeline"}
+                </strong>
+                <span className={`${styles.chip} ${styles.chipGood}`} style={{ display: "inline-flex", alignItems: "center", gap: "0.32rem" }}>
+                  {[0, 1, 2].map((dot) => (
+                    <span
+                      key={dot}
+                      data-vote-pipeline-dot="true"
+                      aria-hidden={true}
+                      style={{ width: 6, height: 6, borderRadius: 999, background: "#0a7a4e", display: "inline-block" }}
+                    />
+                  ))}
+                  {lang === "es" ? "procesando" : "processing"}
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: "0.65rem" }}>
+                <span className={styles.chip}>
+                  {lang === "es"
+                    ? `${statNumber(profile.votesIndexed)} votos indexados`
+                    : `${statNumber(profile.votesIndexed)} indexed votes`}
+                </span>
+                <span className={styles.chip}>
+                  {`${statNumber(profile.attendedSessions ?? 0)} / ${statNumber(profile.attendanceSessions ?? 0)} ${lang === "es" ? "sesiones" : "sessions"}`}
+                </span>
+                <span className={styles.chip}>
+                  {profile.coherenceScore != null
+                    ? `${Math.round(profile.coherenceScore)}% ${lang === "es" ? "coherencia" : "coherence"}`
+                    : lang === "es"
+                      ? "Coherencia en revisión"
+                      : "Coherence under review"}
+                </span>
+              </div>
+              <p className={styles.smallMuted} style={{ margin: 0, fontSize: "0.86rem", lineHeight: 1.55 }}>
+                {lang === "es"
+                  ? `El desglose temático estará disponible una vez el pipeline complete la clasificación de ${statNumber(profile.votesIndexed)} votos indexados.`
+                  : `The topic breakdown will be available once the pipeline completes classification of ${statNumber(profile.votesIndexed)} indexed votes.`}
+              </p>
+            </div>
           ) : (
             <div className={styles.emptyState}>
               {lang === "es"

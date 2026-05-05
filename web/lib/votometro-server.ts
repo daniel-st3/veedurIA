@@ -132,7 +132,15 @@ function parseTopicScores(value: unknown): TopicScore[] {
         label: toStringValue(item.label) || getTopicLabel(toStringValue(item.key)),
         score: toNumber(item.score),
         votes: toNumber(item.votes) ?? 0,
-      } satisfies TopicScore;
+        total: toNumber(item.total) ?? toNumber(item.votes) ?? 0,
+        coherent: toNumber(item.coherent) ?? toNumber(item.coherent_votes) ?? toNumber(item.coherentes) ?? 0,
+        inconsistent:
+          toNumber(item.inconsistent) ??
+          toNumber(item.inconsistent_votes) ??
+          toNumber(item.inconsistentes) ??
+          0,
+        absent: toNumber(item.absent) ?? toNumber(item.absent_votes) ?? toNumber(item.ausencias) ?? 0,
+      } as TopicScore;
     })
     .filter((entry): entry is TopicScore => Boolean(entry?.key));
 }
@@ -567,7 +575,7 @@ export async function getVotometroProfileResult(
         .limit(12),
     ]);
 
-    const votes = await getVotometroVotes({ legislatorId: item.id, page: 1, pageSize: DEFAULT_VOTES_PAGE_SIZE });
+    const votes = await getVotometroVotes({ legislatorId: item.id, page: 1, pageSize: 60 });
 
     const attendance: AttendanceSummary = {
       sessions: item.attendanceSessions,
@@ -649,15 +657,6 @@ export async function getVotometroVotes({
       resolvedLegislatorId = toStringValue((data as Record<string, unknown> | null)?.id);
     }
 
-    // Per-vote join pipeline status (verified 2026-05-05):
-    //   - votometro_vote_records_public has 0 rows in production.
-    //   - topic_scores JSON on votometro_directory_public is also empty for
-    //     every legislator, so the per-topic breakdown component lights up
-    //     only when the import script repopulates both.
-    //   - The aggregate columns (votesIndexed / coherentVotes / etc.) are
-    //     populated and drive the activity-bar fallback in the meantime.
-    //   - Queries below are correct; do not change without updating the
-    //     import script first.
     let query = supabase
       .from("votometro_vote_records_public")
       .select("*", { count: "exact" })
