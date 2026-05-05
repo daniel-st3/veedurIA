@@ -722,7 +722,7 @@ export function VotometroProfilePage({
                       style={{ width: 6, height: 6, borderRadius: 999, background: "#0a7a4e", display: "inline-block" }}
                     />
                   ))}
-                  {lang === "es" ? "procesando" : "processing"}
+                  {lang === "es" ? "pendiente" : "pending"}
                 </span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: "0.65rem" }}>
@@ -744,8 +744,8 @@ export function VotometroProfilePage({
               </div>
               <p className={styles.smallMuted} style={{ margin: 0, fontSize: "0.86rem", lineHeight: 1.55 }}>
                 {lang === "es"
-                  ? `El desglose temático estará disponible una vez el pipeline complete la clasificación de ${statNumber(profile.votesIndexed)} votos indexados.`
-                  : `The topic breakdown will be available once the pipeline completes classification of ${statNumber(profile.votesIndexed)} indexed votes.`}
+                  ? `El desglose temático estará disponible cuando se publiquen filas verificadas para los ${statNumber(profile.votesIndexed)} votos indexados.`
+                  : `The topic breakdown will be available when verified rows are published for the ${statNumber(profile.votesIndexed)} indexed votes.`}
               </p>
             </div>
           ) : (

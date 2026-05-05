@@ -544,10 +544,7 @@ export async function GET(req: NextRequest) {
       ...row,
       entity: displayEntityName(String(row.entity ?? "")),
       provider: displayEntityName(String(row.provider ?? "")),
-      valueLabel:
-        typeof row.value === "number" && Number.isFinite(row.value)
-          ? formatCop(row.value, lang)
-          : row.valueLabel,
+      valueLabel: formatCop(numericValue(row.value), lang),
     }));
 
     // ── 5. Compose OverviewPayload ───────────────────────────────────────────

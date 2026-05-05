@@ -7,10 +7,15 @@ import { deptDisplayLabel, deptGeoName } from "@/lib/colombia-departments";
  * can read civic data, but INSERT/UPDATE/DELETE require the service_role key.
  */
 export function createServerSupabase() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_KEY;
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_KEY;
   if (!url || !key) {
-    throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_KEY) must be set");
+    throw new Error(
+      "SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL and SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY (or SUPABASE_KEY) must be set",
+    );
   }
   return createClient(url, key, { auth: { persistSession: false } });
 }
@@ -21,11 +26,18 @@ export function createServerSupabase() {
  * existing GitHub Actions / local setups keep working.
  */
 export function createServiceSupabase() {
-  const url = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
-  const key = serviceKey?.startsWith("eyJ") ? serviceKey : process.env.SUPABASE_KEY ?? process.env.SUPABASE_ANON_KEY;
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_KEY;
+  const key =
+    serviceKey?.startsWith("eyJ")
+      ? serviceKey
+      : process.env.SUPABASE_KEY ??
+        process.env.SUPABASE_ANON_KEY ??
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) {
-    throw new Error("SUPABASE_URL and SUPABASE_SERVICE_KEY (or SUPABASE_KEY) must be set");
+    throw new Error(
+      "SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY (or SUPABASE_KEY) must be set",
+    );
   }
   return createClient(url, key, { auth: { persistSession: false } });
 }

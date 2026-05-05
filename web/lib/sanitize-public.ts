@@ -34,6 +34,10 @@ function safeCurrencyLabel(value: number | null | undefined, fallback: string, l
   if (typeof value === "number" && Number.isFinite(value)) {
     return formatCompactCop(value, lang);
   }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return formatCompactCop(parsed, lang);
+  }
   return normalizeCurrencyPrefix(fallback);
 }
 

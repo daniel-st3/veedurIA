@@ -30,6 +30,7 @@ import type {
 const DEFAULT_PAGE_SIZE = 24;
 const DEFAULT_VOTES_PAGE_SIZE = 20;
 const MAX_DIRECTORY_FETCH = 500;
+const SUPABASE_QUERY_TIMEOUT_MS = 4000;
 
 type SearchParamInput =
   | URLSearchParams
@@ -37,12 +38,71 @@ type SearchParamInput =
 
 type DirectoryRow = Record<string, unknown>;
 type VoteRow = Record<string, unknown>;
+type SupabaseQueryResult = {
+  data: unknown;
+  error: unknown;
+  count?: number | null;
+};
+type SupabaseQueryContext = {
+  table: string;
+  purpose: string;
+  slug?: string;
+};
 
 function getDataSupabase() {
   try {
     return createServiceSupabase();
   } catch {
     return createServerSupabase();
+  }
+}
+
+function createSupabaseTimeout() {
+  const abortSignalTimeout = AbortSignal as typeof AbortSignal & {
+    timeout?: (milliseconds: number) => AbortSignal;
+  };
+
+  if (typeof abortSignalTimeout.timeout === "function") {
+    return {
+      signal: abortSignalTimeout.timeout(SUPABASE_QUERY_TIMEOUT_MS),
+      cleanup: () => undefined,
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SUPABASE_QUERY_TIMEOUT_MS);
+  return {
+    signal: controller.signal,
+    cleanup: () => clearTimeout(timeout),
+  };
+}
+
+function logSupabaseProfileError(context: SupabaseQueryContext, error: unknown) {
+  const message = error instanceof Error ? error.message : toStringValue((error as Record<string, unknown> | null)?.message) || String(error);
+  console.error("[votometro] Supabase query failed", {
+    table: context.table,
+    purpose: context.purpose,
+    slug: context.slug ?? null,
+    message,
+  });
+}
+
+async function runSupabaseQuery<T extends SupabaseQueryResult>(
+  query: (signal: AbortSignal) => PromiseLike<T>,
+  context: SupabaseQueryContext,
+): Promise<T | null> {
+  const timeout = createSupabaseTimeout();
+  try {
+    const result = await query(timeout.signal);
+    if (result.error) {
+      logSupabaseProfileError(context, result.error);
+    }
+    return result;
+  } catch (error) {
+    logSupabaseProfileError(context, error);
+    return null;
+  } finally {
+    timeout.cleanup();
   }
 }
 
@@ -539,11 +599,17 @@ export async function getVotometroProfileResult(
 ): Promise<VotometroProfileResult> {
   try {
     const supabase = getDataSupabase();
-    const { data: profileRow, error: profileError } = await supabase
-      .from("votometro_directory_public")
-      .select("*")
-      .eq("slug", slug)
-      .maybeSingle();
+    const profileResult = await runSupabaseQuery(
+      (signal) => supabase
+        .from("votometro_directory_public")
+        .select("*")
+        .eq("slug", slug)
+        .abortSignal(signal)
+        .maybeSingle(),
+      { table: "votometro_directory_public", purpose: "profile identity and directory aggregates", slug },
+    );
+    const profileRow = profileResult?.data;
+    const profileError = profileResult?.error;
 
     if (profileError) {
       return {
@@ -561,21 +627,43 @@ export async function getVotometroProfileResult(
 
     const item = itemFromDirectoryRow(profileRow as DirectoryRow);
 
-    const [{ data: socials }, { data: promises }] = await Promise.all([
-      supabase
-        .from("legislator_socials")
-        .select("network, handle, url")
-        .eq("legislator_id", item.id)
-        .order("network", { ascending: true }),
-      supabase
-        .from("votometro_approved_promises_public")
-        .select("*")
-        .eq("legislator_id", item.id)
-        .order("source_date", { ascending: false })
-        .limit(12),
+    const optionalResults = await Promise.allSettled([
+      runSupabaseQuery(
+        (signal) => supabase
+          .from("legislator_socials")
+          .select("network, handle, url")
+          .eq("legislator_id", item.id)
+          .order("network", { ascending: true })
+          .abortSignal(signal),
+        { table: "legislator_socials", purpose: "profile socials", slug },
+      ),
+      runSupabaseQuery(
+        (signal) => supabase
+          .from("votometro_approved_promises_public")
+          .select("*")
+          .eq("legislator_id", item.id)
+          .order("source_date", { ascending: false })
+          .limit(12)
+          .abortSignal(signal),
+        { table: "votometro_approved_promises_public", purpose: "approved campaign promises", slug },
+      ),
+      getVotometroVotes({ legislatorId: item.id, page: 1, pageSize: 60, contextSlug: slug }),
     ]);
 
-    const votes = await getVotometroVotes({ legislatorId: item.id, page: 1, pageSize: 60 });
+    const socialsResult =
+      optionalResults[0].status === "fulfilled" ? optionalResults[0].value : null;
+    const promisesResult =
+      optionalResults[1].status === "fulfilled" ? optionalResults[1].value : null;
+    const votes =
+      optionalResults[2].status === "fulfilled"
+        ? optionalResults[2].value
+        : {
+            meta: { total: 0, page: 1, pageSize: 60, generatedAt: new Date().toISOString() },
+            issue: null,
+            items: [],
+          };
+    const socials = socialsResult?.error ? [] : socialsResult?.data;
+    const promises = promisesResult?.error ? [] : promisesResult?.data;
 
     const attendance: AttendanceSummary = {
       sessions: item.attendanceSessions,
@@ -638,22 +726,29 @@ export async function getVotometroVotes({
   topic,
   page = 1,
   pageSize = DEFAULT_VOTES_PAGE_SIZE,
+  contextSlug,
 }: {
   slug?: string;
   legislatorId?: string;
   topic?: string;
   page?: number;
   pageSize?: number;
+  contextSlug?: string;
 }): Promise<VotometroVotesPayload> {
   try {
     const supabase = getDataSupabase();
     let resolvedLegislatorId = legislatorId;
     if (!resolvedLegislatorId && slug) {
-      const { data } = await supabase
-        .from("votometro_directory_public")
-        .select("id")
-        .eq("slug", slug)
-        .maybeSingle();
+      const result = await runSupabaseQuery(
+        (signal) => supabase
+          .from("votometro_directory_public")
+          .select("id")
+          .eq("slug", slug)
+          .abortSignal(signal)
+          .maybeSingle(),
+        { table: "votometro_directory_public", purpose: "resolve legislator id for votes", slug },
+      );
+      const data = result?.error ? null : result?.data;
       resolvedLegislatorId = toStringValue((data as Record<string, unknown> | null)?.id);
     }
 
@@ -666,7 +761,17 @@ export async function getVotometroVotes({
     if (resolvedLegislatorId) query = query.eq("legislator_id", resolvedLegislatorId);
     if (topic) query = query.eq("topic_key", topic);
 
-    const { data, error, count } = await query;
+    const voteResult = await runSupabaseQuery(
+      (signal) => query.abortSignal(signal),
+      {
+        table: "votometro_vote_records_public",
+        purpose: "recent vote rows",
+        slug: contextSlug ?? slug,
+      },
+    );
+    const data = voteResult?.data;
+    const error = voteResult?.error;
+    const count = voteResult?.count;
     if (error || !data) {
       return {
         meta: { total: 0, page, pageSize, generatedAt: new Date().toISOString() },
