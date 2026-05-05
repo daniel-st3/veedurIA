@@ -272,6 +272,54 @@
   font-size: .92rem;
 }
 
+.topicPreviewState {
+  display: grid;
+  gap: .85rem;
+}
+
+.topicPreviewLabel {
+  margin: 0;
+  color: rgba(12,19,34,.56);
+  font-size: .74rem;
+  font-weight: 800;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.topicPreviewList {
+  display: grid;
+  gap: .62rem;
+  padding: .95rem;
+  border-radius: 8px;
+  background: rgba(12,19,34,.035);
+  border: 1px solid rgba(12,19,34,.07);
+}
+
+.topicPreviewRow {
+  display: grid;
+  grid-template-columns: minmax(86px, .72fr) minmax(110px, 1fr) auto;
+  gap: .75rem;
+  align-items: center;
+  color: rgba(12,19,34,.6);
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.topicPreviewRow i {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: .18;
+}
+
+.topicPreviewRow em {
+  color: rgba(12,19,34,.34);
+  font-style: normal;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 800;
+}
+
 /* ── Filters ──────────────────────────────────────────── */
 .filterGrid {
   position: relative;
@@ -1368,6 +1416,108 @@
   background: var(--cream, #f5f0e4);
 }
 
+.pipelineCard {
+  margin: 1.1rem 1.5rem 1.4rem;
+  padding: 1.15rem;
+  border: 1px solid rgba(12,19,34,0.09);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,248,252,0.9));
+  display: grid;
+  gap: .95rem;
+}
+
+.pipelineHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pipelineHeader strong {
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  color: var(--ink, #0c1322);
+}
+
+.pipelineBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: .32rem;
+}
+
+.pipelineMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: .65rem;
+}
+
+.pipelineSteps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .6rem;
+}
+
+.pipelineStep {
+  min-height: 68px;
+  display: grid;
+  gap: .45rem;
+  align-content: start;
+  padding: .78rem;
+  border-radius: 8px;
+  border: 1px solid rgba(12,19,34,.08);
+  background: rgba(255,255,255,.62);
+  color: rgba(12,19,34,.62);
+}
+
+.pipelineStep span {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: .68rem;
+  font-weight: 900;
+}
+
+.pipelineStep strong {
+  color: currentColor;
+  font-size: .82rem;
+  line-height: 1.35;
+}
+
+.pipelineStepDone {
+  color: #0a7a4e;
+  border-color: rgba(10,122,78,.16);
+  background: rgba(10,122,78,.055);
+}
+
+.pipelineStepDone span {
+  background: rgba(10,122,78,.12);
+}
+
+.pipelineStepActive {
+  color: #9a7100;
+  border-color: rgba(196,125,24,.22);
+  background: rgba(245,197,24,.085);
+}
+
+.pipelineStepActive span {
+  background: rgba(245,197,24,.16);
+}
+
+.pipelineStepPending span {
+  background: rgba(12,19,34,.07);
+}
+
+.pipelineNote {
+  margin: 0;
+  color: var(--text-m, rgba(12,19,34,.44));
+  font-size: .86rem;
+  line-height: 1.55;
+}
+
 .surfaceTitle {
   margin: 0 0 1.2rem;
   font-family: "Sora", sans-serif;
@@ -1415,6 +1565,17 @@
 
 .detailItem a:hover {
   color: var(--blue-2, #2f7cff);
+}
+
+@media (max-width: 760px) {
+  .pipelineSteps {
+    grid-template-columns: 1fr;
+  }
+
+  .topicPreviewRow {
+    grid-template-columns: minmax(78px, .8fr) minmax(90px, 1fr) auto;
+    gap: .55rem;
+  }
 }
 
 .statusBadge {

@@ -13,7 +13,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 function localizedStatusBadge(status: LegislatorProfile["status"], lang: Lang) {
   if (lang === "es") {
-    return status === "En revisión" ? "Estado en revisión" : status;
+    return status === "En revisión" ? "Datos en validación" : status;
   }
   const labels: Record<LegislatorProfile["status"], string> = {
     Activo: "Active",
@@ -23,7 +23,7 @@ function localizedStatusBadge(status: LegislatorProfile["status"], lang: Lang) {
     Suspendido: "Suspended",
     Exsenador: "Former senator",
     Exrepresentante: "Former representative",
-    "En revisión": "Status under review",
+    "En revisión": "Data under validation",
   };
   return labels[status] ?? status;
 }

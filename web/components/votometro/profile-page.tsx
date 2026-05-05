@@ -177,6 +177,14 @@ const PROFILE_PARTY_GRADIENTS: Record<string, [string, string]> = {
   "sin-partido":         ["#172033", "#3b4a68"],
 };
 
+const TOPIC_PREVIEW_ROWS = [
+  { es: "Economía", en: "Economy", width: "40%" },
+  { es: "Seguridad", en: "Security", width: "65%" },
+  { es: "Educación", en: "Education", width: "55%" },
+  { es: "Salud", en: "Health", width: "72%" },
+  { es: "Territorio", en: "Territory", width: "30%" },
+] as const;
+
 function avatar(profile: LegislatorProfile) {
   if (profile.imageUrl) {
     return (
@@ -386,6 +394,10 @@ export function VotometroProfilePage({
                 <strong>{lang === "es" ? "Circunscripción" : "Constituency"}</strong>
                 <span>{profile.circunscription || (lang === "es" ? "No visible" : "Not visible")}</span>
               </div>
+              <div className={styles.detailItem}>
+                <strong>{lang === "es" ? "Período" : "Term"}</strong>
+                <span>2022–2026</span>
+              </div>
               {profile.email ? (
                 <div className={styles.detailItem}>
                   <strong>{lang === "es" ? "Correo" : "Email"}</strong>
@@ -480,15 +492,29 @@ export function VotometroProfilePage({
                   );
                 })
               ) : (
-                <p className={styles.surfaceIntro}>
-                  {profile.votesIndexed === 0
-                    ? lang === "es"
-                      ? "Todavía no hay votaciones clasificadas por tema para este perfil."
-                      : "There are no topic-classified votes for this profile yet."
-                    : lang === "es"
-                      ? `El desglose temático se está clasificando sobre ${statNumber(profile.votesIndexed)} votos indexados.`
-                      : `The topic breakdown is being classified across ${statNumber(profile.votesIndexed)} indexed votes.`}
-                </p>
+                <div className={styles.topicPreviewState}>
+                  <p className={styles.surfaceIntro}>
+                    {profile.votesIndexed === 0
+                      ? lang === "es"
+                        ? "Todavía no hay votaciones clasificadas por tema para este perfil."
+                        : "There are no topic-classified votes for this profile yet."
+                      : lang === "es"
+                        ? `El desglose temático se está clasificando sobre ${statNumber(profile.votesIndexed)} votos indexados.`
+                        : `The topic breakdown is being classified across ${statNumber(profile.votesIndexed)} indexed votes.`}
+                  </p>
+                  <p className={styles.topicPreviewLabel}>
+                    {lang === "es" ? "Vista previa del formato — datos en validación" : "Format preview — data under validation"}
+                  </p>
+                  <div className={styles.topicPreviewList} aria-hidden="true">
+                    {TOPIC_PREVIEW_ROWS.map((topic) => (
+                      <div className={styles.topicPreviewRow} key={topic.es}>
+                        <span>{lang === "es" ? topic.es : topic.en}</span>
+                        <i style={{ width: topic.width }} />
+                        <em>—</em>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           </section>
@@ -697,22 +723,12 @@ export function VotometroProfilePage({
               ) : null}
             </>
           ) : profile.votesIndexed > 0 ? (
-            <div
-              style={{
-                margin: "1.1rem 1.5rem 1.4rem",
-                padding: "1.15rem",
-                border: "1px solid rgba(12,19,34,0.09)",
-                borderRadius: 8,
-                background: "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,248,252,0.9))",
-                display: "grid",
-                gap: "0.95rem",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-                <strong style={{ fontFamily: "Sora, sans-serif", fontSize: "1rem" }}>
+            <div className={styles.pipelineCard}>
+              <div className={styles.pipelineHeader}>
+                <strong>
                   {lang === "es" ? "Pipeline activo" : "Active pipeline"}
                 </strong>
-                <span className={`${styles.chip} ${styles.chipGood}`} style={{ display: "inline-flex", alignItems: "center", gap: "0.32rem" }}>
+                <span className={`${styles.chip} ${styles.chipGood} ${styles.pipelineBadge}`}>
                   {[0, 1, 2].map((dot) => (
                     <span
                       key={dot}
@@ -721,10 +737,10 @@ export function VotometroProfilePage({
                       style={{ width: 6, height: 6, borderRadius: 999, background: "#0a7a4e", display: "inline-block" }}
                     />
                   ))}
-                  {lang === "es" ? "pendiente" : "pending"}
+                  {lang === "es" ? "en pipeline" : "in pipeline"}
                 </span>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: "0.65rem" }}>
+              <div className={styles.pipelineMetrics}>
                 <span className={styles.chip}>
                   {lang === "es"
                     ? `${statNumber(profile.votesIndexed)} votos indexados`
@@ -741,10 +757,24 @@ export function VotometroProfilePage({
                       : "Coherence under review"}
                 </span>
               </div>
-              <p className={styles.smallMuted} style={{ margin: 0, fontSize: "0.86rem", lineHeight: 1.55 }}>
+              <div className={styles.pipelineSteps}>
+                <div className={`${styles.pipelineStep} ${styles.pipelineStepDone}`}>
+                  <span aria-hidden="true">✓</span>
+                  <strong>{lang === "es" ? "Perfil indexado" : "Profile indexed"}</strong>
+                </div>
+                <div className={`${styles.pipelineStep} ${styles.pipelineStepActive}`}>
+                  <span aria-hidden="true">•••</span>
+                  <strong>{lang === "es" ? "Votos nominales verificándose" : "Roll-call votes under verification"}</strong>
+                </div>
+                <div className={`${styles.pipelineStep} ${styles.pipelineStepPending}`}>
+                  <span aria-hidden="true">○</span>
+                  <strong>{lang === "es" ? "Desglose temático" : "Topic breakdown"}</strong>
+                </div>
+              </div>
+              <p className={styles.pipelineNote}>
                 {lang === "es"
-                  ? `El desglose temático estará disponible cuando se publiquen filas verificadas para los ${statNumber(profile.votesIndexed)} votos indexados.`
-                  : `The topic breakdown will be available when verified rows are published for the ${statNumber(profile.votesIndexed)} indexed votes.`}
+                  ? `El desglose temático estará disponible una vez el pipeline complete la clasificación de ${statNumber(profile.votesIndexed)} votos indexados.`
+                  : `The topic breakdown will appear once the pipeline finishes classifying ${statNumber(profile.votesIndexed)} indexed votes.`}
               </p>
             </div>
           ) : (
