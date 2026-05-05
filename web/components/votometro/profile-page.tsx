@@ -174,9 +174,16 @@ export function VotometroProfilePage({
           <div>
             <div className={styles.profileTop}>
               <h1 className={styles.profileName}>{profile.canonicalName}</h1>
-              <span className={`${styles.statusBadge} ${profile.status === "Fallecido" ? styles.statusBadgeMuted : ""}`}>
-                {localizedStatus(profile.status, lang)}
-              </span>
+              {(() => {
+                const raw = String(profile.status ?? "").trim();
+                const isUninformative = raw === "" || /revisi[óo]n/i.test(raw);
+                if (isUninformative) return null;
+                return (
+                  <span className={`${styles.statusBadge} ${profile.status === "Fallecido" ? styles.statusBadgeMuted : ""}`}>
+                    {localizedStatus(profile.status, lang)}
+                  </span>
+                );
+              })()}
               <span className={styles.chip}>{localizedChamberLabel(profile.chamber, lang)}</span>
               <span className={`${styles.chip} ${styles.chipGood}`}>{profile.party}</span>
             </div>
@@ -418,15 +425,168 @@ export function VotometroProfilePage({
                 ))}
               </tbody>
             </table>
+          ) : profile.votesIndexed > 0 ? (
+            (() => {
+              const coh = Math.max(0, profile.coherentVotes ?? 0);
+              const inc = Math.max(0, profile.inconsistentVotes ?? 0);
+              const abs = Math.max(0, profile.absentVotes ?? 0);
+              const total = coh + inc + abs;
+              const hasBreakdown = total > 0;
+              const cohPct = hasBreakdown ? (coh / total) * 100 : 0;
+              const incPct = hasBreakdown ? (inc / total) * 100 : 0;
+              const absPct = hasBreakdown ? (abs / total) * 100 : 0;
+              const cohScore = profile.coherenceScore;
+              return (
+                <div
+                  style={{
+                    padding: "1.25rem 1.5rem 1.4rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.85rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      justifyContent: "space-between",
+                      gap: "0.6rem",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <strong style={{ fontFamily: "Sora, sans-serif", fontSize: "0.95rem" }}>
+                      {lang === "es"
+                        ? `Total indexado: ${statNumber(profile.votesIndexed)} votos`
+                        : `Total indexed: ${statNumber(profile.votesIndexed)} votes`}
+                    </strong>
+                    <span className={styles.smallMuted}>
+                      {hasBreakdown
+                        ? lang === "es"
+                          ? "Distribución por alineación con promesas"
+                          : "Breakdown by alignment with promises"
+                        : lang === "es"
+                          ? "Desglose por votación disponible próximamente"
+                          : "Per-vote breakdown coming soon"}
+                    </span>
+                  </div>
+
+                  <div
+                    role="img"
+                    aria-label={
+                      hasBreakdown
+                        ? lang === "es"
+                          ? `Coherentes ${Math.round(cohPct)}%, inconsistentes ${Math.round(incPct)}%, ausencias ${Math.round(absPct)}%`
+                          : `Coherent ${Math.round(cohPct)}%, inconsistent ${Math.round(incPct)}%, absences ${Math.round(absPct)}%`
+                        : lang === "es"
+                          ? `${statNumber(profile.votesIndexed)} votos indexados`
+                          : `${statNumber(profile.votesIndexed)} indexed votes`
+                    }
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      height: 11,
+                      borderRadius: 999,
+                      overflow: "hidden",
+                      background: "rgba(12,19,34,0.06)",
+                    }}
+                  >
+                    {hasBreakdown ? (
+                      <>
+                        {cohPct > 0 ? (
+                          <span
+                            style={{
+                              width: `${cohPct}%`,
+                              background: "#0a7a4e",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#fff",
+                              fontSize: 10,
+                              fontWeight: 700,
+                              letterSpacing: ".02em",
+                            }}
+                          >
+                            {cohPct >= 12 ? `${Math.round(cohPct)}%` : ""}
+                          </span>
+                        ) : null}
+                        {incPct > 0 ? (
+                          <span
+                            style={{
+                              width: `${incPct}%`,
+                              background: "#a12c7b",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#fff",
+                              fontSize: 10,
+                              fontWeight: 700,
+                              letterSpacing: ".02em",
+                            }}
+                          >
+                            {incPct >= 12 ? `${Math.round(incPct)}%` : ""}
+                          </span>
+                        ) : null}
+                        {absPct > 0 ? (
+                          <span
+                            style={{
+                              width: `${absPct}%`,
+                              background: "rgba(12,19,34,0.32)",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#fff",
+                              fontSize: 10,
+                              fontWeight: 700,
+                              letterSpacing: ".02em",
+                            }}
+                          >
+                            {absPct >= 12 ? `${Math.round(absPct)}%` : ""}
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      <span
+                        style={{
+                          width: "100%",
+                          background: "rgba(12,19,34,0.18)",
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem" }}>
+                    <span className={styles.chip}>
+                      {`${statNumber(profile.attendedSessions ?? 0)} / ${statNumber(profile.attendanceSessions ?? 0)} ${lang === "es" ? "sesiones" : "sessions"}`}
+                    </span>
+                    <span className={`${styles.chip} ${styles.chipGood}`}>
+                      {cohScore != null
+                        ? `${Math.round(cohScore)}% ${lang === "es" ? "coherencia" : "coherence"}`
+                        : lang === "es"
+                          ? "Coherencia sin revisar"
+                          : "Coherence not reviewed"}
+                    </span>
+                    {hasBreakdown ? null : (
+                      <span className={styles.chip}>
+                        {lang === "es"
+                          ? `${statNumber(profile.votesIndexed)} votos indexados`
+                          : `${statNumber(profile.votesIndexed)} indexed votes`}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className={styles.smallMuted} style={{ margin: 0, fontSize: "0.78rem" }}>
+                    {lang === "es"
+                      ? "Desglose por votación disponible cuando el pipeline de datos esté completo."
+                      : "Per-vote breakdown available when the data pipeline is complete."}
+                  </p>
+                </div>
+              );
+            })()
           ) : (
             <div className={styles.emptyState}>
-              {profile.votesIndexed > 0
-                ? lang === "es"
-                  ? `Detalle de votaciones disponible próximamente. Total registrado: ${statNumber(profile.votesIndexed)} votos.`
-                  : `Vote detail coming soon. Total on record: ${statNumber(profile.votesIndexed)} votes.`
-                : lang === "es"
-                  ? "Aún no hay votaciones indexadas para este perfil."
-                  : "No indexed votes for this profile yet."}
+              {lang === "es"
+                ? "Aún no hay votaciones indexadas para este perfil."
+                : "No indexed votes for this profile yet."}
             </div>
           )}
         </section>
