@@ -68,6 +68,35 @@ function statNumber(value: number) {
   return new Intl.NumberFormat("es-CO").format(value);
 }
 
+function clampPercent(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function indexedCoverage(votesIndexed: number) {
+  return Math.max(0, Math.min(100, Math.round((votesIndexed / 2000) * 100)));
+}
+
+function publicTextSignals(profile: LegislatorProfile, lang: Lang) {
+  const base = [
+    profile.party,
+    localizedChamberLabel(profile.chamber, lang),
+    profile.commission,
+    profile.circunscription,
+    profile.roleLabel,
+  ].filter(Boolean);
+
+  const bio = profile.bio
+    .replace(/[.,;:()]/g, " ")
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length > 6)
+    .filter((word) => !/^(senador|senadora|representante|colombia|publica|público|perfil)$/i.test(word))
+    .slice(0, 4);
+
+  return [...new Set([...base, ...bio])].slice(0, 9);
+}
+
 type TopicInsight = TopicScore & {
   coherent?: number;
   coherentVotes?: number;
@@ -304,6 +333,40 @@ export function VotometroProfilePage({
   );
   const hasTopicInsights = sortedTopicScores.length > 0;
   const hasRecentVotes = profile.recentVotes.length > 0;
+  const aggregateRows = [
+    {
+      label: lang === "es" ? "Asistencia registrada" : "Recorded attendance",
+      value: clampPercent(profile.attendance.rate),
+      detail:
+        profile.attendance.sessions > 0
+          ? `${statNumber(profile.attendance.attended)} / ${statNumber(profile.attendance.sessions)} ${lang === "es" ? "sesiones" : "sessions"}`
+          : lang === "es"
+            ? "Sin sesiones visibles"
+            : "No visible sessions",
+      tone: "good",
+    },
+    {
+      label: lang === "es" ? "Coherencia agregada" : "Aggregate coherence",
+      value: clampPercent(profile.coherenceScore),
+      detail:
+        profile.coherenceScore == null
+          ? lang === "es"
+            ? "En validación"
+            : "Under validation"
+          : `${Math.round(profile.coherenceScore)} / 100`,
+      tone: "mid",
+    },
+    {
+      label: lang === "es" ? "Volumen indexado" : "Indexed volume",
+      value: indexedCoverage(profile.votesIndexed),
+      detail:
+        lang === "es"
+          ? `${statNumber(profile.votesIndexed)} votos en el corte público`
+          : `${statNumber(profile.votesIndexed)} votes in the public slice`,
+      tone: "blue",
+    },
+  ];
+  const textSignals = publicTextSignals(profile, lang);
 
   return (
     <div className={styles.shell} ref={containerRef}>
@@ -521,6 +584,73 @@ export function VotometroProfilePage({
         </div>
 
         <LegislatorStatBlock profile={profile} lang={lang} />
+
+        <section className={styles.aggregatePanel}>
+          <div className={styles.aggregateHeader}>
+            <div>
+              <h2 className={styles.surfaceTitle}>
+                {lang === "es" ? "Lectura agregada del perfil" : "Aggregate profile reading"}
+              </h2>
+              <p>
+                {lang === "es"
+                  ? "Esto sí sale de la ficha pública disponible: métricas agregadas, contexto institucional y texto biográfico verificado."
+                  : "This comes from the available public profile: aggregate metrics, institutional context, and verified biography text."}
+              </p>
+            </div>
+            <span>{lang === "es" ? "sin filas inventadas" : "no fabricated rows"}</span>
+          </div>
+
+          <div className={styles.aggregateBars}>
+            {aggregateRows.map((row) => (
+              <div className={styles.aggregateBarRow} data-tone={row.tone} key={row.label}>
+                <div>
+                  <strong>{row.label}</strong>
+                  <span>{row.detail}</span>
+                </div>
+                <div className={styles.aggregateTrack}>
+                  <i style={{ width: `${row.value ?? 0}%` }} />
+                </div>
+                <em>{row.value == null ? "—" : `${row.value}%`}</em>
+              </div>
+            ))}
+          </div>
+
+          <div className={styles.signalGrid}>
+            <div>
+              <h3>{lang === "es" ? "Señales de texto público" : "Public text signals"}</h3>
+              <p>
+                {lang === "es"
+                  ? "Extracción literal de campos visibles; no clasifica postura ni voto."
+                  : "Literal extraction from visible fields; it does not classify stance or votes."}
+              </p>
+              <div className={styles.signalChips}>
+                {textSignals.map((signal) => (
+                  <span key={signal}>{signal}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h3>{lang === "es" ? "Qué puede leerse hoy" : "What can be read today"}</h3>
+              <ul>
+                <li>
+                  {lang === "es"
+                    ? `${profile.canonicalName} aparece en ${localizedChamberLabel(profile.chamber, lang)} por ${profile.party}.`
+                    : `${profile.canonicalName} appears in ${localizedChamberLabel(profile.chamber, lang)} for ${profile.party}.`}
+                </li>
+                <li>
+                  {lang === "es"
+                    ? `El corte público tiene ${statNumber(profile.votesIndexed)} votos indexados para contraste posterior.`
+                    : `The public slice has ${statNumber(profile.votesIndexed)} indexed votes for later comparison.`}
+                </li>
+                <li>
+                  {lang === "es"
+                    ? "Aún no se muestran votos nominales fila por fila porque no hay detalle verificado publicado para este perfil."
+                    : "Roll-call rows are not shown yet because no verified detail is published for this profile."}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
 
         {profile.promises.length ? (
           <section className={styles.tableSurface}>
