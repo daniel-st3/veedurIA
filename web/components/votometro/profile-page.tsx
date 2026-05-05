@@ -185,15 +185,22 @@ export function VotometroProfilePage({
               {profile.circunscription ? ` · ${profile.circunscription}` : ""}
               {profile.commission ? ` · ${profile.commission}` : ""}
             </p>
-            {profile.bio ? (
-              <p className={styles.body}>{profile.bio.replace(/hijo del ex presidente Ernesto Samper\.?/gi, "").trim()}</p>
-            ) : (
-              <p className={`${styles.body} ${styles.smallMuted}`}>
-                {lang === "es"
-                  ? "Sin biografía pública verificada para este perfil."
-                  : "No verified public bio available for this profile."}
-              </p>
-            )}
+            {(() => {
+              const cleaned = (profile.bio ?? "")
+                .replace(/,?\s*hijo del ex presidente Ernesto Samper\.?/gi, "")
+                .replace(/[\s,;:·]+$/g, "")
+                .trim();
+              const isUsable = cleaned.length >= 20 && /[a-záéíóúñ]\b\.?$/i.test(cleaned);
+              return isUsable ? (
+                <p className={styles.body}>{cleaned.endsWith(".") ? cleaned : `${cleaned}.`}</p>
+              ) : (
+                <p className={`${styles.body} ${styles.smallMuted}`}>
+                  {lang === "es"
+                    ? "Sin biografía pública verificada para este perfil."
+                    : "No verified public bio available for this profile."}
+                </p>
+              );
+            })()}
 
             <div className={styles.metricRow}>
               <div className={styles.metricTile}>
