@@ -342,11 +342,11 @@ export function VotometroProfilePage({
 
         <LegislatorStatBlock profile={profile} lang={lang} />
 
-        <section className={styles.tableSurface}>
-          <h2 className={styles.surfaceTitle}>
-            {lang === "es" ? "Promesas revisadas" : "Reviewed promises"}
-          </h2>
-          {profile.promises.length ? (
+        {profile.promises.length ? (
+          <section className={styles.tableSurface}>
+            <h2 className={styles.surfaceTitle}>
+              {lang === "es" ? "Promesas revisadas" : "Reviewed promises"}
+            </h2>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -375,14 +375,8 @@ export function VotometroProfilePage({
                 ))}
               </tbody>
             </table>
-          ) : (
-            <div className={styles.emptyState}>
-              {lang === "es"
-                ? "Aún no hay promesas revisadas para este perfil. La coherencia pública aparecerá cuando exista una relación promesa-voto aprobada."
-                : "No reviewed promises yet. Public coherence appears once a promise-to-vote link is approved."}
-            </div>
-          )}
-        </section>
+          </section>
+        ) : null}
 
         <section className={styles.tableSurface}>
           <h2 className={styles.surfaceTitle}>
@@ -428,8 +422,8 @@ export function VotometroProfilePage({
             <div className={styles.emptyState}>
               {profile.votesIndexed > 0
                 ? lang === "es"
-                  ? `Las votaciones de este perfil aún se están validando contra fuente. Total reportado: ${statNumber(profile.votesIndexed)} votos.`
-                  : `Votes for this profile are still in source validation. Reported total: ${statNumber(profile.votesIndexed)} votes.`
+                  ? `Detalle de votaciones disponible próximamente. Total registrado: ${statNumber(profile.votesIndexed)} votos.`
+                  : `Vote detail coming soon. Total on record: ${statNumber(profile.votesIndexed)} votes.`
                 : lang === "es"
                   ? "Aún no hay votaciones indexadas para este perfil."
                   : "No indexed votes for this profile yet."}
