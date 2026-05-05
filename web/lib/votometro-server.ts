@@ -165,6 +165,40 @@ const LEGISLATOR_STATUSES = new Set([
   "En revisión",
 ]);
 
+/**
+ * Server-safe bio sanitizer. Strips the verified-false Samper lineage clause
+ * from Miguel Uribe Turbay's seed bio, trims dangling punctuation/connectors
+ * left behind, and falls back to a localized "no verified public bio" string
+ * when the residue is too thin or syntactically incomplete. Runs BEFORE the
+ * RSC payload is serialized so the wire response cannot ship the false claim.
+ */
+export function sanitizeLegislatorBio(
+  rawBio: string | null | undefined,
+  lang: "es" | "en" = "es",
+): string {
+  const fallback =
+    lang === "es"
+      ? "Sin biografía pública verificada para este perfil."
+      : "No verified public bio available for this profile.";
+
+  if (!rawBio || typeof rawBio !== "string") return fallback;
+
+  // Strip the false trailing clause along with its leading comma/space, with
+  // or without the final period.
+  let cleaned = rawBio.replace(/,?\s*hijo del ex presidente Ernesto Samper\.?/gi, "");
+
+  // Trim whitespace + dangling connectors (comma, semicolon, colon, dash,
+  // middle dot) from both ends.
+  cleaned = cleaned.replace(/^[\s,;:·\-—–]+/g, "").replace(/[\s,;:·\-—–]+$/g, "").trim();
+
+  // Require enough text and an alphabetic ending (not a stray conjunction or
+  // punctuation). Otherwise surface the fallback.
+  const endsOnWord = /[a-záéíóúñA-ZÁÉÍÓÚÑ]\.?$/.test(cleaned);
+  if (cleaned.length < 20 || !endsOnWord) return fallback;
+
+  return cleaned.endsWith(".") ? cleaned : `${cleaned}.`;
+}
+
 function verifiedUrl(value: unknown) {
   const url = toStringValue(value);
   if (!url) return "";
@@ -483,12 +517,18 @@ export async function getVotometroDirectory(filtersInput: SearchParamInput | Vot
   }
 }
 
-export async function getVotometroProfile(slug: string): Promise<LegislatorProfile | null> {
-  const result = await getVotometroProfileResult(slug);
+export async function getVotometroProfile(
+  slug: string,
+  lang: "es" | "en" = "es",
+): Promise<LegislatorProfile | null> {
+  const result = await getVotometroProfileResult(slug, lang);
   return result.profile;
 }
 
-export async function getVotometroProfileResult(slug: string): Promise<VotometroProfileResult> {
+export async function getVotometroProfileResult(
+  slug: string,
+  lang: "es" | "en" = "es",
+): Promise<VotometroProfileResult> {
   try {
     const supabase = getDataSupabase();
     const { data: profileRow, error: profileError } = await supabase
@@ -561,6 +601,7 @@ export async function getVotometroProfileResult(slug: string): Promise<Votometro
     return {
       profile: {
         ...item,
+        bio: sanitizeLegislatorBio(item.bio, lang),
         topicScores: finalTopicScores,
         attendance,
         socials: Array.isArray(socials)

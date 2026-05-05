@@ -14,7 +14,7 @@ export async function generateMetadata({
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const lang = resolveLang(Array.isArray(query.lang) ? query.lang[0] : query.lang);
-  const { profile, issue } = await getVotometroProfileResult(slug);
+  const { profile, issue } = await getVotometroProfileResult(slug, lang);
 
   if (!profile) {
     const description = issue
@@ -52,7 +52,7 @@ export default async function VotometroLegislatorPage({
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const lang = resolveLang(Array.isArray(query.lang) ? query.lang[0] : query.lang);
-  const { profile, issue } = await getVotometroProfileResult(slug);
+  const { profile, issue } = await getVotometroProfileResult(slug, lang);
 
   return <VotometroProfilePage lang={lang} profile={profile} issue={issue} />;
 }
