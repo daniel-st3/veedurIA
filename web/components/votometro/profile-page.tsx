@@ -217,16 +217,15 @@ export function VotometroProfilePage({
 
       tl.fromTo(
         `.${styles.hero}`,
-        { autoAlpha: 0, y: 30 },
-        { autoAlpha: 1, y: 0, duration: 0.8 },
+        { y: 30 },
+        { y: 0, duration: 0.8 },
       );
 
       gsap.utils.toArray<HTMLElement>(`.${styles.surface}, .${styles.tableSurface}`).forEach((el, i) => {
         gsap.fromTo(
           el,
-          { autoAlpha: 0, y: 25 },
+          { y: 25 },
           {
-            autoAlpha: 1,
             y: 0,
             duration: 0.7,
             ease: "power3.out",

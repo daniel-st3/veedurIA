@@ -3,7 +3,8 @@ import { resolveLang } from "@/lib/copy";
 import { buildPageMetadata } from "@/lib/metadata";
 import { getVotometroProfileResult } from "@/lib/votometro-server";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata({
   params,
