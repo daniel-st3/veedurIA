@@ -116,6 +116,43 @@ Two safe directions, in increasing order of effort:
 Both options preserve clean values, normalized entity names, value badges,
 filters, and dashboard behavior. Neither is required for ship-readiness.
 
+## Votómetro vote-row pipeline status
+
+Production currently has the public legislator directory and aggregate profile
+metrics, but not publishable individual vote rows. The public read-layer audit
+on 2026-05-05 found:
+
+| Table/view | Status |
+|------------|--------|
+| `legislator_votes` | Not exposed / not present in the public PostgREST schema |
+| `votes` | Not exposed / not present in the public PostgREST schema |
+| `votometro_vote_records_public` | Exists, `0` rows |
+| `vote_events` | Exists, `0` rows |
+| `vote_records` | Exists, `0` rows |
+| `votometro_directory_public` | Exists, 45 active profiles |
+
+Until `vote_events` and `vote_records` are populated and can be joined to
+profiles by stable `legislator_id`, profiles must keep the Pipeline activo
+card. Do not fabricate vote rows, project names, source URLs, promise matches,
+or topic classifications. A normalized-name fallback is only acceptable after a
+separate auditable matching pass records the evidence and collision handling.
+
+Expected behavior:
+
+- Real vote rows available → render the recent vote table from source-backed
+  rows only.
+- No real vote rows → render Pipeline activo with aggregate profile metrics and
+  explain that individual vote classification is pending source validation.
+- Zero indexed votes → keep the zero-vote copy, without inventing activity.
+
+## SigueElDinero source validation
+
+SigueElDinero remains active, but network relationships are only public when
+the API returns source-backed nodes and links. If the network API is unavailable
+or returns no verified layer, the UI reports "Red en validación de fuente" and
+shows unavailable metrics as `Sin dato` / `No data` instead of publishing
+reference relationships as facts.
+
 ## Verifying a deployment
 
 ```bash

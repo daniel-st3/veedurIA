@@ -70,6 +70,7 @@ export function SigueElDineroView({ lang }: Props) {
   const [searchInput, setSearchInput] = useState("");
   const [dataVersion, setDataVersion] = useState<string | null>(null);
   const [networkMeta, setNetworkMeta] = useState<NetworkMetaState>(null);
+  const sourceValidated = networkMeta?.source === "live" || networkMeta?.source === "cache";
 
   // ── Canvas size ────────────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
@@ -469,7 +470,7 @@ export function SigueElDineroView({ lang }: Props) {
           {/* Metric chips */}
           <div className="sed-hero-chips sed-hero__animate">
             {(() => {
-              const dataReady = !isLoading && !error && nodes.length > 0;
+              const dataReady = sourceValidated && !isLoading && !error && nodes.length > 0;
               const fallback = lang === "es" ? "Sin dato" : "No data";
               const fmt = (n: number) => n.toLocaleString(lang === "es" ? "es-CO" : "en-US");
               return (
@@ -510,8 +511,8 @@ export function SigueElDineroView({ lang }: Props) {
       <div className="sed-intro-text">
         <p>
           {lang === "es"
-            ? "Explora de manera interactiva el complejo ecosistema de la contratación estatal. Este radar impulsado por análisis de redes y machine learning agrupa entidades y proveedores para revelar vínculos críticos, dependencias estructurales e índices de concentración de capital público."
-            : "Interactively explore the complex ecosystem of state contracting. This radar, powered by network analysis and machine learning, clusters entities and providers to reveal critical links, structural dependencies, and public capital concentration indices."}
+            ? "Red en validación de fuente. Los nodos y vínculos de contratación se publican conforme se verifican contra registros públicos; las métricas no disponibles se muestran como Sin dato."
+            : "Network under source validation. Contracting nodes and links are published as they are verified against public records; unavailable metrics are shown as No data."}
         </p>
       </div>
 
@@ -557,13 +558,13 @@ export function SigueElDineroView({ lang }: Props) {
       <div className="sed-workbench" ref={workbenchRef}>
 
         {/* Status banners */}
-        {networkMeta?.source === "mock" && (
+        {(networkMeta?.source === "mock" || networkMeta?.source === "empty") && (
           <div className="sed-status-banner is-warning" role="status">
-            <strong>{lang === "es" ? "Modo de referencia activo." : "Reference mode active."}</strong>
+            <strong>{lang === "es" ? "Red en validación de fuente." : "Network under source validation."}</strong>
             <span>
               {lang === "es"
-                ? "Vista de referencia cargada. Busca una entidad o contratista para explorar su red real."
-                : "Reference view loaded. Search for an entity or contractor to explore their real network."}
+                ? "Nodos y vínculos se publican conforme se verifican. No se muestran relaciones no respaldadas por fuente."
+                : "Nodes and links are published as they are verified. Relationships without source support are not shown."}
             </span>
           </div>
         )}
@@ -633,7 +634,9 @@ export function SigueElDineroView({ lang }: Props) {
           {dataVersion && (
             <span className="sed-version-tag">
               {networkMeta?.source === "mock"
-                ? lang === "es" ? "Referencia · 2026" : "Reference · 2026"
+                ? lang === "es" ? "Validación de fuente" : "Source validation"
+                : networkMeta?.source === "empty"
+                  ? lang === "es" ? "Validación de fuente" : "Source validation"
                 : `${lang === "es" ? "Cron diario" : "Daily cron"} · ${networkFreshnessLabel ?? `v${dataVersion}`}`}
             </span>
           )}
@@ -679,7 +682,11 @@ export function SigueElDineroView({ lang }: Props) {
                                 : `No results for "${searchQuery}". Try without accents or use the official name.`}
                             </p>
                           ) : (
-                            <p>{lang === "es" ? "Sin datos en la red" : "No network data"}</p>
+                            <p>
+                              {lang === "es"
+                                ? "Nodos y vínculos en validación de fuente. Se publicarán cuando exista evidencia verificable."
+                                : "Nodes and links are under source validation. They will be published when verifiable evidence is available."}
+                            </p>
                           )}
                         </div>
                       )}
@@ -789,8 +796,8 @@ export function SigueElDineroView({ lang }: Props) {
           </h3>
           <p>
             {lang === "es"
-              ? "Las conexiones dibujadas en este grafo no implican delitos, sino relaciones documentadas de flujo de capitales en el SECOP. Las banderas de riesgo algorítmico se aplican usando densidades de red y el índice Herfindahl-Hirschman (HHI) para alertar sobre la monopolización de contratos."
-              : "The connections drawn in this graph do not imply crimes, but documented relationships of capital flow in SECOP. Algorithmic risk flags are applied using network densities and the Herfindahl-Hirschman Index (HHI) to alert on contract monopolization."}
+              ? "Las conexiones que se publiquen en este grafo no implican delitos, sino relaciones documentadas en fuentes públicas. Si la red está en validación, VeedurIA retiene nodos y vínculos hasta contar con soporte verificable."
+              : "Connections published in this graph do not imply crimes; they are relationships documented in public sources. When the network is under validation, VeedurIA withholds nodes and links until verifiable support is available."}
           </p>
         </div>
       </section>
