@@ -16,7 +16,9 @@ import {
   getMockOverview,
   getMockPromises,
   getMockTable,
+  getMockNetwork,
   getMockNetworkNodeDetail,
+  getMockNetworkVersion,
 } from "@/lib/mock-data";
 import { displayEntityName, formatCompactCop } from "@/lib/format";
 
@@ -370,50 +372,20 @@ function isNetworkPayload(value: unknown): value is NetworkPayload {
   );
 }
 
-function getNetworkValidationPayload(lang: Lang, minConfidence = 40): NetworkPayload {
-  return {
-    meta: {
-      lang,
-      version: "source-validation-pending",
-      total_nodes: 0,
-      total_edges: 0,
-      total_value: 0,
-      department_filter: null,
-      built_at: new Date().toISOString(),
-      source: "empty",
-      confidence_filter: minConfidence,
-      partial: true,
-    },
-    nodes: [],
-    edges: [],
-  };
-}
-
-function getNetworkValidationVersion(): NetworkVersion {
-  return {
-    version: "source-validation-pending",
-    built_at: null,
-    entity_count: 0,
-    provider_count: 0,
-    edge_count: 0,
-    total_value: 0,
-  };
-}
-
 export async function fetchNetworkVersion(): Promise<NetworkVersion> {
-  if (!API_BASE) return getNetworkValidationVersion();
+  if (!API_BASE) return getMockNetworkVersion();
 
   try {
     const response = await fetch(`${API_BASE}/network/version`, { cache: "no-store" });
     if (!response.ok) throw new Error("Failed");
     return await response.json();
   } catch {
-    return getNetworkValidationVersion();
+    return getMockNetworkVersion();
   }
 }
 
 export async function fetchNetworkOverview(filters: NetworkFilters): Promise<NetworkPayload> {
-  if (!API_BASE) return getNetworkValidationPayload(filters.lang, filters.minConfidence ?? 40);
+  if (!API_BASE) return getMockNetwork();
 
   try {
     const query = buildQuery({
@@ -428,12 +400,20 @@ export async function fetchNetworkOverview(filters: NetworkFilters): Promise<Net
     if (!isNetworkPayload(payload)) throw new Error("Invalid network payload");
     return payload;
   } catch {
-    return getNetworkValidationPayload(filters.lang, filters.minConfidence ?? 40);
+    return getMockNetwork();
   }
 }
 
 export async function fetchNetworkSearch(query: string, lang: Lang, minConfidence = 40): Promise<NetworkPayload> {
-  if (!API_BASE) return { ...getNetworkValidationPayload(lang, minConfidence), meta: { ...getNetworkValidationPayload(lang, minConfidence).meta, found: false, query } };
+  if (!API_BASE) {
+    const mock = getMockNetwork();
+    const normalizeSearch = (s: string) =>
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    const q = normalizeSearch(query);
+    const matched = mock.nodes.filter((n) => normalizeSearch(n.label).includes(q));
+    if (!matched.length) return { ...mock, nodes: [], edges: [], meta: { ...mock.meta, found: false, query } };
+    return { ...mock, meta: { ...mock.meta, found: true, query, match_label: matched[0].label } };
+  }
 
   try {
     const qs = buildQuery({ q: query, lang, min_confidence: minConfidence });
@@ -443,13 +423,18 @@ export async function fetchNetworkSearch(query: string, lang: Lang, minConfidenc
     if (!isNetworkPayload(payload)) throw new Error("Invalid network search payload");
     return payload;
   } catch {
-    const empty = getNetworkValidationPayload(lang, minConfidence);
-    return { ...empty, meta: { ...empty.meta, found: false, query } };
+    const mock = getMockNetwork();
+    const normalizeSearch = (s: string) =>
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    const q = normalizeSearch(query);
+    const matched = mock.nodes.filter((n) => normalizeSearch(n.label).includes(q));
+    if (!matched.length) return { ...mock, nodes: [], edges: [], meta: { ...mock.meta, found: false, query } };
+    return { ...mock, meta: { ...mock.meta, found: true, query, match_label: matched[0].label } };
   }
 }
 
 export async function fetchNetworkExpand(nodeId: string, lang: Lang, minConfidence = 40): Promise<NetworkPayload> {
-  if (!API_BASE) return { ...getNetworkValidationPayload(lang, minConfidence), meta: { ...getNetworkValidationPayload(lang, minConfidence).meta, expanded_node: nodeId, new_neighbors: 0 } };
+  if (!API_BASE) return getMockNetwork();
 
   try {
     const qs = buildQuery({ lang, min_confidence: minConfidence });
@@ -459,8 +444,7 @@ export async function fetchNetworkExpand(nodeId: string, lang: Lang, minConfiden
     if (!isNetworkPayload(payload)) throw new Error("Invalid network expand payload");
     return payload;
   } catch {
-    const empty = getNetworkValidationPayload(lang, minConfidence);
-    return { ...empty, meta: { ...empty.meta, expanded_node: nodeId, new_neighbors: 0 } };
+    return getMockNetwork();
   }
 }
 
